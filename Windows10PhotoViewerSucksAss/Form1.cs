@@ -27,6 +27,8 @@ namespace Windows10PhotoViewerSucksAss
 			this.overviewControl.Dock = DockStyle.Left;
 			this.Controls.Add(this.overviewControl);
 
+			this.overviewControl.ImageSelected += this.OverviewControl_ImageSelected;
+
 			this.AllowDrop = true;
 
 			this.KeyPreview = true;
@@ -78,6 +80,12 @@ namespace Windows10PhotoViewerSucksAss
 				return;
 			}
 			this.BeginInvoke(new MethodInvoker(() => this.SetDisplayPath(files[0])));
+		}
+
+		private void OverviewControl_ImageSelected(object sender, int e)
+		{
+			this.currentDisplayIndex = Math.Min(Math.Max(e, 0), this.currentFileList.Count - 1);
+			this.DisplayCurrent();
 		}
 
 		protected override void OnMouseWheel(MouseEventArgs e)
@@ -326,6 +334,7 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				this.overviewControl.SetDisplayIndex(this.currentDisplayIndex);
 				var displayFile = this.currentFileList[this.currentDisplayIndex];
+				this.Text = displayFile;
 
 				lock (this.sync)
 				{
