@@ -173,6 +173,17 @@ namespace Windows10PhotoViewerSucksAss
 
 		public void SetDisplayPath(string path)
 		{
+			FileInfo fileInfo;
+			try
+			{
+				fileInfo = new FileInfo(path);
+			}
+			catch (FileNotFoundException)
+			{
+				MessageBox.Show("Specified file doesn't exist: " + path);
+				return;
+			}
+			path = fileInfo.FullName;
 			var attributes = File.GetAttributes(path);
 			if ((attributes & FileAttributes.Directory) != 0)
 			{
