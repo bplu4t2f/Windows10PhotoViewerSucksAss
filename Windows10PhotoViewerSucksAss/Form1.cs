@@ -289,6 +289,10 @@ namespace Windows10PhotoViewerSucksAss
 					{
 						var tmp = this.currentDisplayIndex + i;
 						var tmp_wrapped_around = tmp % this.currentFileList.Count;
+						if (tmp_wrapped_around < 0)
+						{
+							tmp_wrapped_around += this.currentFileList.Count;
+						}
 						Debug.Assert(tmp_wrapped_around >= 0 && tmp_wrapped_around < this.currentFileList.Count);
 						surroundingFiles.Add(this.currentFileList[tmp_wrapped_around]);
 					}
