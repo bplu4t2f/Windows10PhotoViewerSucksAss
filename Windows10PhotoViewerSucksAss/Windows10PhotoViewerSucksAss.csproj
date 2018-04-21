@@ -54,7 +54,7 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
-    <Compile Include="ImageHandle.cs" />
+    <Compile Include="ImageCache.cs" />
     <Compile Include="MainImageControl.cs">
       <SubType>Component</SubType>
     </Compile>

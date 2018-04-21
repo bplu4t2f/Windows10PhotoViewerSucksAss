@@ -227,7 +227,7 @@ namespace Windows10PhotoViewerSucksAss
 			this.DisplayCurrent();
 		}
 
-		private readonly Dictionary<string, ImageContainer> imageCache = new Dictionary<string, ImageContainer>();
+		private readonly ImageCache imageCache = new ImageCache();
 		private CacheWorkItem cacheWorkItem;
 		private readonly ManualResetEventSlim cacheWorkWait = new ManualResetEventSlim();
 		private readonly object sync = new object();
@@ -258,22 +258,19 @@ namespace Windows10PhotoViewerSucksAss
 
 					if (item.DisplayPath == null)
 					{
-						foreach (var img in this.imageCache.Values)
-						{
-							img.InitialHandle.Dispose();
-						}
-						this.imageCache.Clear();
+						this.imageCache.PurgeAll();
 						continue;
 					}
 
-					ImageContainer imageContainer;
-					if (!this.imageCache.TryGetValue(item.DisplayPath, out imageContainer))
+					ImageHandle displayedImageHandle = this.imageCache.TryGetHandle(item.DisplayPath);
+					if (displayedImageHandle == null)
 					{
 						try
 						{
 							var image = Image.FromFile(item.DisplayPath);
-							imageContainer = new ImageContainer(image);
-							this.imageCache.Add(item.DisplayPath, imageContainer);
+							var newImageContainer = new ImageContainer(image);
+							displayedImageHandle = newImageContainer.CreateHandle();
+							this.imageCache.Add(item.DisplayPath, newImageContainer);
 						}
 						catch (Exception ex)
 						{
@@ -281,9 +278,9 @@ namespace Windows10PhotoViewerSucksAss
 						}
 					}
 
-					if (imageContainer != null)
+					// It can be null if the file is not a valid image.
+					if (displayedImageHandle != null)
 					{
-						var displayedImageHandle = imageContainer.CreateHandle();
 						this.BeginInvoke(new MethodInvoker(() => this.DisplayAction(displayedImageHandle)));
 					}
 					
@@ -291,24 +288,13 @@ namespace Windows10PhotoViewerSucksAss
 					for (int i = -2; i <= 2; ++i)
 					{
 						var tmp = this.currentDisplayIndex + i;
-						if (tmp < 0 || tmp >= this.currentFileList.Count)
-						{
-							continue;
-						}
-						surroundingFiles.Add(this.currentFileList[tmp]);
+						var tmp_wrapped_around = tmp % this.currentFileList.Count;
+						Debug.Assert(tmp_wrapped_around >= 0 && tmp_wrapped_around < this.currentFileList.Count);
+						surroundingFiles.Add(this.currentFileList[tmp_wrapped_around]);
 					}
 
-					foreach (var k in this.imageCache.Keys.ToList())
-					{
-						if (!surroundingFiles.Contains(k))
-						{
-							lock (this.sync)
-							{
-								this.imageCache[k].InitialHandle.Dispose();
-								this.imageCache.Remove(k);
-							}
-						}
-					}
+					this.imageCache.Purge(surroundingFiles);
+
 					foreach (var k in surroundingFiles)
 					{
 						if (this.cacheWorkWait.IsSet)
@@ -354,16 +340,12 @@ namespace Windows10PhotoViewerSucksAss
 				var displayFile = this.currentFileList[this.currentDisplayIndex];
 				this.Text = displayFile;
 
-				ImageHandle existingHandle = null;
-				lock (this.sync)
+				ImageHandle existingHandle = this.imageCache.TryGetHandle(displayFile);
+				if (existingHandle != null)
 				{
-					if (this.imageCache.TryGetValue(displayFile, out ImageContainer existingContainer))
-					{
-						existingHandle = existingContainer.CreateHandle();
-					}
+					this.DisplayAction(existingHandle);
 				}
 
-				this.DisplayAction(existingHandle);
 				lock (this.sync)
 				{
 					this.cacheWorkItem = new CacheWorkItem(displayFile);
