@@ -302,8 +302,11 @@ namespace Windows10PhotoViewerSucksAss
 					{
 						if (!surroundingFiles.Contains(k))
 						{
-							this.imageCache[k].InitialHandle.Dispose();
-							this.imageCache.Remove(k);
+							lock (this.sync)
+							{
+								this.imageCache[k].InitialHandle.Dispose();
+								this.imageCache.Remove(k);
+							}
 						}
 					}
 					foreach (var k in surroundingFiles)
@@ -351,11 +354,16 @@ namespace Windows10PhotoViewerSucksAss
 				var displayFile = this.currentFileList[this.currentDisplayIndex];
 				this.Text = displayFile;
 
-				if (this.imageCache.TryGetValue(displayFile, out ImageContainer existingImage))
+				ImageHandle existingHandle = null;
+				lock (this.sync)
 				{
-					this.DisplayAction(existingImage.CreateHandle());
+					if (this.imageCache.TryGetValue(displayFile, out ImageContainer existingContainer))
+					{
+						existingHandle = existingContainer.CreateHandle();
+					}
 				}
 
+				this.DisplayAction(existingHandle);
 				lock (this.sync)
 				{
 					this.cacheWorkItem = new CacheWorkItem(displayFile);
