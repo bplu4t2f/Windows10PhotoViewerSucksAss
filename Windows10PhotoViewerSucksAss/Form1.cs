@@ -308,6 +308,10 @@ namespace Windows10PhotoViewerSucksAss
 					}
 					foreach (var k in surroundingFiles)
 					{
+						if (this.cacheWorkWait.IsSet)
+						{
+							break;
+						}
 						if (!this.imageCache.ContainsKey(k))
 						{
 							try
@@ -346,6 +350,11 @@ namespace Windows10PhotoViewerSucksAss
 				this.overviewControl.SetDisplayIndex(this.currentDisplayIndex);
 				var displayFile = this.currentFileList[this.currentDisplayIndex];
 				this.Text = displayFile;
+
+				if (this.imageCache.TryGetValue(displayFile, out ImageContainer existingImage))
+				{
+					this.DisplayAction(existingImage.CreateHandle());
+				}
 
 				lock (this.sync)
 				{
