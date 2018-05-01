@@ -279,10 +279,7 @@ namespace Windows10PhotoViewerSucksAss
 					}
 
 					// It can be null if the file is not a valid image.
-					if (displayedImageHandle != null)
-					{
-						this.BeginInvoke(new MethodInvoker(() => this.DisplayAction(displayedImageHandle)));
-					}
+					this.BeginInvoke(new MethodInvoker(() => this.DisplayAction(displayedImageHandle)));
 					
 					var surroundingFiles = new List<string>();
 					for (int i = -2; i <= 2; ++i)
@@ -360,6 +357,7 @@ namespace Windows10PhotoViewerSucksAss
 
 		private void DisplayAction(ImageHandle image)
 		{
+			// Displayed image handle may be null.
 			this.mainImageControl.ImageHandle = image;
 		}
 	}
