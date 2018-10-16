@@ -208,6 +208,9 @@ namespace Windows10PhotoViewerSucksAss
 #else
 			var matchingFiles = files.ToList();
 #endif
+			var sw = Stopwatch.StartNew();
+			matchingFiles.Sort(NatnumSort.Instance);
+			Debug.WriteLine($"Sorting took {sw.ElapsedMilliseconds} ms");
 			foreach (var f in matchingFiles)
 			{
 				Debug.WriteLine(f);
