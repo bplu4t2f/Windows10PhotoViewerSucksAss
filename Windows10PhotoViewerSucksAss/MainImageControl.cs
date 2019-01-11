@@ -16,7 +16,6 @@ namespace Windows10PhotoViewerSucksAss
 	{
 		public MainImageControl()
 		{
-			InitializeComponent();
 			this.SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
 		}
 

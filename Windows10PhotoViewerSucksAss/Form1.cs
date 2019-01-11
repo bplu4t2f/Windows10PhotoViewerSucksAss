@@ -71,7 +71,7 @@ namespace Windows10PhotoViewerSucksAss
 		private void OverviewControl_ImageSelected(object sender, int e)
 		{
 			this.currentDisplayIndex = Math.Min(Math.Max(e, 0), this.currentFileList.Count - 1);
-			this.DisplayCurrent();
+			this.DisplayCurrent(scrollSelectedItemIntoView: false);
 		}
 
 		protected override void OnMouseWheel(MouseEventArgs e)
@@ -109,6 +109,7 @@ namespace Windows10PhotoViewerSucksAss
 				try
 				{
 					var displayFile = this.currentFileList[this.currentDisplayIndex];
+					// TODO use the SH file operation stuff maybe?
 					Process.Start("explorer.exe", $"/select,\"{displayFile}\"");
 				}
 				catch (Exception ex)
@@ -146,7 +147,7 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				this.currentDisplayIndex += 1;
 			}
-			this.DisplayCurrent();
+			this.DisplayCurrent(scrollSelectedItemIntoView: true);
 		}
 
 		private void Previous()
@@ -159,9 +160,12 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				this.currentDisplayIndex -= 1;
 			}
-			this.DisplayCurrent();
+			this.DisplayCurrent(scrollSelectedItemIntoView: true);
 		}
 
+		/// <summary>
+		/// Displays a specific file or folder.
+		/// </summary>
 		public void SetDisplayPath(string path)
 		{
 			FileInfo fileInfo;
@@ -174,17 +178,26 @@ namespace Windows10PhotoViewerSucksAss
 				MessageBox.Show("Specified file doesn't exist: " + path);
 				return;
 			}
+			catch (Exception ex)
+			{
+				MessageBox.Show("Cannot access requested file: " + ex.Message);
+				return;
+			}
 			path = fileInfo.FullName;
-			var attributes = File.GetAttributes(path);
+			var attributes = fileInfo.Attributes;
+			string dir;
+			string displayFile;
 			if ((attributes & FileAttributes.Directory) != 0)
 			{
-				this.SetDisplayPath2(path, null);
+				dir = path;
+				displayFile = null;
 			}
 			else
 			{
-				var dir = Path.GetDirectoryName(path);
-				this.SetDisplayPath2(dir, path);
+				dir = Path.GetDirectoryName(path);
+				displayFile = path;
 			}
+			this.SetDisplayPath2(dir, displayFile);
 		}
 
 		private IList<string> currentFileList;
@@ -197,7 +210,7 @@ namespace Windows10PhotoViewerSucksAss
 			var regex = new Regex(@"(\.png$)|(\.jpg$)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 			var matchingFiles = files.Where(x => regex.IsMatch(x)).ToList();
 #else
-			var matchingFiles = files.ToList();
+			IList<string> matchingFiles = files;
 #endif
 			foreach (var f in matchingFiles)
 			{
@@ -215,7 +228,7 @@ namespace Windows10PhotoViewerSucksAss
 			this.currentDisplayIndex = displayIndex;
 			this.overviewControl.Initialize(this.currentFileList);
 
-			this.DisplayCurrent();
+			this.DisplayCurrent(scrollSelectedItemIntoView: true);
 		}
 
 		private readonly ImageCache imageCache = new ImageCache();
@@ -307,22 +320,23 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
-		private void DisplayCurrent()
+		private void DisplayCurrent(bool scrollSelectedItemIntoView)
 		{
 			if (this.currentFileList == null || this.currentDisplayIndex == -1 || this.currentDisplayIndex >= this.currentFileList.Count)
 			{
-				this.overviewControl.SetDisplayIndex(-1);
+				this.overviewControl.SetDisplayIndex(-1, false);
 				this.mainImageControl.ImageHandle = null;
 
 				lock (this.sync)
 				{
+					// Clear the cache entirely
 					this.cacheWorkItem = new CacheWorkItem(null);
 					this.cacheWorkWait.Set();
 				}
 			}
 			else
 			{
-				this.overviewControl.SetDisplayIndex(this.currentDisplayIndex);
+				this.overviewControl.SetDisplayIndex(this.currentDisplayIndex, scrollSelectedItemIntoView);
 				var displayFile = this.currentFileList[this.currentDisplayIndex];
 				this.Text = displayFile;
 

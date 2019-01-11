@@ -15,8 +15,6 @@ namespace Windows10PhotoViewerSucksAss
 	{
 		public OverviewControl()
 		{
-			InitializeComponent();
-
 			this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.ResizeRedraw | ControlStyles.StandardClick, true);
 
 			this.scrollBar.Anchor = AnchorStyles.Right | AnchorStyles.Top | AnchorStyles.Bottom;
@@ -34,44 +32,57 @@ namespace Windows10PhotoViewerSucksAss
 
 		public void Initialize(IList<string> availableFiles)
 		{
-			this.availableFiles = availableFiles.Select(x => Path.GetFileName(x)).ToArray();
 			if (availableFiles == null)
 			{
-				return;
+				this.availableFiles = null;
 			}
-			this.scrollBar.Maximum = availableFiles.Count + this.scrollBar.LargeChange - 2;
+			else
+			{
+				this.availableFiles = availableFiles.Select(x => Path.GetFileName(x)).ToArray();
+				this.scrollBar.Maximum = availableFiles.Count + this.scrollBar.LargeChange - 2;
+			}
+			this.scrollBar.Enabled = availableFiles != null;
 
 			this.Invalidate();
 		}
 
-		public void SetDisplayIndex(int index)
+		public void SetDisplayIndex(int index, bool scrollSelectedItemIntoView)
 		{
 			this.selectedIndex = index;
 			this.Invalidate();
 
 			// Scroll control into center
-			var lineHeight = TextRenderer.MeasureText("w", this.Font).Height;
-			if (lineHeight <= 0)
+			if (scrollSelectedItemIntoView)
 			{
-				// wtf
-				return;
-			}
-			var linesOnScreen = this.Height / lineHeight;
-			var scrollPos_ideal = index - linesOnScreen / 2;
-			var scrollPos_actual = Math.Min(Math.Max(scrollPos_ideal, 0), this.availableFiles.Count);
-			try
-			{
-				this.scrollBar.Value = scrollPos_actual;
-			}
-			catch
-			{
-				// I don't even
+				int lineHeight = this.GetLineHeight();
+				int linesOnScreen = this.Height / lineHeight;
+				int scrollPos_ideal = index - linesOnScreen / 2;
+				int scrollPos_actual = Math.Min(Math.Max(scrollPos_ideal, 0), this.availableFiles.Count);
+				try
+				{
+					this.scrollBar.Value = scrollPos_actual;
+				}
+				catch
+				{
+					// I don't even
+				}
 			}
 		}
 
 		private Font GetSelectionFont()
 		{
 			return new Font(this.Font, FontStyle.Bold);
+		}
+
+		private int GetLineHeight()
+		{
+			int lineHeight = TextRenderer.MeasureText("w", this.Font).Height;
+			if (lineHeight < 2)
+			{
+				// wtf
+				lineHeight = 2;
+			}
+			return lineHeight;
 		}
 
 		private void ScrollBar_ValueChanged(object sender, EventArgs e)
@@ -90,17 +101,15 @@ namespace Windows10PhotoViewerSucksAss
 			}
 
 			TextFormatFlags flags = TextFormatFlags.EndEllipsis;
-			var lineHeight = TextRenderer.MeasureText(g, "w", this.Font).Height;
-			var imageIndex = this.scrollBar.Value;
-			int y = 0;
-			while (y < this.Height && imageIndex < this.availableFiles.Count)
+			int lineHeight = this.GetLineHeight();
+			int imageIndex = this.scrollBar.Value;
+			for (int y = 0; y < this.Height && imageIndex < this.availableFiles.Count; ++imageIndex)
 			{
 				var file = this.availableFiles[imageIndex];
 				Font font = imageIndex == this.selectedIndex ? this.GetSelectionFont() : this.Font;
 				Rectangle textRect = new Rectangle(0, y, this.Width - this.scrollBar.Width, lineHeight);
 				TextRenderer.DrawText(g, file, font, textRect, this.ForeColor, this.BackColor, flags);
 				y += lineHeight;
-				++imageIndex;
 			}
 		}
 
@@ -108,12 +117,7 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			base.OnMouseDown(e);
 			// Find the selected item
-			var lineHeight = TextRenderer.MeasureText("w", this.Font).Height;
-			if (lineHeight <= 0)
-			{
-				// wtf
-				return;
-			}
+			var lineHeight = this.GetLineHeight();
 			if (e.X > this.Width - this.scrollBar.Width)
 			{
 				return;
@@ -123,6 +127,9 @@ namespace Windows10PhotoViewerSucksAss
 			this.ImageSelected?.Invoke(null, clickedIndex);
 		}
 
+		/// <summary>
+		/// The reported index might be out of bounds.
+		/// </summary>
 		public event EventHandler<int> ImageSelected;
 	}
 }
