@@ -39,29 +39,13 @@ namespace Windows10PhotoViewerSucksAss
 		private readonly MainImageControl mainImageControl;
 		private readonly OverviewControl overviewControl;
 		private Thread cacheBuildWorker;
-		private readonly CancellationTokenSource cacheBuildCancellation = new CancellationTokenSource();
-		private bool reallyClose;
 
 		protected override void OnLoad(EventArgs e)
 		{
 			base.OnLoad(e);
-			this.cacheBuildWorker = new Thread(() => this.CacheBuildWorkerThreadProc(this.cacheBuildCancellation.Token));
+			this.cacheBuildWorker = new Thread(() => this.CacheBuildWorkerThreadProc());
+			this.cacheBuildWorker.IsBackground = true;
 			this.cacheBuildWorker.Start();
-		}
-
-		protected override async void OnClosing(CancelEventArgs e)
-		{
-			base.OnClosing(e);
-			if (this.reallyClose)
-			{
-				return;
-			}
-
-			e.Cancel = true;
-			this.cacheBuildCancellation.Cancel();
-			await Task.Run(() => this.cacheBuildWorker.Join(3500));
-			this.reallyClose = true;
-			this.Close();
 		}
 
 		protected override void OnDragEnter(DragEventArgs drgevent)
@@ -249,83 +233,77 @@ namespace Windows10PhotoViewerSucksAss
 			public string DisplayPath { get; }
 		}
 
-		private void CacheBuildWorkerThreadProc(CancellationToken ct)
+		private void CacheBuildWorkerThreadProc()
 		{
-			try
+			while (true)
 			{
-				while (true)
+				this.cacheWorkWait.Wait();
+				CacheWorkItem item;
+				lock (this.sync)
 				{
-					this.cacheWorkWait.Wait(ct);
-					CacheWorkItem item;
-					lock (this.sync)
-					{
-						this.cacheWorkWait.Reset();
-						item = this.cacheWorkItem;
-					}
+					this.cacheWorkWait.Reset();
+					item = this.cacheWorkItem;
+				}
 
-					if (item.DisplayPath == null)
-					{
-						this.imageCache.PurgeAll();
-						continue;
-					}
+				if (item.DisplayPath == null)
+				{
+					this.imageCache.PurgeAll();
+					continue;
+				}
 
-					ImageHandle displayedImageHandle = this.imageCache.TryGetHandle(item.DisplayPath);
-					if (displayedImageHandle == null)
+				ImageHandle displayedImageHandle = this.imageCache.TryGetHandle(item.DisplayPath);
+				if (displayedImageHandle == null)
+				{
+					try
+					{
+						var image = Image.FromFile(item.DisplayPath);
+						var newImageContainer = new ImageContainer(image);
+						displayedImageHandle = newImageContainer.CreateHandle();
+						this.imageCache.Add(item.DisplayPath, newImageContainer);
+					}
+					catch (Exception ex)
+					{
+						Debug.WriteLine(ex.ToString());
+					}
+				}
+
+				// It can be null if the file is not a valid image.
+				this.BeginInvoke(new MethodInvoker(() => this.DisplayAction(displayedImageHandle)));
+
+				var surroundingFiles = new List<string>();
+				for (int i = -2; i <= 2; ++i)
+				{
+					var tmp = this.currentDisplayIndex + i;
+					var tmp_wrapped_around = tmp % this.currentFileList.Count;
+					if (tmp_wrapped_around < 0)
+					{
+						tmp_wrapped_around += this.currentFileList.Count;
+					}
+					Debug.Assert(tmp_wrapped_around >= 0 && tmp_wrapped_around < this.currentFileList.Count);
+					surroundingFiles.Add(this.currentFileList[tmp_wrapped_around]);
+				}
+
+				this.imageCache.Purge(surroundingFiles);
+
+				foreach (var k in surroundingFiles)
+				{
+					if (this.cacheWorkWait.IsSet)
+					{
+						break;
+					}
+					if (!this.imageCache.ContainsKey(k))
 					{
 						try
 						{
-							var image = Image.FromFile(item.DisplayPath);
-							var newImageContainer = new ImageContainer(image);
-							displayedImageHandle = newImageContainer.CreateHandle();
-							this.imageCache.Add(item.DisplayPath, newImageContainer);
+							var image = Image.FromFile(k);
+							this.imageCache.Add(k, new ImageContainer(image));
 						}
 						catch (Exception ex)
 						{
 							Debug.WriteLine(ex.ToString());
 						}
 					}
-
-					// It can be null if the file is not a valid image.
-					this.BeginInvoke(new MethodInvoker(() => this.DisplayAction(displayedImageHandle)));
-					
-					var surroundingFiles = new List<string>();
-					for (int i = -2; i <= 2; ++i)
-					{
-						var tmp = this.currentDisplayIndex + i;
-						var tmp_wrapped_around = tmp % this.currentFileList.Count;
-						if (tmp_wrapped_around < 0)
-						{
-							tmp_wrapped_around += this.currentFileList.Count;
-						}
-						Debug.Assert(tmp_wrapped_around >= 0 && tmp_wrapped_around < this.currentFileList.Count);
-						surroundingFiles.Add(this.currentFileList[tmp_wrapped_around]);
-					}
-
-					this.imageCache.Purge(surroundingFiles);
-
-					foreach (var k in surroundingFiles)
-					{
-						if (this.cacheWorkWait.IsSet)
-						{
-							break;
-						}
-						if (!this.imageCache.ContainsKey(k))
-						{
-							try
-							{
-								var image = Image.FromFile(k);
-								this.imageCache.Add(k, new ImageContainer(image));
-							}
-							catch (Exception ex)
-							{
-								Debug.WriteLine(ex.ToString());
-							}
-						}
-					}
 				}
-			}
-			catch (OperationCanceledException)
-			{
 			}
 		}
 
