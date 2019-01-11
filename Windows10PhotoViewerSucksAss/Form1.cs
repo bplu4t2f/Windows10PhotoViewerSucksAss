@@ -18,20 +18,22 @@ namespace Windows10PhotoViewerSucksAss
 	{
 		public Form1()
 		{
-			InitializeComponent();
+			this.Size = new Size(960, 640);
+
 			this.mainImageControl = new MainImageControl();
 			this.mainImageControl.Dock = DockStyle.Fill;
-			this.Controls.Add(this.mainImageControl);
 
 			this.overviewControl = new OverviewControl();
 			this.overviewControl.Dock = DockStyle.Left;
+
+			this.SuspendLayout();
+			this.Controls.Add(this.mainImageControl);
 			this.Controls.Add(this.overviewControl);
+			this.ResumeLayout();
 
 			this.overviewControl.ImageSelected += this.OverviewControl_ImageSelected;
 
 			this.AllowDrop = true;
-
-			this.KeyPreview = true;
 		}
 
 		private readonly MainImageControl mainImageControl;
@@ -105,17 +107,19 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
-		protected override void OnKeyDown(KeyEventArgs e)
+		protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
 		{
-			if (e.KeyCode == Keys.S || e.KeyData == Keys.D)
+			if (keyData == Keys.S || keyData == Keys.D || keyData == Keys.Down || keyData == Keys.Right)
 			{
 				this.Next();
+				return true;
 			}
-			else if (e.KeyCode == Keys.W || e.KeyData == Keys.A)
+			else if (keyData == Keys.W || keyData == Keys.A || keyData == Keys.Up || keyData == Keys.Left)
 			{
 				this.Previous();
+				return true;
 			}
-			else if (e.KeyCode == Keys.E)
+			else if (keyData == Keys.E)
 			{
 				// explore to
 				try
@@ -127,21 +131,24 @@ namespace Windows10PhotoViewerSucksAss
 				{
 					MessageBox.Show(ex.ToString());
 				}
+				return true;
 			}
-			else if (e.KeyCode == Keys.F)
+			else if (keyData == Keys.F)
 			{
 				// copy file path
 				var displayFile = this.currentFileList[this.currentDisplayIndex];
 				Clipboard.SetText(displayFile);
+				return true;
 			}
-			else if (e.KeyCode == Keys.C)
+			else if (keyData == Keys.C)
 			{
 				var displayFile = this.currentFileList[this.currentDisplayIndex];
 				Clipboard.SetFileDropList(new System.Collections.Specialized.StringCollection() { displayFile });
+				return true;
 			}
 			else
 			{
-				base.OnKeyDown(e);
+				return base.ProcessCmdKey(ref msg, keyData);
 			}
 		}
 
