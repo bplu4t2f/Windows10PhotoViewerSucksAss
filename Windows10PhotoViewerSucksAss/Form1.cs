@@ -240,12 +240,14 @@ namespace Windows10PhotoViewerSucksAss
 
 		private struct CacheWorkItem
 		{
-			public CacheWorkItem(string displayPath)
+			public CacheWorkItem(string displayPath, string[] surroundingPaths)
 			{
 				this.DisplayPath = displayPath;
+				this.SurroundingPaths = surroundingPaths;
 			}
 
 			public string DisplayPath { get; }
+			public string[] SurroundingPaths { get; }
 		}
 
 		private void CacheBuildWorkerThreadProc()
@@ -266,6 +268,7 @@ namespace Windows10PhotoViewerSucksAss
 					continue;
 				}
 
+
 				ImageHandle displayedImageHandle = this.imageCache.TryGetHandle(item.DisplayPath);
 				if (displayedImageHandle == null)
 				{
@@ -285,36 +288,20 @@ namespace Windows10PhotoViewerSucksAss
 				// It can be null if the file is not a valid image.
 				this.BeginInvoke(new MethodInvoker(() => this.DisplayAction(displayedImageHandle)));
 
-				var surroundingFiles = new List<string>();
-				for (int i = -2; i <= 2; ++i)
-				{
-					// TODO order: +1 -1 +2 -2
-					// TODO currentDisplayIndex cross thread access
-					// TODO currentFileList cross thread access
-					var tmp = this.currentDisplayIndex + i;
-					var tmp_wrapped_around = tmp % this.currentFileList.Count;
-					if (tmp_wrapped_around < 0)
-					{
-						tmp_wrapped_around += this.currentFileList.Count;
-					}
-					Debug.Assert(tmp_wrapped_around >= 0 && tmp_wrapped_around < this.currentFileList.Count);
-					surroundingFiles.Add(this.currentFileList[tmp_wrapped_around]);
-				}
+				this.imageCache.Purge(item.SurroundingPaths);
 
-				this.imageCache.Purge(surroundingFiles);
-
-				foreach (var k in surroundingFiles)
+				foreach (var key in item.SurroundingPaths)
 				{
 					if (this.cacheWorkWait.IsSet)
 					{
 						break;
 					}
-					if (!this.imageCache.ContainsKey(k))
+					if (!this.imageCache.ContainsKey(key))
 					{
 						try
 						{
-							var image = Util.LoadImageFromFile(k);
-							this.imageCache.Add(k, new ImageContainer(image));
+							var image = Util.LoadImageFromFile(key);
+							this.imageCache.Add(key, new ImageContainer(image));
 						}
 						catch (Exception ex)
 						{
@@ -323,6 +310,26 @@ namespace Windows10PhotoViewerSucksAss
 					}
 				}
 			}
+		}
+
+		static readonly int[] fileLoadOrder = new int[] { 0, 1, -1, 2, -2 };
+
+		private CacheWorkItem GetCacheWorkItemForCurrentDisplayIndex()
+		{
+			var items = new string[fileLoadOrder.Length];
+			var list = this.currentFileList;
+			for (int i = 0; i < items.Length; ++i)
+			{
+				int offset = fileLoadOrder[i];
+				int index = this.currentDisplayIndex + offset;
+				int tmp_wrapped_around = index % list.Count;
+				if (tmp_wrapped_around < 0)
+				{
+					tmp_wrapped_around += list.Count;
+				}
+				items[i] = list[tmp_wrapped_around];
+			}
+			return new CacheWorkItem(items[0], items);
 		}
 
 		private void DisplayCurrent(bool scrollSelectedItemIntoView)
@@ -335,7 +342,7 @@ namespace Windows10PhotoViewerSucksAss
 				lock (this.sync)
 				{
 					// Clear the cache entirely
-					this.cacheWorkItem = new CacheWorkItem(null);
+					this.cacheWorkItem = new CacheWorkItem(null, null);
 					this.cacheWorkWait.Set();
 				}
 			}
@@ -353,7 +360,7 @@ namespace Windows10PhotoViewerSucksAss
 
 				lock (this.sync)
 				{
-					this.cacheWorkItem = new CacheWorkItem(displayFile);
+					this.cacheWorkItem = this.GetCacheWorkItemForCurrentDisplayIndex();
 					this.cacheWorkWait.Set();
 				}
 			}
