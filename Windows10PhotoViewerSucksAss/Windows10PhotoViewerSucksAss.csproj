@@ -55,14 +55,8 @@
     <Compile Include="MainImageControl.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="MainImageControl.Designer.cs">
-      <DependentUpon>MainImageControl.cs</DependentUpon>
-    </Compile>
     <Compile Include="OverviewControl.cs">
       <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="OverviewControl.Designer.cs">
-      <DependentUpon>OverviewControl.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
