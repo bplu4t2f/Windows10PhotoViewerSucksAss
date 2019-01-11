@@ -131,6 +131,7 @@ namespace Windows10PhotoViewerSucksAss
 				Clipboard.SetFileDropList(new System.Collections.Specialized.StringCollection() { displayFile });
 				return true;
 			}
+			// TODO F5 refresh
 			else
 			{
 				return base.ProcessCmdKey(ref msg, keyData);
@@ -200,6 +201,7 @@ namespace Windows10PhotoViewerSucksAss
 			this.SetDisplayPath2(dir, displayFile);
 		}
 
+		// currentFlieList may be null, and the display index may be invalid.
 		private IList<string> currentFileList;
 		private int currentDisplayIndex;
 
@@ -269,7 +271,7 @@ namespace Windows10PhotoViewerSucksAss
 				{
 					try
 					{
-						var image = Image.FromFile(item.DisplayPath);
+						var image = Util.LoadImageFromFile(item.DisplayPath);
 						var newImageContainer = new ImageContainer(image);
 						displayedImageHandle = newImageContainer.CreateHandle();
 						this.imageCache.Add(item.DisplayPath, newImageContainer);
@@ -286,6 +288,9 @@ namespace Windows10PhotoViewerSucksAss
 				var surroundingFiles = new List<string>();
 				for (int i = -2; i <= 2; ++i)
 				{
+					// TODO order: +1 -1 +2 -2
+					// TODO currentDisplayIndex cross thread access
+					// TODO currentFileList cross thread access
 					var tmp = this.currentDisplayIndex + i;
 					var tmp_wrapped_around = tmp % this.currentFileList.Count;
 					if (tmp_wrapped_around < 0)
@@ -308,7 +313,7 @@ namespace Windows10PhotoViewerSucksAss
 					{
 						try
 						{
-							var image = Image.FromFile(k);
+							var image = Util.LoadImageFromFile(k);
 							this.imageCache.Add(k, new ImageContainer(image));
 						}
 						catch (Exception ex)
