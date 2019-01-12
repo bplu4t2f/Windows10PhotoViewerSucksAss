@@ -50,6 +50,8 @@ namespace Windows10PhotoViewerSucksAss
 			mi_copy_full_path.Click += this.HandleMenuCopyFullPath;
 			var mi_copy_file = this.fileListContextMenu.MenuItems.Add("Copy file (&C)");
 			mi_copy_file.Click += this.HandleMenuCopyFile;
+			var mi_fork = this.fileListContextMenu.MenuItems.Add("Fork (&G)");
+			mi_fork.Click += this.HandleMenuFork;
 		}
 
 		private readonly ContextMenu fileListContextMenu = new ContextMenu();
@@ -197,6 +199,11 @@ namespace Windows10PhotoViewerSucksAss
 				this.CopyFile(this.currentDisplayIndex);
 				return true;
 			}
+			else if (keyData == Keys.G)
+			{
+				this.Fork(this.currentDisplayIndex);
+				return true;
+			}
 			// TODO F5 refresh
 			else
 			{
@@ -225,6 +232,11 @@ namespace Windows10PhotoViewerSucksAss
 		private void HandleMenuCopyFile(object sender, EventArgs e)
 		{
 			this.CopyFile(this.menuItemFileIndex);
+		}
+
+		private void HandleMenuFork(object sender, EventArgs e)
+		{
+			this.Fork(this.menuItemFileIndex);
 		}
 
 		private bool TryGetFile(int index, out string file)
@@ -271,6 +283,22 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
+		private void Fork(int fileIndex)
+		{
+			if (this.TryGetFile(fileIndex, out string file))
+			{
+				try
+				{
+					string exe_name = Process.GetCurrentProcess().MainModule.FileName;
+					Process.Start(exe_name, $"\"{file}\"");
+				}
+				catch (Exception ex)
+				{
+					MessageBox.Show(ex.ToString());
+				}
+			}
+		}
+
 		private void Next()
 		{
 			if (this.currentDisplayIndex >= this.currentFileList.Count - 1)
@@ -314,16 +342,17 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				fileInfo = new FileInfo(path);
 			}
-			catch (FileNotFoundException)
-			{
-				MessageBox.Show("Specified file doesn't exist: " + path);
-				return;
-			}
 			catch (Exception ex)
 			{
 				MessageBox.Show("Cannot access requested file: " + ex.Message);
 				return;
 			}
+			if (!fileInfo.Exists)
+			{
+				MessageBox.Show("Specified file doesn't exist: " + path);
+				return;
+			}
+
 			path = fileInfo.FullName;
 			var attributes = fileInfo.Attributes;
 			string dir;
