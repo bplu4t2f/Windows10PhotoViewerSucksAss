@@ -27,27 +27,14 @@ namespace Windows10PhotoViewerSucksAss
 			set
 			{
 				this._image = value;
-				this.transform.Reset();
-				if (value != null)
-				{
-					var image = value;
-					// TODO make this a function; persist zoom-to-fit mode until manual panning or zooming
-					this.transform.Translate(-image.Width / 2, -image.Height / 2);
-					if (image.Height > this.Height || image.Width > this.Width)
-					{
-						var ratioH = (float)this.Height / (float)image.Height;
-						var ratioW = (float)this.Width / (float)image.Width;
-						var min = Math.Min(ratioH, ratioW);
-						this.transform.Scale(min, min, MatrixOrder.Append);
-					}
-				}
-				this.Invalidate();
+				this.ZoomToFit();
 			}
 		}
 
 		private Matrix transform = new Matrix();
 		private bool panning;
 		private bool zooming;
+		private bool zoomToFitEnabled;
 		private Point actionStartPosition;
 		private Point actionLastIterationPosition;
 
@@ -69,6 +56,7 @@ namespace Windows10PhotoViewerSucksAss
 		protected override void OnMouseDoubleClick(MouseEventArgs e)
 		{
 			base.OnMouseDoubleClick(e);
+			this.zoomToFitEnabled = false;
 			var image = this.Image;
 			if (image != null)
 			{
@@ -90,6 +78,7 @@ namespace Windows10PhotoViewerSucksAss
 			base.OnMouseMove(e);
 			if (this.panning)
 			{
+				this.zoomToFitEnabled = false;
 				var movementX = e.X - this.actionLastIterationPosition.X;
 				var movementY = e.Y - this.actionLastIterationPosition.Y;
 				this.transform.Translate(movementX, movementY, MatrixOrder.Append);
@@ -98,6 +87,7 @@ namespace Windows10PhotoViewerSucksAss
 			}
 			else if (this.zooming)
 			{
+				this.zoomToFitEnabled = false;
 				double dx = e.X - this.actionLastIterationPosition.X - e.Y + this.actionLastIterationPosition.Y;
 				this.actionLastIterationPosition = e.Location;
 				float scaling = (float)Math.Pow(2.0, dx / 100.0);
@@ -111,6 +101,30 @@ namespace Windows10PhotoViewerSucksAss
 		protected override void OnSizeChanged(EventArgs e)
 		{
 			base.OnSizeChanged(e);
+			if (this.zoomToFitEnabled)
+			{
+				this.ZoomToFit();
+			}
+			this.Invalidate();
+		}
+
+		private void ZoomToFit()
+		{
+			this.transform.Reset();
+			this.zoomToFitEnabled = true;
+			var image = this.Image;
+			if (image != null)
+			{
+				// TODO make this a function; persist zoom-to-fit mode until manual panning or zooming
+				this.transform.Translate(-image.Width / 2, -image.Height / 2);
+				if (image.Height > this.Height || image.Width > this.Width)
+				{
+					var ratioH = (float)this.Height / (float)image.Height;
+					var ratioW = (float)this.Width / (float)image.Width;
+					var min = Math.Min(ratioH, ratioW);
+					this.transform.Scale(min, min, MatrixOrder.Append);
+				}
+			}
 			this.Invalidate();
 		}
 
