@@ -16,7 +16,7 @@ namespace Windows10PhotoViewerSucksAss
 		public MainImageControl()
 		{
 			this.SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
-			this.BackColor = Color.DarkCyan;
+			this.BackColor = Color.FromArgb(32, 64, 96);
 		}
 
 		private Image _image;
