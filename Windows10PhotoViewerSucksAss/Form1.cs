@@ -54,8 +54,10 @@ namespace Windows10PhotoViewerSucksAss
 			mi_copy_file.Click += this.HandleMenuCopyFile;
 			var mi_fork = this.fileListContextMenu.MenuItems.Add("Fork (&G)");
 			mi_fork.Click += this.HandleMenuFork;
-			var mi_file_properties = this.fileListContextMenu.MenuItems.Add("File properties (&G)");
+			var mi_file_properties = this.fileListContextMenu.MenuItems.Add("File properties (&P)");
 			mi_file_properties.Click += this.HandleMenuFileProperties;
+			var mi_refresh_files = this.fileListContextMenu.MenuItems.Add("Refresh files (F5)");
+			mi_refresh_files.Click += this.HandleMenuRefreshFiles;
 		}
 
 		private readonly ContextMenu fileListContextMenu = new ContextMenu();
@@ -221,7 +223,11 @@ namespace Windows10PhotoViewerSucksAss
 				this.FileProperties(this.currentDisplayIndex);
 				return true;
 			}
-			// TODO F5 refresh
+			else if (keyData == Keys.F5)
+			{
+				this.RefreshFiles(this.currentDisplayIndex);
+				return true;
+			}
 			else
 			{
 				return base.ProcessCmdKey(ref msg, keyData);
@@ -259,6 +265,11 @@ namespace Windows10PhotoViewerSucksAss
 		private void HandleMenuFileProperties(object sender, EventArgs e)
 		{
 			this.FileProperties(this.menuItemFileIndex);
+		}
+
+		private void HandleMenuRefreshFiles(object sender, EventArgs e)
+		{
+			this.RefreshFiles(this.menuItemFileIndex);
 		}
 
 		private bool TryGetFile(int index, out string file)
@@ -327,6 +338,15 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				FileIO.ShowFileProperties(file);
 			}
+		}
+
+		private void RefreshFiles(int fileIndex)
+		{
+			if (!this.TryGetFile(fileIndex, out string path))
+			{
+				path = this.currentDisplayDir;
+			}
+			this.SetDisplayPath(path);
 		}
 
 		private void Next()
@@ -400,12 +420,14 @@ namespace Windows10PhotoViewerSucksAss
 			this.SetDisplayPath2(dir, displayFile);
 		}
 
+		private string currentDisplayDir;
 		// currentFlieList may be null, and the display index may be invalid.
 		private IList<string> currentFileList;
 		private int currentDisplayIndex;
 
 		private void SetDisplayPath2(string dir, string displayFile)
 		{
+			this.currentDisplayDir = dir;
 			var files = Directory.GetFiles(dir);
 #if false
 			var regex = new Regex(@"(\.png$)|(\.jpg$)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
