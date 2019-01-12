@@ -25,7 +25,7 @@ namespace Windows10PhotoViewerSucksAss
 
 		public TSettings Settings { get; private set; }
 
-		public unsafe void Load()
+		public void Load()
 		{
 			if (String.IsNullOrEmpty(this.fullPath))
 			{
