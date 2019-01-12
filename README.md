@@ -12,11 +12,14 @@ The program was hacked together in frustration and therefore the architecture is
 | LMB | Pan |
 | LMB doubleclick | 1:1 |
 | RMB | Zoom |
-| W / D / MouseWheelDown | Next |
-| A / S / MouseWheelUp | Previous |
+| S / D / Down / Right / MouseWheelDown | Next |
+| A / W / Up / Left / MouseWheelUp | Previous |
 | E | Open explorer at |
 | F | Full file path to clipboard |
 | C | File to clipboard |
+| G | Fork program at current file |
+| P | Open file properties |
+| F5 | Refresh file list |
 
 
 ![screenshot](img/screenshot.png)
