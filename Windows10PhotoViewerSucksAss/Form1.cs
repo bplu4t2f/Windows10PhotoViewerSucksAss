@@ -42,6 +42,8 @@ namespace Windows10PhotoViewerSucksAss
 
 			this.AllowDrop = true;
 
+			this.mi_file_name = this.fileListContextMenu.MenuItems.Add(String.Empty);
+			this.mi_file_name.Enabled = false;
 			var mi_show = this.fileListContextMenu.MenuItems.Add("Show");
 			mi_show.Click += this.HandleMenuShow;
 			var mi_explore_to = this.fileListContextMenu.MenuItems.Add("Explore to (&E)");
@@ -52,10 +54,14 @@ namespace Windows10PhotoViewerSucksAss
 			mi_copy_file.Click += this.HandleMenuCopyFile;
 			var mi_fork = this.fileListContextMenu.MenuItems.Add("Fork (&G)");
 			mi_fork.Click += this.HandleMenuFork;
+			var mi_file_properties = this.fileListContextMenu.MenuItems.Add("File properties (&G)");
+			mi_file_properties.Click += this.HandleMenuFileProperties;
 		}
 
 		private readonly ContextMenu fileListContextMenu = new ContextMenu();
+		private readonly MenuItem mi_file_name;
 		private readonly ColorDialog colorDialog = new ColorDialog();
+
 
 		private readonly Button optionButton = new Button();
 		private readonly MainImageControl mainImageControl = new MainImageControl();
@@ -120,14 +126,20 @@ namespace Windows10PhotoViewerSucksAss
 		private void OverviewControl_ImageSelected(object sender, ImageSelectionEventArgs e)
 		{
 			int index = e.Index;
-			int effectiveIndex = Math.Min(Math.Max(index, 0), this.currentFileList.Count - 1);
+
 			if (e.RightClick)
 			{
-				this.menuItemFileIndex = effectiveIndex;
+				if (!this.TryGetFile(index, out string filePath))
+				{
+					return;
+				}
+				this.menuItemFileIndex = index;
+				this.mi_file_name.Text = Path.GetFileName(filePath);
 				this.fileListContextMenu.Show(this.overviewControl, e.ClickLocation);
 			}
 			else
 			{
+				int effectiveIndex = Math.Min(Math.Max(index, 0), this.currentFileList.Count - 1);
 				this.currentDisplayIndex = effectiveIndex;
 				this.DisplayCurrent(scrollSelectedItemIntoView: false);
 			}
@@ -204,6 +216,11 @@ namespace Windows10PhotoViewerSucksAss
 				this.Fork(this.currentDisplayIndex);
 				return true;
 			}
+			else if (keyData == Keys.P)
+			{
+				this.FileProperties(this.currentDisplayIndex);
+				return true;
+			}
 			// TODO F5 refresh
 			else
 			{
@@ -237,6 +254,11 @@ namespace Windows10PhotoViewerSucksAss
 		private void HandleMenuFork(object sender, EventArgs e)
 		{
 			this.Fork(this.menuItemFileIndex);
+		}
+
+		private void HandleMenuFileProperties(object sender, EventArgs e)
+		{
+			this.FileProperties(this.menuItemFileIndex);
 		}
 
 		private bool TryGetFile(int index, out string file)
@@ -296,6 +318,14 @@ namespace Windows10PhotoViewerSucksAss
 				{
 					MessageBox.Show(ex.ToString());
 				}
+			}
+		}
+
+		private void FileProperties(int fileIndex)
+		{
+			if (this.TryGetFile(fileIndex, out string file))
+			{
+				FileIO.ShowFileProperties(file);
 			}
 		}
 
