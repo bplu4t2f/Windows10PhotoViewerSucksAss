@@ -17,6 +17,7 @@ namespace Windows10PhotoViewerSucksAss
 		public MainImageControl()
 		{
 			this.SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
+			this.BackColor = Color.DarkCyan;
 		}
 
 		private Image _image;
@@ -135,7 +136,6 @@ namespace Windows10PhotoViewerSucksAss
 			var g = e.Graphics;
 			g.SmoothingMode = SmoothingMode.HighQuality;
 
-			g.Clear(Color.DarkCyan);
 			var image = this.Image;
 			if (image == null)
 			{

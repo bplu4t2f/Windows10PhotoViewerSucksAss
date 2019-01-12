@@ -20,18 +20,26 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			this.Size = new Size(960, 640);
 
-			this.mainImageControl = new MainImageControl();
-			this.mainImageControl.Dock = DockStyle.Fill;
+			this.optionButton.Text = "Option";
+			this.optionButton.Width = this.overviewControl.Width;
+			this.optionButton.Top = this.ClientRectangle.Height - this.optionButton.Height;
+			this.optionButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
 
-			this.overviewControl = new OverviewControl();
-			this.overviewControl.Dock = DockStyle.Left;
+			this.overviewControl.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
+			this.overviewControl.Height = this.ClientSize.Height - this.optionButton.Height;
+
+			this.mainImageControl.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+			this.mainImageControl.Left = this.overviewControl.Width;
+			this.mainImageControl.Size = new Size(this.ClientSize.Width - this.overviewControl.Width, this.ClientSize.Height);
 
 			this.SuspendLayout();
+			this.Controls.Add(this.optionButton);
 			this.Controls.Add(this.mainImageControl);
 			this.Controls.Add(this.overviewControl);
 			this.ResumeLayout();
 
 			this.overviewControl.ImageSelected += this.OverviewControl_ImageSelected;
+			this.optionButton.Click += this.HandleOptionButtonClick;
 
 			this.AllowDrop = true;
 
@@ -46,9 +54,11 @@ namespace Windows10PhotoViewerSucksAss
 		}
 
 		private readonly ContextMenu fileListContextMenu = new ContextMenu();
+		private readonly ColorDialog colorDialog = new ColorDialog();
 
-		private readonly MainImageControl mainImageControl;
-		private readonly OverviewControl overviewControl;
+		private readonly Button optionButton = new Button();
+		private readonly MainImageControl mainImageControl = new MainImageControl();
+		private readonly OverviewControl overviewControl = new OverviewControl();
 		private Thread cacheBuildWorker;
 
 		protected override void OnLoad(EventArgs e)
@@ -57,6 +67,27 @@ namespace Windows10PhotoViewerSucksAss
 			this.cacheBuildWorker = new Thread(() => this.CacheBuildWorkerThreadProc());
 			this.cacheBuildWorker.IsBackground = true;
 			this.cacheBuildWorker.Start();
+
+			Settings.Manager.Load();
+			try
+			{
+				if (Settings.Manager.Settings.Color != 0)
+				{
+					this.mainImageControl.BackColor = Color.FromArgb(Settings.Manager.Settings.Color);
+				}
+				if (Settings.Manager.Settings.WindowWidth != 0)
+				{
+					this.Width = Settings.Manager.Settings.WindowWidth;
+				}
+				if (Settings.Manager.Settings.WindowHeight != 0)
+				{
+					this.Height = Settings.Manager.Settings.WindowHeight;
+				}
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine(ex);
+			}
 		}
 
 
@@ -99,6 +130,28 @@ namespace Windows10PhotoViewerSucksAss
 				this.currentDisplayIndex = effectiveIndex;
 				this.DisplayCurrent(scrollSelectedItemIntoView: false);
 			}
+		}
+
+		private void HandleOptionButtonClick(object sender, EventArgs e)
+		{
+			this.colorDialog.FullOpen = true;
+			this.colorDialog.Color = this.mainImageControl.BackColor;
+			if (this.colorDialog.ShowDialog() != DialogResult.OK)
+			{
+				return;
+			}
+			Color color = this.colorDialog.Color;
+			this.mainImageControl.BackColor = color;
+			Settings.Manager.Settings.Color = color.ToArgb();
+			Settings.Manager.Save();
+		}
+
+		protected override void OnResizeEnd(EventArgs e)
+		{
+			base.OnResizeEnd(e);
+			Settings.Manager.Settings.WindowWidth = this.Width;
+			Settings.Manager.Settings.WindowHeight = this.Height;
+			Settings.Manager.Save();
 		}
 
 		protected override void OnMouseWheel(MouseEventArgs e)
