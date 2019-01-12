@@ -19,22 +19,19 @@ namespace Windows10PhotoViewerSucksAss
 			this.SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
 		}
 
-		private ImageHandle _image;
+		private Image _image;
 
-		public ImageHandle ImageHandle
+		public Image Image
 		{
 			get { return this._image; }
 			set
 			{
-				if (this._image != null)
-				{
-					this._image.Dispose();
-				}
 				this._image = value;
 				this.transform.Reset();
 				if (value != null)
 				{
-					var image = value.Image;
+					var image = value;
+					// TODO make this a function; persist zoom-to-fit mode until manual panning or zooming
 					this.transform.Translate(-image.Width / 2, -image.Height / 2);
 					if (image.Height > this.Height || image.Width > this.Width)
 					{
@@ -72,9 +69,9 @@ namespace Windows10PhotoViewerSucksAss
 		protected override void OnMouseDoubleClick(MouseEventArgs e)
 		{
 			base.OnMouseDoubleClick(e);
-			if (this.ImageHandle != null)
+			var image = this.Image;
+			if (image != null)
 			{
-				var image = this.ImageHandle.Image;
 				this.transform.Reset();
 				this.transform.Translate(-image.Width / 2, -image.Height / 2);
 			}
@@ -125,11 +122,11 @@ namespace Windows10PhotoViewerSucksAss
 			g.SmoothingMode = SmoothingMode.HighQuality;
 
 			g.Clear(Color.DarkCyan);
-			if (this.ImageHandle == null)
+			var image = this.Image;
+			if (image == null)
 			{
 				return;
 			}
-			var image = this.ImageHandle.Image;
 
 			g.Transform = this.transform;
 			g.TranslateTransform(this.Width / 2, this.Height / 2, MatrixOrder.Append);

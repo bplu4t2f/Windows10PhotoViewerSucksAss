@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Windows10PhotoViewerSucksAss
@@ -16,54 +18,76 @@ namespace Windows10PhotoViewerSucksAss
 
 		private readonly Dictionary<string, ImageContainer> cache;
 
-		public ImageHandle TryGetHandle(string key)
+		public ImageHandle GetOrCreateHandle(string key)
 		{
 			lock (this.cache)
 			{
-				if (this.cache.TryGetValue(key, out var container))
+				ImageContainer container;
+				if (!this.cache.TryGetValue(key, out container))
 				{
-					var handle = container.CreateHandle();
-					return handle;
+					container = new ImageContainer(this, key);
+					this.cache.Add(key, container);
 				}
+				var handle = container.AddHandle();
+				return handle;
 			}
-			return null;
 		}
 
-		public void Add(string key, ImageContainer container)
+		public ImageContainer GetExistingContainer(string key)
 		{
 			lock (this.cache)
 			{
-				this.cache.Add(key, container);
+				this.cache.TryGetValue(key, out ImageContainer container);
+				return container;
 			}
 		}
 
-		public void Purge(IEnumerable<string> keysThatShouldRemain)
+		public void SetPersistent(IEnumerable<string> persistentFiles)
 		{
-			foreach (var kv in this.cache.ToArray())
+			lock (this.cache)
 			{
-				lock (this.cache)
+				foreach (var kv in this.cache.ToArray())
 				{
-					if (!keysThatShouldRemain.Contains(kv.Key, StringComparer.OrdinalIgnoreCase))
+					kv.Value.persist = persistentFiles.Contains(kv.Key, StringComparer.OrdinalIgnoreCase);
+					if (!kv.Value.IsAlive)
 					{
-						kv.Value.InitialHandle.Dispose();
-						// We can't leave the lock in this state - we must remove it from the dictionary
-						// immediately after we dispose of the initial handle.
-						this.cache.Remove(kv.Key);
+						this.DisposeContainer(kv.Value);
+					}
+				}
+				foreach (var key in persistentFiles)
+				{
+					if (!this.cache.ContainsKey(key))
+					{
+						var container = new ImageContainer(this, key);
+						container.persist = true;
+						this.cache.Add(key, container);
 					}
 				}
 			}
 		}
 
-		public void PurgeAll()
+		private void DisposeContainer(ImageContainer container)
 		{
+			Debug.Assert(Monitor.IsEntered(this.cache));
+			container.image?.Dispose();
+			container.image = null;
+			// We can't leave the lock in this state - we must remove it from the dictionary
+			// immediately after we dispose of the initial handle.
+			this.cache.Remove(container.Key);
+		}
+
+		internal void UnregisterContainer(ImageContainer container)
+		{
+			Debug.Assert(!Monitor.IsEntered(this.cache));
 			lock (this.cache)
 			{
-				foreach (var image in this.cache.Values)
-				{
-					image.InitialHandle.Dispose();
-				}
-				this.cache.Clear();
+				this.DisposeContainer(container);
 			}
+		}
+
+		public void PurgeAll()
+		{
+			this.SetPersistent(new string[0]);
 		}
 
 		public bool ContainsKey(string key)
@@ -77,55 +101,66 @@ namespace Windows10PhotoViewerSucksAss
 
 	public class ImageContainer
 	{
-		public ImageContainer(Image image)
+		internal ImageContainer(ImageCache owner, string key)
 		{
-			this.Image = image;
-			this.InitialHandle = new ImageHandle(this);
+			this.Key = key ?? throw new ArgumentNullException(nameof(key));
+			this.owner = owner ?? throw new ArgumentNullException(nameof(owner));
 		}
 
-		public Image Image { get; }
-		public ImageHandle InitialHandle { get; }
+		private readonly ImageCache owner;
+		public string Key { get; }
+
+		internal Image image;
+		internal bool persist;
+
+		public Image Image => this.image;
+		public bool IsLoaded { get; private set; }
 
 		private int openHandleCount;
 
-		public ImageHandle CreateHandle()
-		{
-			return new ImageHandle(this);
-		}
+		public bool IsAlive => this.openHandleCount > 0 || this.persist;
 
-		public void AddHandle()
+		internal ImageHandle AddHandle()
 		{
+			var handle = new ImageHandle(this);
 			this.openHandleCount += 1;
+			return handle;
 		}
 
-		public void RemoveHandle()
+		internal void RemoveHandle()
 		{
 			this.openHandleCount -= 1;
-			if (this.openHandleCount == 0)
+			if (!this.IsAlive)
 			{
-				this.Image.Dispose();
+				this.owner.UnregisterContainer(this);
 			}
+		}
+
+		public void SetImage(Image image)
+		{
+			this.image = image;
+			Thread.MemoryBarrier();
+			this.IsLoaded = true;
 		}
 	}
 
 	public sealed class ImageHandle : IDisposable
 	{
-		public ImageHandle(ImageContainer container)
+		internal ImageHandle(ImageContainer container)
 		{
 			this.container = container;
-			this.container.AddHandle();
 		}
 
-		private readonly ImageContainer container;
+		private ImageContainer container;
 
-		public Image Image
-		{
-			get { return this.container.Image; }
-		}
+		public string Key => this.container.Key;
+		public Image Image => this.container.Image;
+		public bool IsLoaded => this.container.IsLoaded;
 
 		public void Dispose()
 		{
-			this.container.RemoveHandle();
+			this.container?.RemoveHandle();
+			this.container = null;
 		}
 	}
 }

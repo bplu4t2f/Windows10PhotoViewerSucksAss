@@ -250,6 +250,15 @@ namespace Windows10PhotoViewerSucksAss
 			public string[] SurroundingPaths { get; }
 		}
 
+		private void SetCacheWorkItem(CacheWorkItem item)
+		{
+			lock (this.sync)
+			{
+				this.cacheWorkItem = item;
+				this.cacheWorkWait.Set();
+			}
+		}
+
 		private void CacheBuildWorkerThreadProc()
 		{
 			while (true)
@@ -268,27 +277,32 @@ namespace Windows10PhotoViewerSucksAss
 					continue;
 				}
 
-
-				ImageHandle displayedImageHandle = this.imageCache.TryGetHandle(item.DisplayPath);
-				if (displayedImageHandle == null)
+				ImageContainer displayedImageContainer = this.imageCache.GetExistingContainer(item.DisplayPath);
+				// It can be null if it wasn't one of the surrounding ones from the last time, and the GUI decided that it doesn't want it anymore after we started the work item.
+				if (displayedImageContainer != null && !displayedImageContainer.IsLoaded)
 				{
 					try
 					{
 						var image = Util.LoadImageFromFile(item.DisplayPath);
-						var newImageContainer = new ImageContainer(image);
-						displayedImageHandle = newImageContainer.CreateHandle();
-						this.imageCache.Add(item.DisplayPath, newImageContainer);
+						displayedImageContainer.SetImage(image);
 					}
 					catch (Exception ex)
 					{
 						Debug.WriteLine(ex.ToString());
+						displayedImageContainer.SetImage(null);
 					}
+					Debug.Assert(displayedImageContainer.IsLoaded);
 				}
 
-				// It can be null if the file is not a valid image.
-				this.BeginInvoke(new MethodInvoker(() => this.DisplayAction(displayedImageHandle)));
+				if (this.cacheWorkWait.IsSet)
+				{
+					continue;
+				}
 
-				this.imageCache.Purge(item.SurroundingPaths);
+				// displayedImageContainer.Image can still be null if the file is not a valid image.
+				this.BeginInvoke(new MethodInvoker(() => this.DisplayAction()));
+
+				this.imageCache.SetPersistent(item.SurroundingPaths);
 
 				foreach (var key in item.SurroundingPaths)
 				{
@@ -296,12 +310,13 @@ namespace Windows10PhotoViewerSucksAss
 					{
 						break;
 					}
-					if (!this.imageCache.ContainsKey(key))
+					var container = this.imageCache.GetExistingContainer(key);
+					if (container.Image == null)
 					{
 						try
 						{
 							var image = Util.LoadImageFromFile(key);
-							this.imageCache.Add(key, new ImageContainer(image));
+							container.SetImage(image);
 						}
 						catch (Exception ex)
 						{
@@ -337,14 +352,10 @@ namespace Windows10PhotoViewerSucksAss
 			if (this.currentFileList == null || this.currentDisplayIndex == -1 || this.currentDisplayIndex >= this.currentFileList.Count)
 			{
 				this.overviewControl.SetDisplayIndex(-1, false);
-				this.mainImageControl.ImageHandle = null;
 
-				lock (this.sync)
-				{
-					// Clear the cache entirely
-					this.cacheWorkItem = new CacheWorkItem(null, null);
-					this.cacheWorkWait.Set();
-				}
+				this.SetDisplayedImageHandle(null);
+
+				this.SetCacheWorkItem(new CacheWorkItem(null, null));
 			}
 			else
 			{
@@ -352,24 +363,42 @@ namespace Windows10PhotoViewerSucksAss
 				var displayFile = this.currentFileList[this.currentDisplayIndex];
 				this.Text = displayFile;
 
-				ImageHandle existingHandle = this.imageCache.TryGetHandle(displayFile);
-				if (existingHandle != null)
-				{
-					this.DisplayAction(existingHandle);
-				}
+				this.SetDisplayedImageHandle(this.imageCache.GetOrCreateHandle(displayFile));
 
-				lock (this.sync)
-				{
-					this.cacheWorkItem = this.GetCacheWorkItemForCurrentDisplayIndex();
-					this.cacheWorkWait.Set();
-				}
+				this.SetCacheWorkItem(this.GetCacheWorkItemForCurrentDisplayIndex());
 			}
 		}
 
-		private void DisplayAction(ImageHandle image)
+		private void SetDisplayedImageHandle(ImageHandle handle)
 		{
-			// Displayed image handle may be null.
-			this.mainImageControl.ImageHandle = image;
+			if (this.pendingHandle != this.displayedHandle)
+			{
+				this.pendingHandle?.Dispose();
+				this.pendingHandle = null;
+			}
+			this.pendingHandle = handle;
+			this.DisplayAction();
+		}
+
+		private ImageHandle pendingHandle;
+		private ImageHandle displayedHandle;
+
+		private void DisplayAction()
+		{
+			if (this.pendingHandle == this.displayedHandle)
+			{
+				return;
+			}
+
+			if (this.pendingHandle?.IsLoaded == false)
+			{
+				// Keep displaying the old image if the new one isn't loaded yet to prevent unnecessary flicker.
+				return;
+			}
+
+			this.displayedHandle?.Dispose();
+			this.displayedHandle = this.pendingHandle;
+			this.mainImageControl.Image = this.displayedHandle?.Image;
 		}
 	}
 }
