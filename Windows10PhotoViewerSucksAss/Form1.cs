@@ -291,8 +291,8 @@ namespace Windows10PhotoViewerSucksAss
 			}
 			try
 			{
-				// TODO use the SH file operation stuff maybe?
-				Process.Start("explorer.exe", $"/select,\"{displayFile}\"");
+				int hresult = FileIO.SelectInFileExplorer(displayFile);
+				System.Runtime.InteropServices.Marshal.ThrowExceptionForHR(hresult);
 			}
 			catch (Exception ex)
 			{
@@ -304,7 +304,14 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			if (this.TryGetFile(fileIndex, out string file))
 			{
-				Clipboard.SetText(file);
+				try
+				{
+					Clipboard.SetText(file);
+				}
+				catch (Exception ex)
+				{
+					MessageBox.Show(ex.ToString());
+				}
 			}
 		}
 
@@ -312,7 +319,14 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			if (this.TryGetFile(fileIndex, out string file))
 			{
-				Clipboard.SetFileDropList(new System.Collections.Specialized.StringCollection() { file });
+				try
+				{
+					Clipboard.SetFileDropList(new System.Collections.Specialized.StringCollection() { file });
+				}
+				catch (Exception ex)
+				{
+					MessageBox.Show(ex.ToString());
+				}
 			}
 		}
 

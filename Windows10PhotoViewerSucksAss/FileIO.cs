@@ -97,5 +97,36 @@ namespace Windows10PhotoViewerSucksAss
 			info.fMask = SEE_MASK_INVOKEIDLIST;
 			return ShellExecuteEx(ref info);
 		}
+
+
+		public static int SelectInFileExplorer(string fullPath)
+		{
+			fullPath = Path.GetFullPath(fullPath);
+
+			IntPtr pidlList = ILCreateFromPathW(fullPath);
+			if (pidlList == IntPtr.Zero)
+			{
+				return -1;
+			}
+
+			try
+			{
+				// Open parent folder and select item
+				return SHOpenFolderAndSelectItems(pidlList, 0, IntPtr.Zero, 0);
+			}
+			finally
+			{
+				ILFree(pidlList);
+			}
+		}
+
+		[DllImport("shell32.dll", ExactSpelling = true)]
+		private static extern void ILFree(IntPtr pidlList);
+
+		[DllImport("shell32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+		private static extern IntPtr ILCreateFromPathW(string pszPath);
+
+		[DllImport("shell32.dll", ExactSpelling = true)]
+		private static extern int SHOpenFolderAndSelectItems(IntPtr pidlList, uint cild, IntPtr children, uint dwFlags);
 	}
 }
