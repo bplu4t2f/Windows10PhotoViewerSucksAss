@@ -34,7 +34,18 @@ namespace Windows10PhotoViewerSucksAss
 			this.overviewControl.ImageSelected += this.OverviewControl_ImageSelected;
 
 			this.AllowDrop = true;
+
+			var mi_show = this.fileListContextMenu.MenuItems.Add("Show");
+			mi_show.Click += this.HandleMenuShow;
+			var mi_explore_to = this.fileListContextMenu.MenuItems.Add("Explore to (&E)");
+			mi_explore_to.Click += this.HandleMenuExploreTo;
+			var mi_copy_full_path = this.fileListContextMenu.MenuItems.Add("Copy full path (&F)");
+			mi_copy_full_path.Click += this.HandleMenuCopyFullPath;
+			var mi_copy_file = this.fileListContextMenu.MenuItems.Add("Copy file (&C)");
+			mi_copy_file.Click += this.HandleMenuCopyFile;
 		}
+
+		private readonly ContextMenu fileListContextMenu = new ContextMenu();
 
 		private readonly MainImageControl mainImageControl;
 		private readonly OverviewControl overviewControl;
@@ -47,6 +58,12 @@ namespace Windows10PhotoViewerSucksAss
 			this.cacheBuildWorker.IsBackground = true;
 			this.cacheBuildWorker.Start();
 		}
+
+
+		//
+		// User events
+		//
+
 
 		protected override void OnDragEnter(DragEventArgs drgevent)
 		{
@@ -68,10 +85,20 @@ namespace Windows10PhotoViewerSucksAss
 			this.BeginInvoke(new MethodInvoker(() => this.SetDisplayPath(files[0])));
 		}
 
-		private void OverviewControl_ImageSelected(object sender, int e)
+		private void OverviewControl_ImageSelected(object sender, ImageSelectionEventArgs e)
 		{
-			this.currentDisplayIndex = Math.Min(Math.Max(e, 0), this.currentFileList.Count - 1);
-			this.DisplayCurrent(scrollSelectedItemIntoView: false);
+			int index = e.Index;
+			int effectiveIndex = Math.Min(Math.Max(index, 0), this.currentFileList.Count - 1);
+			if (e.RightClick)
+			{
+				this.menuItemFileIndex = effectiveIndex;
+				this.fileListContextMenu.Show(this.overviewControl, e.ClickLocation);
+			}
+			else
+			{
+				this.currentDisplayIndex = effectiveIndex;
+				this.DisplayCurrent(scrollSelectedItemIntoView: false);
+			}
 		}
 
 		protected override void OnMouseWheel(MouseEventArgs e)
@@ -105,36 +132,90 @@ namespace Windows10PhotoViewerSucksAss
 			}
 			else if (keyData == Keys.E)
 			{
-				// explore to
-				try
-				{
-					var displayFile = this.currentFileList[this.currentDisplayIndex];
-					// TODO use the SH file operation stuff maybe?
-					Process.Start("explorer.exe", $"/select,\"{displayFile}\"");
-				}
-				catch (Exception ex)
-				{
-					MessageBox.Show(ex.ToString());
-				}
+				this.ExploreTo(this.currentDisplayIndex);
 				return true;
 			}
 			else if (keyData == Keys.F)
 			{
-				// copy file path
-				var displayFile = this.currentFileList[this.currentDisplayIndex];
-				Clipboard.SetText(displayFile);
+				this.CopyFullPath(this.currentDisplayIndex);
 				return true;
 			}
 			else if (keyData == Keys.C)
 			{
-				var displayFile = this.currentFileList[this.currentDisplayIndex];
-				Clipboard.SetFileDropList(new System.Collections.Specialized.StringCollection() { displayFile });
+				this.CopyFile(this.currentDisplayIndex);
 				return true;
 			}
 			// TODO F5 refresh
 			else
 			{
 				return base.ProcessCmdKey(ref msg, keyData);
+			}
+		}
+
+		private int menuItemFileIndex;
+
+		private void HandleMenuShow(object sender, EventArgs e)
+		{
+			this.currentDisplayIndex = this.menuItemFileIndex;
+			this.DisplayCurrent(scrollSelectedItemIntoView: true);
+		}
+
+		private void HandleMenuExploreTo(object sender, EventArgs e)
+		{
+			this.ExploreTo(this.menuItemFileIndex);
+		}
+
+		private void HandleMenuCopyFullPath(object sender, EventArgs e)
+		{
+			this.CopyFullPath(this.menuItemFileIndex);
+		}
+
+		private void HandleMenuCopyFile(object sender, EventArgs e)
+		{
+			this.CopyFile(this.menuItemFileIndex);
+		}
+
+		private bool TryGetFile(int index, out string file)
+		{
+			if (index < 0 || index >= this.currentFileList.Count)
+			{
+				file = default(string);
+				return false;
+			}
+			file = this.currentFileList[index];
+			return true;
+		}
+
+		private void ExploreTo(int fileIndex)
+		{
+			if (!this.TryGetFile(fileIndex, out string displayFile))
+			{
+				return;
+			}
+			try
+			{
+				// TODO use the SH file operation stuff maybe?
+				Process.Start("explorer.exe", $"/select,\"{displayFile}\"");
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show(ex.ToString());
+			}
+		}
+
+		private void CopyFullPath(int fileIndex)
+		{
+			if (this.TryGetFile(fileIndex, out string file))
+			{
+				Clipboard.SetText(file);
+			}
+		}
+
+		private void CopyFile(int fileIndex)
+		{
+			if (this.TryGetFile(fileIndex, out string file))
+			{
+				Clipboard.SetFileDropList(new System.Collections.Specialized.StringCollection() { file });
 			}
 		}
 
@@ -163,6 +244,13 @@ namespace Windows10PhotoViewerSucksAss
 			}
 			this.DisplayCurrent(scrollSelectedItemIntoView: true);
 		}
+
+
+		//
+		// end user events
+		//
+
+
 
 		/// <summary>
 		/// Displays a specific file or folder.

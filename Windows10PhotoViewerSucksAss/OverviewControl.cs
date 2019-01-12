@@ -16,6 +16,7 @@ namespace Windows10PhotoViewerSucksAss
 		public OverviewControl()
 		{
 			this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.ResizeRedraw | ControlStyles.StandardClick, true);
+			this.SetStyle(ControlStyles.StandardDoubleClick, false);
 
 			this.scrollBar.Anchor = AnchorStyles.Right | AnchorStyles.Top | AnchorStyles.Bottom;
 			this.scrollBar.Location = new Point(this.Width - this.scrollBar.Width, 0);
@@ -116,6 +117,21 @@ namespace Windows10PhotoViewerSucksAss
 		protected override void OnMouseDown(MouseEventArgs e)
 		{
 			base.OnMouseDown(e);
+
+			bool rightClick;
+			if (e.Button == MouseButtons.Left)
+			{
+				rightClick = false;
+			}
+			else if (e.Button == MouseButtons.Right)
+			{
+				rightClick = true;
+			}
+			else
+			{
+				return;
+			}
+
 			// Find the selected item
 			var lineHeight = this.GetLineHeight();
 			if (e.X > this.Width - this.scrollBar.Width)
@@ -124,12 +140,27 @@ namespace Windows10PhotoViewerSucksAss
 			}
 			int clickedOffset = e.Y / lineHeight;
 			int clickedIndex = this.scrollBar.Value + clickedOffset;
-			this.ImageSelected?.Invoke(null, clickedIndex);
+			this.ImageSelected?.Invoke(null, new ImageSelectionEventArgs(clickedIndex, rightClick, e.Location));
 		}
 
 		/// <summary>
 		/// The reported index might be out of bounds.
 		/// </summary>
-		public event EventHandler<int> ImageSelected;
+		public event EventHandler<ImageSelectionEventArgs> ImageSelected;
+	}
+
+
+	public struct ImageSelectionEventArgs
+	{
+		public ImageSelectionEventArgs(int index, bool rightClick, Point clickLocation)
+		{
+			this.Index = index;
+			this.RightClick = rightClick;
+			this.ClickLocation = clickLocation;
+		}
+
+		public int Index { get; }
+		public bool RightClick { get; }
+		public Point ClickLocation { get; }
 	}
 }
