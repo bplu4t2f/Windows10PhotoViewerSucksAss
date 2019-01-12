@@ -447,8 +447,11 @@ namespace Windows10PhotoViewerSucksAss
 			var regex = new Regex(@"(\.png$)|(\.jpg$)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 			var matchingFiles = files.Where(x => regex.IsMatch(x)).ToList();
 #else
-			IList<string> matchingFiles = files;
+			List<string> matchingFiles = files.ToList();
 #endif
+			var sw = Stopwatch.StartNew();
+			matchingFiles.Sort(NatnumSort.Instance);
+			Debug.WriteLine($"Sorting took {sw.ElapsedMilliseconds} ms");
 			foreach (var f in matchingFiles)
 			{
 				Debug.WriteLine(f);

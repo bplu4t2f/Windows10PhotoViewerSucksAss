@@ -50,6 +50,7 @@
     <Compile Include="MainImageControl.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="NatnumSort.cs" />
     <Compile Include="OverviewControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
