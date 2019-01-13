@@ -17,9 +17,11 @@ The program was hacked together in frustration and therefore the architecture is
 | E | Open explorer at |
 | F | Full file path to clipboard |
 | C | File to clipboard |
+| X | Cut to clipboard |
 | G | Fork program at current file |
 | P | Open file properties |
 | F5 | Refresh file list |
+| Del | Move to recycle bin |
 
 
 ![screenshot](img/screenshot.png)
