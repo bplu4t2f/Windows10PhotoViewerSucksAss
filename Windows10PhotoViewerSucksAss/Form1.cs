@@ -52,12 +52,16 @@ namespace Windows10PhotoViewerSucksAss
 			mi_copy_full_path.Click += this.HandleMenuCopyFullPath;
 			var mi_copy_file = this.fileListContextMenu.MenuItems.Add("Copy file (&C)");
 			mi_copy_file.Click += this.HandleMenuCopyFile;
+			var mi_cut_file = this.fileListContextMenu.MenuItems.Add("Cut file (&X)");
+			mi_cut_file.Click += this.HandleMenuCutFile;
 			var mi_fork = this.fileListContextMenu.MenuItems.Add("Fork (&G)");
 			mi_fork.Click += this.HandleMenuFork;
 			var mi_file_properties = this.fileListContextMenu.MenuItems.Add("File properties (&P)");
 			mi_file_properties.Click += this.HandleMenuFileProperties;
 			var mi_refresh_files = this.fileListContextMenu.MenuItems.Add("Refresh files (F5)");
 			mi_refresh_files.Click += this.HandleMenuRefreshFiles;
+			var mi_delete_file = this.fileListContextMenu.MenuItems.Add("Move to Becycle Bin (Del)");
+			mi_delete_file.Click += this.HandleMenuDeleteFile;
 		}
 
 		private readonly ContextMenu fileListContextMenu = new ContextMenu();
@@ -228,6 +232,16 @@ namespace Windows10PhotoViewerSucksAss
 				this.RefreshFiles(this.currentDisplayIndex);
 				return true;
 			}
+			else if (keyData == Keys.X)
+			{
+				this.CutFile(this.currentDisplayIndex);
+				return true;
+			}
+			else if (keyData == Keys.Delete)
+			{
+				this.DeleteFile(this.currentDisplayIndex);
+				return true;
+			}
 			else
 			{
 				return base.ProcessCmdKey(ref msg, keyData);
@@ -257,6 +271,11 @@ namespace Windows10PhotoViewerSucksAss
 			this.CopyFile(this.menuItemFileIndex);
 		}
 
+		private void HandleMenuCutFile(object sender, EventArgs e)
+		{
+			this.CutFile(this.menuItemFileIndex);
+		}
+
 		private void HandleMenuFork(object sender, EventArgs e)
 		{
 			this.Fork(this.menuItemFileIndex);
@@ -272,9 +291,14 @@ namespace Windows10PhotoViewerSucksAss
 			this.RefreshFiles(this.menuItemFileIndex);
 		}
 
+		private void HandleMenuDeleteFile(object sender, EventArgs e)
+		{
+			this.DeleteFile(this.menuItemFileIndex);
+		}
+
 		private bool TryGetFile(int index, out string file)
 		{
-			if (index < 0 || index >= this.currentFileList.Count)
+			if (this.currentFileList == null || index < 0 || index >= this.currentFileList.Count)
 			{
 				file = default(string);
 				return false;
@@ -327,6 +351,40 @@ namespace Windows10PhotoViewerSucksAss
 				{
 					MessageBox.Show(ex.ToString());
 				}
+			}
+		}
+
+		private void CutFile(int fileIndex)
+		{
+			if (this.TryGetFile(fileIndex, out string file))
+			{
+				Util.ClipboardCutFileList(new string[] { file });
+			}
+		}
+
+		private void DeleteFile(int fileIndex)
+		{
+			if (this.TryGetFile(fileIndex, out string file))
+			{
+				if (!FileIO.Send(file, FileIO.FileOperationFlags.FOF_SILENT))
+				{
+					return;
+				}
+				if (File.Exists(file))
+				{
+					// Who knows that that function is really doing...
+					return;
+				}
+				this.currentFileList.RemoveAt(fileIndex);
+				if (fileIndex == this.currentDisplayIndex)
+				{
+					if (this.currentDisplayIndex >= this.currentFileList.Count)
+					{
+						this.currentDisplayIndex = this.currentFileList.Count - 1;
+					}
+				}
+				this.overviewControl.Initialize(this.currentFileList);
+				this.DisplayCurrent(scrollSelectedItemIntoView: false);
 			}
 		}
 
@@ -405,15 +463,24 @@ namespace Windows10PhotoViewerSucksAss
 			try
 			{
 				fileInfo = new FileInfo(path);
+
+				if (!fileInfo.Exists && (fileInfo.Attributes & FileAttributes.Directory) == 0)
+				{
+					// Try containing folder
+					// This could be buggy if we're on a root drive or something -- whatever
+					string containingDirectoryName = Path.GetDirectoryName(path);
+					fileInfo = new FileInfo(containingDirectoryName);
+
+					if (!fileInfo.Exists && (fileInfo.Attributes & FileAttributes.Directory) == 0)
+					{
+						MessageBox.Show("Specified file doesn't exist: " + path);
+						return;
+					}
+				}
 			}
 			catch (Exception ex)
 			{
 				MessageBox.Show("Cannot access requested file: " + ex.Message);
-				return;
-			}
-			if (!fileInfo.Exists)
-			{
-				MessageBox.Show("Specified file doesn't exist: " + path);
 				return;
 			}
 
