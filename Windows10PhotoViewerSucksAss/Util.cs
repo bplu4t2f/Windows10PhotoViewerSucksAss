@@ -46,7 +46,7 @@ namespace Windows10PhotoViewerSucksAss
 			// containing the files, and the "Preferred DropEffect" entry to a memory stream
 			// containing the bytes { 2, 0, 0, 0 }.
 
-			byte[] moveEffect = new byte[] { 5, 0, 0, 0 };
+			byte[] moveEffect = new byte[] { 2, 0, 0, 0 };
 			MemoryStream dropEffect = new MemoryStream();
 			dropEffect.Write(moveEffect, 0, moveEffect.Length);
 			dropEffect.Position = 0;
