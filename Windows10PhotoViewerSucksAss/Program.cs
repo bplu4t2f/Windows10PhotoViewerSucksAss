@@ -19,7 +19,7 @@ namespace Windows10PhotoViewerSucksAss
 			var form = new Form1();
 			if (args.Length >= 1)
 			{
-				form.SetDisplayPath(args[0]);
+				form.SetDisplayPath_NoThrowInteractive(args[0]);
 			}
 			Application.Run(form);
 		}

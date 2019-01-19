@@ -126,7 +126,7 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				return;
 			}
-			this.BeginInvoke(new MethodInvoker(() => this.SetDisplayPath(files[0])));
+			this.BeginInvoke(new MethodInvoker(() => this.SetDisplayPath_NoThrowInteractive(files[0])));
 		}
 
 		private void OverviewControl_ImageSelected(object sender, ImageSelectionEventArgs e)
@@ -364,28 +364,42 @@ namespace Windows10PhotoViewerSucksAss
 
 		private void DeleteFile(int fileIndex)
 		{
-			if (this.TryGetFile(fileIndex, out string file))
+			if (!this.TryGetFile(fileIndex, out string file))
 			{
-				if (!FileIO.Send(file, FileIO.FileOperationFlags.FOF_SILENT))
-				{
-					return;
-				}
-				if (File.Exists(file))
-				{
-					// Who knows that that function is really doing...
-					return;
-				}
-				this.currentFileList.RemoveAt(fileIndex);
-				if (fileIndex == this.currentDisplayIndex)
-				{
-					if (this.currentDisplayIndex >= this.currentFileList.Count)
-					{
-						this.currentDisplayIndex = this.currentFileList.Count - 1;
-					}
-				}
-				this.overviewControl.Initialize(this.currentFileList);
-				this.DisplayCurrent(scrollSelectedItemIntoView: false);
+				return;
 			}
+			FileIO.Send(file, FileIO.FileOperationFlags.FOF_SILENT);
+			// Who knows that that function is really doing...
+			if (File.Exists(file))
+			{
+				return;
+			}
+			this.ForgetFile(fileIndex);
+		}
+
+		/// <summary>
+		/// Removes a file from the current file list and rebuilds the overview. Must be called on GUI thread.
+		/// </summary>
+		private void ForgetFile(int fileIndex)
+		{
+			if (!this.TryGetFile(fileIndex, out string file))
+			{
+				return;
+			}
+			this.currentFileList.RemoveAt(fileIndex);
+			if (fileIndex < this.currentDisplayIndex)
+			{
+				this.currentDisplayIndex -= 1;
+			}
+			if (fileIndex == this.currentDisplayIndex)
+			{
+				if (this.currentDisplayIndex >= this.currentFileList.Count)
+				{
+					this.currentDisplayIndex = this.currentFileList.Count - 1;
+				}
+			}
+			this.overviewControl.Initialize(this.currentFileList);
+			this.DisplayCurrent(scrollSelectedItemIntoView: false);
 		}
 
 		private void Fork(int fileIndex)
@@ -418,7 +432,7 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				path = this.currentDisplayDir;
 			}
-			this.SetDisplayPath(path);
+			this.SetDisplayPath_NoThrowInteractive(path, path_is_definitely_a_directory: true);
 		}
 
 		private void Next()
@@ -456,49 +470,66 @@ namespace Windows10PhotoViewerSucksAss
 
 		/// <summary>
 		/// Displays a specific file or folder.
+		/// This may throw in case of weird I/O errors.
 		/// </summary>
-		public void SetDisplayPath(string path)
+		public void SetDisplayPath_NoThrowInteractive(string path, bool path_is_definitely_a_directory = false)
 		{
-			FileInfo fileInfo;
+			if (path == null)
+			{
+				return;
+			}
 			try
 			{
-				fileInfo = new FileInfo(path);
-
-				if (!fileInfo.Exists && (fileInfo.Attributes & FileAttributes.Directory) == 0)
-				{
-					// Try containing folder
-					// This could be buggy if we're on a root drive or something -- whatever
-					string containingDirectoryName = Path.GetDirectoryName(path);
-					fileInfo = new FileInfo(containingDirectoryName);
-
-					if (!fileInfo.Exists && (fileInfo.Attributes & FileAttributes.Directory) == 0)
-					{
-						MessageBox.Show("Specified file doesn't exist: " + path);
-						return;
-					}
-				}
+				path = Path.GetFullPath(path);
 			}
 			catch (Exception ex)
 			{
-				MessageBox.Show("Cannot access requested file: " + ex.Message);
+				Debug.WriteLine(ex.ToString());
+				MessageBox.Show(ex.Message);
 				return;
 			}
 
-			path = fileInfo.FullName;
-			var attributes = fileInfo.Attributes;
-			string dir;
-			string displayFile;
-			if ((attributes & FileAttributes.Directory) != 0)
+			string dir, displayFile;
+			// This is bad, but we're going to have a race anyway.
+			if (File.Exists(path))
+			{
+				dir = Path.GetDirectoryName(path);
+				displayFile = path;
+			}
+			else if (Directory.Exists(path))
 			{
 				dir = path;
 				displayFile = null;
 			}
 			else
 			{
-				dir = Path.GetDirectoryName(path);
-				displayFile = path;
+				if (!path_is_definitely_a_directory)
+				{
+					string parent = Path.GetDirectoryName(path);
+					if (Directory.Exists(parent))
+					{
+						dir = parent;
+						displayFile = null;
+						goto _found_parent;
+					}
+				}
+
+				MessageBox.Show("Specified file doesn't exist: " + path);
+				return;
+
+				_found_parent:;
 			}
-			this.SetDisplayPath2(dir, displayFile);
+
+			try
+			{
+				this.SetDisplayPath2(dir, displayFile);
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine(ex.ToString());
+				MessageBox.Show(ex.Message);
+				return;
+			}
 		}
 
 		private string currentDisplayDir;
@@ -595,6 +626,7 @@ namespace Windows10PhotoViewerSucksAss
 					{
 						Debug.WriteLine(ex.ToString());
 						displayedImageContainer.SetImage(null);
+						this.NotFound_QueueForget(item.DisplayPath);
 					}
 					Debug.Assert(displayedImageContainer.IsLoaded);
 				}
@@ -616,7 +648,7 @@ namespace Windows10PhotoViewerSucksAss
 						break;
 					}
 					var container = this.imageCache.GetExistingContainer(key);
-					if (container.Image == null)
+					if (!container.IsLoaded)
 					{
 						try
 						{
@@ -626,9 +658,27 @@ namespace Windows10PhotoViewerSucksAss
 						catch (Exception ex)
 						{
 							Debug.WriteLine(ex.ToString());
+							container.SetImage(null);
+							this.NotFound_QueueForget(key);
 						}
 					}
 				}
+			}
+		}
+
+		private void NotFound_QueueForget(string file)
+		{
+			if (!File.Exists(file))
+			{
+				this.BeginInvoke(new MethodInvoker(() =>
+				{
+					if (this.currentFileList == null)
+					{
+						return;
+					}
+					int index = this.currentFileList.IndexOf(file);
+					this.ForgetFile(index);
+				}));
 			}
 		}
 
