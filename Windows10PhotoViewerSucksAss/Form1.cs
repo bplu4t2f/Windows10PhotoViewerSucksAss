@@ -62,24 +62,26 @@ namespace Windows10PhotoViewerSucksAss
 			mi_refresh_files.Click += this.HandleMenuRefreshFiles;
 			var mi_delete_file = this.fileListContextMenu.MenuItems.Add("Move to Becycle Bin (Del)");
 			mi_delete_file.Click += this.HandleMenuDeleteFile;
+
+			this.imageCacheWorker.NotFound += this.HandleImageCacheItemNotFound;
+			this.imageCacheWorker.DisplayItemLoaded += this.HandleImageCacheDisplayItemLoaded;
 		}
 
 		private readonly ContextMenu fileListContextMenu = new ContextMenu();
 		private readonly MenuItem mi_file_name;
 		private readonly ColorDialog colorDialog = new ColorDialog();
 
-
 		private readonly Button optionButton = new Button();
 		private readonly MainImageControl mainImageControl = new MainImageControl();
 		private readonly OverviewControl overviewControl = new OverviewControl();
-		private Thread cacheBuildWorker;
+
+		private readonly ImageCacheWorker imageCacheWorker = new ImageCacheWorker();
 
 		protected override void OnLoad(EventArgs e)
 		{
 			base.OnLoad(e);
-			this.cacheBuildWorker = new Thread(() => this.CacheBuildWorkerThreadProc());
-			this.cacheBuildWorker.IsBackground = true;
-			this.cacheBuildWorker.Start();
+
+			this.imageCacheWorker.StartWorkerThread();
 
 			Settings.Manager.Load();
 			try
@@ -470,7 +472,6 @@ namespace Windows10PhotoViewerSucksAss
 
 		/// <summary>
 		/// Displays a specific file or folder.
-		/// This may throw in case of weird I/O errors.
 		/// </summary>
 		public void SetDisplayPath_NoThrowInteractive(string path, bool path_is_definitely_a_directory = false)
 		{
@@ -532,6 +533,7 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
+		// Needed for Refresh.
 		private string currentDisplayDir;
 		// currentFlieList may be null, and the display index may be invalid.
 		private IList<string> currentFileList;
@@ -569,117 +571,20 @@ namespace Windows10PhotoViewerSucksAss
 			this.DisplayCurrent(scrollSelectedItemIntoView: true);
 		}
 
-		private readonly ImageCache imageCache = new ImageCache();
-		private CacheWorkItem cacheWorkItem;
-		private readonly ManualResetEventSlim cacheWorkWait = new ManualResetEventSlim();
-		private readonly object sync = new object();
 
-		private struct CacheWorkItem
+
+		private void HandleImageCacheItemNotFound(string file)
 		{
-			public CacheWorkItem(string displayPath, string[] surroundingPaths)
+			this.BeginInvoke(new MethodInvoker(() =>
 			{
-				this.DisplayPath = displayPath;
-				this.SurroundingPaths = surroundingPaths;
-			}
-
-			public string DisplayPath { get; }
-			public string[] SurroundingPaths { get; }
-		}
-
-		private void SetCacheWorkItem(CacheWorkItem item)
-		{
-			lock (this.sync)
-			{
-				this.cacheWorkItem = item;
-				this.cacheWorkWait.Set();
-			}
-		}
-
-		private void CacheBuildWorkerThreadProc()
-		{
-			while (true)
-			{
-				this.cacheWorkWait.Wait();
-				CacheWorkItem item;
-				lock (this.sync)
+				if (this.currentFileList == null)
 				{
-					this.cacheWorkWait.Reset();
-					item = this.cacheWorkItem;
+					return;
 				}
-
-				if (item.DisplayPath == null)
-				{
-					this.imageCache.PurgeAll();
-					continue;
-				}
-
-				ImageContainer displayedImageContainer = this.imageCache.GetExistingContainer(item.DisplayPath);
-				// It can be null if it wasn't one of the surrounding ones from the last time, and the GUI decided that it doesn't want it anymore after we started the work item.
-				if (displayedImageContainer != null && !displayedImageContainer.IsLoaded)
-				{
-					try
-					{
-						var image = Util.LoadImageFromFile(item.DisplayPath);
-						displayedImageContainer.SetImage(image);
-					}
-					catch (Exception ex)
-					{
-						Debug.WriteLine(ex.ToString());
-						displayedImageContainer.SetImage(null);
-						this.NotFound_QueueForget(item.DisplayPath);
-					}
-					Debug.Assert(displayedImageContainer.IsLoaded);
-				}
-
-				if (this.cacheWorkWait.IsSet)
-				{
-					continue;
-				}
-
-				// displayedImageContainer.Image can still be null if the file is not a valid image.
-				this.BeginInvoke(new MethodInvoker(() => this.DisplayAction()));
-
-				this.imageCache.SetPersistent(item.SurroundingPaths);
-
-				foreach (var key in item.SurroundingPaths)
-				{
-					if (this.cacheWorkWait.IsSet)
-					{
-						break;
-					}
-					var container = this.imageCache.GetExistingContainer(key);
-					if (!container.IsLoaded)
-					{
-						try
-						{
-							var image = Util.LoadImageFromFile(key);
-							container.SetImage(image);
-						}
-						catch (Exception ex)
-						{
-							Debug.WriteLine(ex.ToString());
-							container.SetImage(null);
-							this.NotFound_QueueForget(key);
-						}
-					}
-				}
-			}
-		}
-
-		private void NotFound_QueueForget(string file)
-		{
-			if (!File.Exists(file))
-			{
-				this.BeginInvoke(new MethodInvoker(() =>
-				{
-					if (this.currentFileList == null)
-					{
-						return;
-					}
-					int index = this.currentFileList.IndexOf(file);
-					this.ForgetFile(index);
-				}));
-			}
+				int index = this.currentFileList.IndexOf(file);
+				this.ForgetFile(index);
+				// Don't need to update the displayed image -- a HandleImageCacheDisplayItemLoaded will follow if applicable.
+			}));
 		}
 
 		static readonly int[] fileLoadOrder = new int[] { 0, 1, -1, 2, -2 };
@@ -710,7 +615,7 @@ namespace Windows10PhotoViewerSucksAss
 
 				this.SetDisplayedImageHandle(null);
 
-				this.SetCacheWorkItem(new CacheWorkItem(null, null));
+				this.imageCacheWorker.SetCacheWorkItem(new CacheWorkItem(null, null));
 			}
 			else
 			{
@@ -718,41 +623,51 @@ namespace Windows10PhotoViewerSucksAss
 				var displayFile = this.currentFileList[this.currentDisplayIndex];
 				this.Text = displayFile;
 
-				this.SetDisplayedImageHandle(this.imageCache.GetOrCreateHandle(displayFile));
+				ImageContainer displayedContainer = this.imageCacheWorker.GetOrCreateContainer(displayFile);
+				if (displayedContainer.IsLoaded)
+				{
+					this.SetDisplayedImageHandle(displayedContainer.AddHandle());
+				}
+				else
+				{
+					this.pendingImageContainer = displayedContainer;
+				}
 
-				this.SetCacheWorkItem(this.GetCacheWorkItemForCurrentDisplayIndex());
+				this.imageCacheWorker.SetCacheWorkItem(this.GetCacheWorkItemForCurrentDisplayIndex());
 			}
 		}
+
+		private ImageContainer pendingImageContainer;
+		private ImageContainer lastLoadedItem;
+
+		private void HandleImageCacheDisplayItemLoaded(ImageContainer lastLoadedItem)
+		{
+			if (this.pendingImageContainer == lastLoadedItem)
+			{
+				this.lastLoadedItem = lastLoadedItem;
+				this.BeginInvoke(new MethodInvoker(() => this.DisplayPendingImage()));
+			}
+		}
+
+		private void DisplayPendingImage()
+		{
+			if (this.pendingImageContainer == this.lastLoadedItem)
+			{
+				this.SetDisplayedImageHandle(this.lastLoadedItem.AddHandle());
+			}
+		}
+
+		private ImageHandle displayedHandle;
 
 		private void SetDisplayedImageHandle(ImageHandle handle)
 		{
-			if (this.pendingHandle != this.displayedHandle)
-			{
-				this.pendingHandle?.Dispose();
-				this.pendingHandle = null;
-			}
-			this.pendingHandle = handle;
-			this.DisplayAction();
-		}
-
-		private ImageHandle pendingHandle;
-		private ImageHandle displayedHandle;
-
-		private void DisplayAction()
-		{
-			if (this.pendingHandle == this.displayedHandle)
+			if (handle?.IsLoaded == false || handle == this.displayedHandle)
 			{
 				return;
 			}
-
-			if (this.pendingHandle?.IsLoaded == false)
-			{
-				// Keep displaying the old image if the new one isn't loaded yet to prevent unnecessary flicker.
-				return;
-			}
-
 			this.displayedHandle?.Dispose();
-			this.displayedHandle = this.pendingHandle;
+			this.displayedHandle = handle;
+
 			this.mainImageControl.Image = this.displayedHandle?.Image;
 		}
 	}
