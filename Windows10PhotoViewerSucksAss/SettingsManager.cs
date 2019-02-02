@@ -10,20 +10,24 @@ using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Serialization;
 
+using TSettings = Windows10PhotoViewerSucksAss.Settings;
+
 namespace Windows10PhotoViewerSucksAss
 {
-	class SettingsManager<TSettings>
-		where TSettings : new()
+	class SettingsManager
 	{
 		public SettingsManager(string fullPath)
 		{
 			this.fullPath = fullPath;
-			this.Settings = new TSettings();
 		}
 
 		private readonly string fullPath;
 
-		public TSettings Settings { get; private set; }
+		private TSettings Settings
+		{
+			get { return TSettings.Instance; }
+			set { TSettings.Instance = value; }
+		}
 
 		public void Load()
 		{

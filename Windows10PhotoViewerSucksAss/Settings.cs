@@ -15,10 +15,11 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
 			string fullPath = Path.Combine(appData, @"Windows10PhotoViewerSucksAss\settings.xml");
-			Manager = new SettingsManager<Settings>(fullPath);
+			Manager = new SettingsManager(fullPath);
 		}
 
-		internal static SettingsManager<Settings> Manager { get; }
+		internal static SettingsManager Manager { get; }
+		internal static Settings Instance { get; set; } = new Settings();
 
 		[DataMember]
 		public int Color { get; set; }

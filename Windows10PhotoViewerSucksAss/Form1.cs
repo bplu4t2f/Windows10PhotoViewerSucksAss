@@ -86,17 +86,17 @@ namespace Windows10PhotoViewerSucksAss
 			Settings.Manager.Load();
 			try
 			{
-				if (Settings.Manager.Settings.Color != 0)
+				if (Settings.Instance.Color != 0)
 				{
-					this.mainImageControl.BackColor = Color.FromArgb(Settings.Manager.Settings.Color);
+					this.mainImageControl.BackColor = Color.FromArgb(Settings.Instance.Color);
 				}
-				if (Settings.Manager.Settings.WindowWidth != 0)
+				if (Settings.Instance.WindowWidth != 0)
 				{
-					this.Width = Settings.Manager.Settings.WindowWidth;
+					this.Width = Settings.Instance.WindowWidth;
 				}
-				if (Settings.Manager.Settings.WindowHeight != 0)
+				if (Settings.Instance.WindowHeight != 0)
 				{
-					this.Height = Settings.Manager.Settings.WindowHeight;
+					this.Height = Settings.Instance.WindowHeight;
 				}
 			}
 			catch (Exception ex)
@@ -163,15 +163,15 @@ namespace Windows10PhotoViewerSucksAss
 			}
 			Color color = this.colorDialog.Color;
 			this.mainImageControl.BackColor = color;
-			Settings.Manager.Settings.Color = color.ToArgb();
+			Settings.Instance.Color = color.ToArgb();
 			Settings.Manager.Save();
 		}
 
 		protected override void OnResizeEnd(EventArgs e)
 		{
 			base.OnResizeEnd(e);
-			Settings.Manager.Settings.WindowWidth = this.Width;
-			Settings.Manager.Settings.WindowHeight = this.Height;
+			Settings.Instance.WindowWidth = this.Width;
+			Settings.Instance.WindowHeight = this.Height;
 			Settings.Manager.Save();
 		}
 
