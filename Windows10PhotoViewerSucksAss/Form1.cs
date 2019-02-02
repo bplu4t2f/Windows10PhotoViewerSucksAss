@@ -60,7 +60,7 @@ namespace Windows10PhotoViewerSucksAss
 			mi_file_properties.Click += this.HandleMenuFileProperties;
 			var mi_refresh_files = this.fileListContextMenu.MenuItems.Add("Refresh files (F5)");
 			mi_refresh_files.Click += this.HandleMenuRefreshFiles;
-			var mi_delete_file = this.fileListContextMenu.MenuItems.Add("Move to Becycle Bin (Del)");
+			var mi_delete_file = this.fileListContextMenu.MenuItems.Add("Move to Recycle Bin (Del)");
 			mi_delete_file.Click += this.HandleMenuDeleteFile;
 
 			this.imageCacheWorker.NotFound += this.HandleImageCacheItemNotFound;
