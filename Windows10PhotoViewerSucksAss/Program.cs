@@ -16,6 +16,15 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			Application.EnableVisualStyles();
 			Application.SetCompatibleTextRenderingDefault(false);
+
+			ExecutablePath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
+			if (String.IsNullOrWhiteSpace(ExecutablePath))
+			{
+				ExecutablePath = "Windows10PhotoViewerSucksAss";
+			}
+			string applicationName = System.IO.Path.GetFileNameWithoutExtension(ExecutablePath);
+			Settings.Initialize(applicationName);
+
 			var form = new Form1();
 			if (args.Length >= 1)
 			{
@@ -23,5 +32,7 @@ namespace Windows10PhotoViewerSucksAss
 			}
 			Application.Run(form);
 		}
+
+		public static string ExecutablePath { get; private set; }
 	}
 }

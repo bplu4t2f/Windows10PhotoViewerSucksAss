@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
@@ -11,14 +12,15 @@ namespace Windows10PhotoViewerSucksAss
 	[DataContract(Namespace="")]
 	public class Settings
 	{
-		static Settings()
+		public static void Initialize(string applicationName)
 		{
+			Debug.Assert(Manager == null);
 			string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-			string fullPath = Path.Combine(appData, @"Windows10PhotoViewerSucksAss\settings.xml");
+			string fullPath = Path.Combine(appData, $@"{applicationName}\settings.xml");
 			Manager = new SettingsManager(fullPath);
 		}
 
-		internal static SettingsManager Manager { get; }
+		internal static SettingsManager Manager { get; private set; }
 		internal static Settings Instance { get; set; } = new Settings();
 
 		[DataMember]
