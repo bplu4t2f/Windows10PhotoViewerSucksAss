@@ -31,3 +31,7 @@ The program was hacked together in frustration and therefore the architecture is
 The program now uses natural number sorting for the file list, similar to how Windows explorer sorts file names: ( a1.png, a2.png, a10.png ) instead of ( a1.png, a10,png, a2.png ).
 
 It turned out that finding reasonable C# code that does this was tricky. Check out the NatnumSort class in this project, it doesn't allocate any heap memory, and it doesn't P/Invoke that one Windows function. As a bonus, it also preserves the (lexical) sorting order of hashes: (10a, 5ea) instead of (5ea, 10a). And it's just a static function.
+
+## AppData
+
+The application stores user preferences such as background color and window size in %LOCALAPPDATA%. The sub folder is equal to the name of the executable without its extension, so by default it is %LOCALAPPDATA%\Windows10PhotoViewerSucksAss.
