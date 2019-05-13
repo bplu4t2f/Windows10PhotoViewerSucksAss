@@ -126,6 +126,12 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
+		protected override void OnClosing(CancelEventArgs e)
+		{
+			Settings.WaitSaveCompleted();
+			base.OnClosing(e);
+		}
+
 
 		//
 		// User events
@@ -185,7 +191,7 @@ namespace Windows10PhotoViewerSucksAss
 			Color color = this.colorDialog.Color;
 			this.mainImageControl.BackColor = color;
 			Settings.Instance.Color = color.ToArgb();
-			Settings.Save();
+			Settings.QueueSave();
 		}
 
 		protected override void OnResizeEnd(EventArgs e)
@@ -193,7 +199,7 @@ namespace Windows10PhotoViewerSucksAss
 			base.OnResizeEnd(e);
 			Settings.Instance.WindowWidth = this.Width;
 			Settings.Instance.WindowHeight = this.Height;
-			Settings.Save();
+			Settings.QueueSave();
 		}
 
 		protected override void OnMouseWheel(MouseEventArgs e)

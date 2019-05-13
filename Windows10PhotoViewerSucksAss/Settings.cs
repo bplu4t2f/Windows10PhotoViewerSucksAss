@@ -22,12 +22,17 @@ namespace Windows10PhotoViewerSucksAss
 			Instance = GetManager().Load();
 		}
 
-		public static void Save()
+		public static void QueueSave()
 		{
 			// TODO save in background
 			var tmp = Instance;
 			Debug.Assert(tmp != null);
-			GetManager().Save(tmp);
+			GetManager().QueueSave(tmp);
+		}
+
+		public static void WaitSaveCompleted()
+		{
+			GetManager().WaitSaveCompleted();
 		}
 
 		private static SettingsManager<Settings> GetManager()
