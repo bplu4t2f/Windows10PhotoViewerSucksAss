@@ -40,9 +40,10 @@ namespace Windows10PhotoViewerSucksAss
 					}
 				}
 			}
-			catch
+			catch (Exception ex)
 			{
 				// We don't actually care.
+				Debug.WriteLine(ex);
 			}
 			return new T();
 		}
@@ -115,9 +116,10 @@ namespace Windows10PhotoViewerSucksAss
 						Directory.CreateDirectory(dir);
 						File.WriteAllBytes(this.SettingsFilePath, bytes);
 					}
-					catch
+					catch (Exception ex)
 					{
 						// We don't actually care.
+						Debug.WriteLine(ex);
 					}
 					finally
 					{
