@@ -14,84 +14,52 @@ using TSettings = Windows10PhotoViewerSucksAss.Settings;
 
 namespace Windows10PhotoViewerSucksAss
 {
-	class SettingsManager
+	class SettingsManager<T>
+		where T : new()
 	{
-		public SettingsManager(string fullPath)
+		public SettingsManager(string applicationName)
 		{
-			this.fullPath = fullPath;
+			string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+			this.SettingsFilePath = Path.Combine(appData, $@"{applicationName}\settings.xml");
 		}
 
-		private readonly string fullPath;
+		public string SettingsFilePath { get; }
 
-		private TSettings Settings
+		public T Load()
 		{
-			get { return TSettings.Instance; }
-			set { TSettings.Instance = value; }
-		}
-
-		public void Load()
-		{
-			if (String.IsNullOrEmpty(this.fullPath))
-			{
-				goto __noexist;
-			}
-
 			try
 			{
-				int fileError = FileIO.Open(out FileStream stream, this.fullPath, FileAccess.Read, FileShare.Read, FileMode.Open);
-				if (fileError != 0)
+				if (File.Exists(this.SettingsFilePath))
 				{
-					goto __noexist;
-				}
-				try
-				{
-					DataContractSerializer serializer = new DataContractSerializer(typeof(TSettings));
-					var obj = (TSettings)serializer.ReadObject(stream);
-					this.Settings = obj;
-				}
-				finally
-				{
-					stream.Dispose();
+					var ser = new XmlSerializer(typeof(T));
+					using (var stream = File.OpenRead(this.SettingsFilePath))
+					{
+						return (T)ser.Deserialize(stream);
+					}
 				}
 			}
-			catch (Exception ex)
+			catch
 			{
-				Debug.WriteLine(ex);
-				goto __noexist;
+				// We don't actually care.
 			}
-
-
-			return;
-
-			__noexist:
-			this.Settings = new TSettings();
+			return new T();
 		}
 
-		public void Save()
+		public void Save(T value)
 		{
-			var settings = this.Settings;
-			if (String.IsNullOrEmpty(this.fullPath) || settings == null)
-			{
-				return;
-			}
-
 			try
 			{
-				string directoryPath = Path.GetDirectoryName(this.fullPath);
-				Directory.CreateDirectory(directoryPath);
-				var xmlWriterSettings = new XmlWriterSettings();
-				xmlWriterSettings.Indent = true;
-				xmlWriterSettings.NewLineHandling = NewLineHandling.Entitize;
-				using (var stream = File.Create(this.fullPath))
-				using (var writer = XmlWriter.Create(stream, xmlWriterSettings))
+				var dir = Path.GetDirectoryName(this.SettingsFilePath);
+				Directory.CreateDirectory(dir);
+				var ser = new XmlSerializer(typeof(T));
+				using (var stream = File.Create(this.SettingsFilePath))
 				{
-					DataContractSerializer serializer = new DataContractSerializer(typeof(TSettings));
-					serializer.WriteObject(writer, settings);
+					ser.Serialize(stream, value);
 				}
 			}
-			catch (Exception ex)
+			catch
 			{
-				Debug.WriteLine(ex);
+				// We don't actually care.
 			}
 		}
 	}

@@ -13,6 +13,27 @@ using System.Windows.Forms;
 
 namespace Windows10PhotoViewerSucksAss
 {
+	// TODO make case insensitive optional
+	// TODO reset zoom to fit
+	// TODO f1 help menu overlay
+	// TODO f2 rename
+	// TODO let's have an icon I guess
+	// TODO save user settings in background task or something
+	// TODO "shell" menu
+	// TODO file associations
+	// TODO "save user settings" check box
+	// TODO reset user settings button
+	// TODO other media files
+	// TODO selected item is not centered properly on startup (probably because we're loading settings with width and height after constructor)
+	// TODO refresh menu item shouldn't switch to the item that was clicked on
+	// TODO refresh should reload the image
+	// TODO file system watcher
+	// TODO choose extensions
+	// TODO move/copy targets, with optional counter
+	// TODO file list colors
+	// TODO custom scroll bar colors
+	// TODO save session (use WM_APP messages with EnumWindows for communication)
+
 	public partial class Form1 : Form
 	{
 		public Form1()
@@ -83,7 +104,7 @@ namespace Windows10PhotoViewerSucksAss
 
 			this.imageCacheWorker.StartWorkerThread();
 
-			Settings.Manager.Load();
+			Settings.Load();
 			try
 			{
 				if (Settings.Instance.Color != 0)
@@ -164,7 +185,7 @@ namespace Windows10PhotoViewerSucksAss
 			Color color = this.colorDialog.Color;
 			this.mainImageControl.BackColor = color;
 			Settings.Instance.Color = color.ToArgb();
-			Settings.Manager.Save();
+			Settings.Save();
 		}
 
 		protected override void OnResizeEnd(EventArgs e)
@@ -172,7 +193,7 @@ namespace Windows10PhotoViewerSucksAss
 			base.OnResizeEnd(e);
 			Settings.Instance.WindowWidth = this.Width;
 			Settings.Instance.WindowHeight = this.Height;
-			Settings.Manager.Save();
+			Settings.Save();
 		}
 
 		protected override void OnMouseWheel(MouseEventArgs e)
@@ -549,6 +570,7 @@ namespace Windows10PhotoViewerSucksAss
 #else
 			List<string> matchingFiles = files.ToList();
 #endif
+			// TODO #if DEBUG
 			var sw = Stopwatch.StartNew();
 			matchingFiles.Sort(NatnumSort.Instance);
 			Debug.WriteLine($"Sorting took {sw.ElapsedMilliseconds} ms");
