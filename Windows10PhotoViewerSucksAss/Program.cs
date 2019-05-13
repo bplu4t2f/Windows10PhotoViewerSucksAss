@@ -24,6 +24,7 @@ namespace Windows10PhotoViewerSucksAss
 			}
 			string applicationName = System.IO.Path.GetFileNameWithoutExtension(ExecutablePath);
 			Settings.Initialize(applicationName);
+			Settings.Load();
 
 			var form = new Form1();
 			if (args.Length >= 1)

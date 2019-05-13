@@ -18,7 +18,6 @@ namespace Windows10PhotoViewerSucksAss
 	// TODO f1 help menu overlay
 	// TODO f2 rename
 	// TODO let's have an icon I guess
-	// TODO save user settings in background task or something
 	// TODO "shell" menu
 	// TODO file associations
 	// TODO "save user settings" check box
@@ -38,7 +37,8 @@ namespace Windows10PhotoViewerSucksAss
 	{
 		public Form1()
 		{
-			this.Size = new Size(960, 640);
+			this.ApplyDefaultSettings();
+			this.ApplyUserSettings();
 
 			this.optionButton.Text = "Option";
 			this.optionButton.Width = this.overviewControl.Width;
@@ -86,6 +86,7 @@ namespace Windows10PhotoViewerSucksAss
 
 			this.imageCacheWorker.NotFound += this.HandleImageCacheItemNotFound;
 			this.imageCacheWorker.DisplayItemLoaded += this.HandleImageCacheDisplayItemLoaded;
+			this.imageCacheWorker.StartWorkerThread();
 		}
 
 		private readonly ContextMenu fileListContextMenu = new ContextMenu();
@@ -98,13 +99,20 @@ namespace Windows10PhotoViewerSucksAss
 
 		private readonly ImageCacheWorker imageCacheWorker = new ImageCacheWorker();
 
-		protected override void OnLoad(EventArgs e)
+		protected override void OnClosing(CancelEventArgs e)
 		{
-			base.OnLoad(e);
+			Settings.WaitSaveCompleted();
+			base.OnClosing(e);
+		}
 
-			this.imageCacheWorker.StartWorkerThread();
+		private void ApplyDefaultSettings()
+		{
+			this.Size = new Size(960, 640);
+			this.mainImageControl.BackColor = Color.FromArgb(32, 64, 96);
+		}
 
-			Settings.Load();
+		private void ApplyUserSettings()
+		{
 			try
 			{
 				if (Settings.Instance.Color != 0)
@@ -124,12 +132,6 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				Debug.WriteLine(ex);
 			}
-		}
-
-		protected override void OnClosing(CancelEventArgs e)
-		{
-			Settings.WaitSaveCompleted();
-			base.OnClosing(e);
 		}
 
 
