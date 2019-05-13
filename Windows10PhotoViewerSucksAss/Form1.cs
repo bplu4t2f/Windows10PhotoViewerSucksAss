@@ -578,14 +578,17 @@ namespace Windows10PhotoViewerSucksAss
 #else
 			List<string> matchingFiles = files.ToList();
 #endif
-			// TODO #if DEBUG
+#if DEBUG
 			var sw = Stopwatch.StartNew();
+#endif
 			matchingFiles.Sort(NatnumSort.Instance_CaseSensitive);
+#if DEBUG
 			Debug.WriteLine($"Sorting took {sw.ElapsedMilliseconds} ms");
 			foreach (var f in matchingFiles)
 			{
 				Debug.WriteLine(f);
 			}
+#endif
 
 			var displayIndex = matchingFiles.IndexOf(displayFile);
 
