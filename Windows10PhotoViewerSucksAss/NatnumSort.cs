@@ -14,7 +14,7 @@ namespace Windows10PhotoViewerSucksAss
 		public const int R_BIGGER = -1;
 		public const int NO_STRING_TOKEN = -1;
 
-		public static int Sort(string l, string r)
+		public static int Sort(string l, string r, bool ignoreCase)
 		{
 			int cursor_l = 0;
 			int cursor_r = 0;
@@ -61,7 +61,7 @@ namespace Windows10PhotoViewerSucksAss
 				}
 				else
 				{
-					var stringComparison = CompareStringParts(l, string_token_l, cursor_l, r, string_token_r, cursor_r);
+					var stringComparison = CompareStringParts(l, string_token_l, cursor_l, r, string_token_r, cursor_r, ignoreCase);
 					if (stringComparison != 0)
 					{
 						return stringComparison;
@@ -71,7 +71,7 @@ namespace Windows10PhotoViewerSucksAss
 		}
 
 		// Ends are exclusive
-		private static int CompareStringParts(string l, int start_l, int end_l, string r, int start_r, int end_r)
+		private static int CompareStringParts(string l, int start_l, int end_l, string r, int start_r, int end_r, bool ignoreCase)
 		{
 			int cursor_l = start_l;
 			int cursor_r = start_r;
@@ -95,6 +95,11 @@ namespace Windows10PhotoViewerSucksAss
 
 				char char_l = l[cursor_l];
 				char char_r = r[cursor_r];
+				if (ignoreCase)
+				{
+					char_l = Char.ToLowerInvariant(char_l);
+					char_r = Char.ToLowerInvariant(char_r);
+				}
 				if (char_l > char_r)
 				{
 					return L_BIGGER;
@@ -163,7 +168,7 @@ namespace Windows10PhotoViewerSucksAss
 				}
 			}
 
-			__nah:
+		__nah:
 
 			// This is a normal text token. Continue until we find the next digit and then return the text.
 			for (; cursor < str.Length; ++cursor)
@@ -174,17 +179,29 @@ namespace Windows10PhotoViewerSucksAss
 					break;
 				}
 			}
-			
+
 			string_token_start = startIndex;
 			int_token = default(ulong);
 			return cursor;
 		}
 
-		public int Compare(string x, string y)
+		//
+		// IComparer<string> implemenation
+		//
+
+		public NatnumSort(bool ignoreCase)
 		{
-			return Sort(x, y);
+			this.IgnoreCase = ignoreCase;
 		}
 
-		public static NatnumSort Instance { get; } = new NatnumSort();
+		public bool IgnoreCase { get; }
+
+		public int Compare(string x, string y)
+		{
+			return Sort(x, y, this.IgnoreCase);
+		}
+
+		public static NatnumSort Instance_CaseSensitive { get; } = new NatnumSort(ignoreCase: false);
+		public static NatnumSort Instance_CaseInsensitive { get; } = new NatnumSort(ignoreCase: true);
 	}
 }

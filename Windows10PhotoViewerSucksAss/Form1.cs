@@ -580,7 +580,7 @@ namespace Windows10PhotoViewerSucksAss
 #endif
 			// TODO #if DEBUG
 			var sw = Stopwatch.StartNew();
-			matchingFiles.Sort(NatnumSort.Instance);
+			matchingFiles.Sort(NatnumSort.Instance_CaseSensitive);
 			Debug.WriteLine($"Sorting took {sw.ElapsedMilliseconds} ms");
 			foreach (var f in matchingFiles)
 			{
