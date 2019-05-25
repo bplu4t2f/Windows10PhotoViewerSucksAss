@@ -36,6 +36,7 @@
 			this.labelCurrentFont = new System.Windows.Forms.Label();
 			this.trackBarSplitterWidth = new System.Windows.Forms.TrackBar();
 			this.labelSplitterWidth = new System.Windows.Forms.Label();
+			this.labelSplitterWidthHint = new System.Windows.Forms.Label();
 			((System.ComponentModel.ISupportInitialize)(this.trackBarSplitterWidth)).BeginInit();
 			this.SuspendLayout();
 			// 
@@ -100,7 +101,7 @@
 			// 
 			// trackBarSplitterWidth
 			// 
-			this.trackBarSplitterWidth.Location = new System.Drawing.Point(12, 93);
+			this.trackBarSplitterWidth.Location = new System.Drawing.Point(15, 110);
 			this.trackBarSplitterWidth.Maximum = 60;
 			this.trackBarSplitterWidth.Name = "trackBarSplitterWidth";
 			this.trackBarSplitterWidth.Size = new System.Drawing.Size(147, 45);
@@ -109,17 +110,27 @@
 			// labelSplitterWidth
 			// 
 			this.labelSplitterWidth.AutoSize = true;
-			this.labelSplitterWidth.Location = new System.Drawing.Point(165, 103);
+			this.labelSplitterWidth.Location = new System.Drawing.Point(165, 119);
 			this.labelSplitterWidth.Name = "labelSplitterWidth";
 			this.labelSplitterWidth.Size = new System.Drawing.Size(107, 13);
 			this.labelSplitterWidth.TabIndex = 7;
 			this.labelSplitterWidth.Text = "{SPLITTER WIDTH}";
+			// 
+			// labelSplitterWidthHint
+			// 
+			this.labelSplitterWidthHint.AutoSize = true;
+			this.labelSplitterWidthHint.Location = new System.Drawing.Point(12, 94);
+			this.labelSplitterWidthHint.Name = "labelSplitterWidthHint";
+			this.labelSplitterWidthHint.Size = new System.Drawing.Size(73, 13);
+			this.labelSplitterWidthHint.TabIndex = 8;
+			this.labelSplitterWidthHint.Text = "Splitter Width:";
 			// 
 			// SettingsForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.ClientSize = new System.Drawing.Size(549, 318);
+			this.Controls.Add(this.labelSplitterWidthHint);
 			this.Controls.Add(this.labelSplitterWidth);
 			this.Controls.Add(this.trackBarSplitterWidth);
 			this.Controls.Add(this.labelCurrentFont);
@@ -146,5 +157,6 @@
 		private System.Windows.Forms.Label labelCurrentFont;
 		private System.Windows.Forms.TrackBar trackBarSplitterWidth;
 		private System.Windows.Forms.Label labelSplitterWidth;
+		private System.Windows.Forms.Label labelSplitterWidthHint;
 	}
 }
