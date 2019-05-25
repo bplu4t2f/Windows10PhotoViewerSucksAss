@@ -45,26 +45,26 @@ namespace Windows10PhotoViewerSucksAss
 			this.ApplyDefaultSettings();
 			this.ApplyUserSettings();
 
-			this.optionButton.Text = "Options";
-			this.optionButton.Width = this.overviewControl.Width;
-			this.optionButton.Top = this.ClientRectangle.Height - this.optionButton.Height;
-			this.optionButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+			this.optionsButton.Text = "Options";
+			this.optionsButton.Width = this.overviewControl.Width;
+			this.optionsButton.Top = this.ClientRectangle.Height - this.optionsButton.Height;
+			this.optionsButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
 
 			this.overviewControl.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
-			this.overviewControl.Height = this.ClientSize.Height - this.optionButton.Height;
+			this.overviewControl.Height = this.ClientSize.Height - this.optionsButton.Height;
 
 			this.mainImageControl.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 			this.mainImageControl.Left = this.overviewControl.Width;
 			this.mainImageControl.Size = new Size(this.ClientSize.Width - this.overviewControl.Width, this.ClientSize.Height);
 
 			this.SuspendLayout();
-			this.Controls.Add(this.optionButton);
+			this.Controls.Add(this.optionsButton);
 			this.Controls.Add(this.mainImageControl);
 			this.Controls.Add(this.overviewControl);
 			this.ResumeLayout();
 
 			this.overviewControl.ImageSelected += this.OverviewControl_ImageSelected;
-			this.optionButton.Click += this.HandleOptionButtonClick;
+			this.optionsButton.Click += this.HandleOptionButtonClick;
 
 			this.AllowDrop = true;
 
@@ -96,9 +96,8 @@ namespace Windows10PhotoViewerSucksAss
 
 		private readonly ContextMenu fileListContextMenu = new ContextMenu();
 		private readonly MenuItem mi_file_name;
-		private readonly ColorDialog colorDialog = new ColorDialog();
 
-		private readonly Button optionButton = new Button();
+		private readonly Button optionsButton = new Button();
 		private readonly MainImageControl mainImageControl = new MainImageControl();
 		private readonly OverviewControl overviewControl = new OverviewControl();
 
