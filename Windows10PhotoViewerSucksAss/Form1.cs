@@ -183,6 +183,7 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				int effectiveIndex = Math.Min(Math.Max(index, 0), this.currentFileList.Count - 1);
 				this.currentDisplayIndex = effectiveIndex;
+				this.SetCurrentDisplayFileFromCurrentDisplayIndex();
 				this.DisplayCurrent(scrollSelectedItemIntoView: false);
 			}
 		}
@@ -223,7 +224,7 @@ namespace Windows10PhotoViewerSucksAss
 			set
 			{
 				Settings.Instance.SortCaseSensitive = value;
-				this.RefreshFiles(this.currentDisplayIndex);
+				this.UpdateCurrentFileList();
 			}
 		}
 
@@ -326,6 +327,7 @@ namespace Windows10PhotoViewerSucksAss
 		private void HandleMenuShow(object sender, EventArgs e)
 		{
 			this.currentDisplayIndex = this.menuItemFileIndex;
+			this.SetCurrentDisplayFileFromCurrentDisplayIndex();
 			this.DisplayCurrent(scrollSelectedItemIntoView: true);
 		}
 
@@ -373,7 +375,7 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			if (this.currentFileList == null || index < 0 || index >= this.currentFileList.Count)
 			{
-				file = default(string);
+				file = null;
 				return false;
 			}
 			file = this.currentFileList[index];
@@ -471,6 +473,7 @@ namespace Windows10PhotoViewerSucksAss
 					this.currentDisplayIndex = this.currentFileList.Count - 1;
 				}
 			}
+			this.SetCurrentDisplayFileFromCurrentDisplayIndex();
 			this.overviewControl.Initialize(this.currentFileList);
 			this.DisplayCurrent(scrollSelectedItemIntoView: false);
 		}
@@ -519,6 +522,7 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				this.currentDisplayIndex += 1;
 			}
+			this.SetCurrentDisplayFileFromCurrentDisplayIndex();
 			this.DisplayCurrent(scrollSelectedItemIntoView: true);
 		}
 
@@ -532,6 +536,7 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				this.currentDisplayIndex -= 1;
 			}
+			this.SetCurrentDisplayFileFromCurrentDisplayIndex();
 			this.DisplayCurrent(scrollSelectedItemIntoView: true);
 		}
 
@@ -608,9 +613,21 @@ namespace Windows10PhotoViewerSucksAss
 		// Needed for Refresh.
 		private string currentDisplayDir;
 		// currentFlieList may be null, and the display index may be invalid.
-		private IList<string> currentFileList;
+		private List<string> currentFileList;
+		// Full path to the file that is currently being displayed. This must be synchronized with currentDisplayIndex.
+		// Requried because the sorting order in the list may change. In that case, the selected file's display index may change.
+		private string currentDisplayFile;
 		private int currentDisplayIndex;
 
+		/// <summary>
+		/// Call this when assigning <see cref="currentDisplayIndex"/> to update <see cref="currentDisplayFile"/>.
+		/// </summary>
+		private void SetCurrentDisplayFileFromCurrentDisplayIndex()
+		{
+			this.TryGetFile(this.currentDisplayIndex, out string file);
+			this.currentDisplayFile = file;
+		}
+		
 		private void SetDisplayPath2(string dir, string displayFile)
 		{
 			this.currentDisplayDir = dir;
@@ -621,26 +638,35 @@ namespace Windows10PhotoViewerSucksAss
 #else
 			List<string> matchingFiles = files.ToList();
 #endif
+			this.currentFileList = matchingFiles;
+			this.currentDisplayFile = displayFile;
+			this.UpdateCurrentFileList();
+		}
+
+		/// <summary>
+		/// Call this after <see cref="currentFileList"/> has been assigned, or when the sorting order has changed.
+		/// </summary>
+		private void UpdateCurrentFileList()
+		{
 #if DEBUG
 			var sw = Stopwatch.StartNew();
 #endif
-			matchingFiles.Sort(Settings.Instance.SortCaseSensitive ? NatnumSort.Instance_CaseSensitive : NatnumSort.Instance_CaseInsensitive);
+			this.currentFileList.Sort(Settings.Instance.SortCaseSensitive ? NatnumSort.Instance_CaseSensitive : NatnumSort.Instance_CaseInsensitive);
 #if DEBUG
 			Debug.WriteLine($"Sorting took {sw.ElapsedMilliseconds} ms");
-			foreach (var f in matchingFiles)
+			foreach (var f in this.currentFileList)
 			{
 				Debug.WriteLine(f);
 			}
 #endif
 
-			var displayIndex = matchingFiles.IndexOf(displayFile);
+			var displayIndex = this.currentFileList.IndexOf(this.currentDisplayFile);
 
 			if (displayIndex == -1)
 			{
 				displayIndex = 0;
 			}
 
-			this.currentFileList = matchingFiles;
 			this.currentDisplayIndex = displayIndex;
 			this.overviewControl.Initialize(this.currentFileList);
 
