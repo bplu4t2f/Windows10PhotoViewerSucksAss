@@ -14,17 +14,22 @@ using System.Windows.Forms;
 namespace Windows10PhotoViewerSucksAss
 {
 	// TODO make case insensitive optional
+	// TODO change global application font
 	// TODO reset zoom to fit
+	// TODO left pane resizable
 	// TODO f1 help menu overlay
 	// TODO f2 rename
 	// TODO let's have an icon I guess
 	// TODO "shell" menu
 	// TODO file associations
 	// TODO "save user settings" check box
+	// TODO option to save user settings with application exe
+	// TODO show save error upon switching save mode, if applicable
 	// TODO reset user settings button
 	// TODO other media files
 	// TODO selected item is not centered properly on startup (probably because we're loading settings with width and height after constructor)
 	// TODO refresh menu item shouldn't switch to the item that was clicked on
+	// TODO work properly when f5 is pressed and the current image no longer exists
 	// TODO refresh should reload the image
 	// TODO file system watcher
 	// TODO choose extensions
@@ -33,14 +38,14 @@ namespace Windows10PhotoViewerSucksAss
 	// TODO custom scroll bar colors
 	// TODO save session (use WM_APP messages with EnumWindows for communication)
 
-	public partial class Form1 : Form
+	public class Form1 : Form
 	{
 		public Form1()
 		{
 			this.ApplyDefaultSettings();
 			this.ApplyUserSettings();
 
-			this.optionButton.Text = "Option";
+			this.optionButton.Text = "Options";
 			this.optionButton.Width = this.overviewControl.Width;
 			this.optionButton.Top = this.ClientRectangle.Height - this.optionButton.Height;
 			this.optionButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
@@ -182,18 +187,45 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
+		private SettingsForm currentSettingsForm;
+
+		private static void CenterControl(Control container, Control content)
+		{
+			content.Location = new Point(
+				(int)(container.Left + (container.Width - content.Width) / 2.0),
+				(int)(container.Top + (container.Height - content.Height) / 2.0)
+				);
+		}
+
 		private void HandleOptionButtonClick(object sender, EventArgs e)
 		{
-			this.colorDialog.FullOpen = true;
-			this.colorDialog.Color = this.mainImageControl.BackColor;
-			if (this.colorDialog.ShowDialog() != DialogResult.OK)
+			if (this.currentSettingsForm != null)
 			{
+				this.currentSettingsForm.Activate();
+				this.currentSettingsForm.BringToFront();
+				if (this.currentSettingsForm.WindowState == FormWindowState.Minimized)
+				{
+					this.currentSettingsForm.WindowState = FormWindowState.Normal;
+				}
 				return;
 			}
-			Color color = this.colorDialog.Color;
-			this.mainImageControl.BackColor = color;
-			Settings.Instance.Color = color.ToArgb();
-			Settings.QueueSave();
+			var form = new SettingsForm(this);
+			this.currentSettingsForm = form;
+			form.FormClosed += (sender1, e1) => { if (this.currentSettingsForm == form) { this.currentSettingsForm = null; } };
+			form.StartPosition = FormStartPosition.Manual;
+			CenterControl(this, form);
+			form.Show();
+		}
+
+		public Color Setting_BackColor
+		{
+			get { return this.mainImageControl.BackColor; }
+			set
+			{
+				this.mainImageControl.BackColor = value;
+				Settings.Instance.Color = value.ToArgb();
+				Settings.QueueSave();
+			}
 		}
 
 		protected override void OnResizeEnd(EventArgs e)
