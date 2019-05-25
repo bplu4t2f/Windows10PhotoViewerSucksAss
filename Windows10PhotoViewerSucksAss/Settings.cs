@@ -55,5 +55,6 @@ namespace Windows10PhotoViewerSucksAss
 		public int Color { get; set; }
 		public int WindowWidth { get; set; }
 		public int WindowHeight { get; set; }
+		public bool SortCaseSensitive { get; set; }
 	}
 }

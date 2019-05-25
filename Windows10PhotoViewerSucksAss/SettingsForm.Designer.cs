@@ -36,7 +36,7 @@
 			// 
 			// button1
 			// 
-			this.button1.Location = new System.Drawing.Point(12, 12);
+			this.button1.Location = new System.Drawing.Point(12, 35);
 			this.button1.Name = "button1";
 			this.button1.Size = new System.Drawing.Size(147, 23);
 			this.button1.TabIndex = 0;
@@ -46,13 +46,12 @@
 			// checkBoxSortCaseSensitive
 			// 
 			this.checkBoxSortCaseSensitive.AutoSize = true;
-			this.checkBoxSortCaseSensitive.Location = new System.Drawing.Point(12, 41);
+			this.checkBoxSortCaseSensitive.Location = new System.Drawing.Point(12, 12);
 			this.checkBoxSortCaseSensitive.Name = "checkBoxSortCaseSensitive";
 			this.checkBoxSortCaseSensitive.Size = new System.Drawing.Size(128, 17);
 			this.checkBoxSortCaseSensitive.TabIndex = 1;
 			this.checkBoxSortCaseSensitive.Text = "Case sensitive sorting";
 			this.checkBoxSortCaseSensitive.UseVisualStyleBackColor = true;
-			this.checkBoxSortCaseSensitive.Visible = false;
 			// 
 			// buttonOK
 			// 

@@ -31,6 +31,7 @@ namespace Windows10PhotoViewerSucksAss
 	// TODO refresh menu item shouldn't switch to the item that was clicked on
 	// TODO work properly when f5 is pressed and the current image no longer exists
 	// TODO refresh should reload the image
+	// TODO refresh shouldn't move the scroll bar in the file list
 	// TODO file system watcher
 	// TODO choose extensions
 	// TODO move/copy targets, with optional counter
@@ -214,6 +215,16 @@ namespace Windows10PhotoViewerSucksAss
 			form.StartPosition = FormStartPosition.Manual;
 			CenterControl(this, form);
 			form.Show();
+		}
+
+		public bool Setting_SortCaseSensitive
+		{
+			get { return Settings.Instance.SortCaseSensitive; }
+			set
+			{
+				Settings.Instance.SortCaseSensitive = value;
+				this.RefreshFiles(this.currentDisplayIndex);
+			}
 		}
 
 		public Color Setting_BackColor
@@ -488,6 +499,7 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
+		// TODO this shouldn't have an argument
 		private void RefreshFiles(int fileIndex)
 		{
 			if (!this.TryGetFile(fileIndex, out string path))
@@ -612,7 +624,7 @@ namespace Windows10PhotoViewerSucksAss
 #if DEBUG
 			var sw = Stopwatch.StartNew();
 #endif
-			matchingFiles.Sort(NatnumSort.Instance_CaseSensitive);
+			matchingFiles.Sort(Settings.Instance.SortCaseSensitive ? NatnumSort.Instance_CaseSensitive : NatnumSort.Instance_CaseInsensitive);
 #if DEBUG
 			Debug.WriteLine($"Sorting took {sw.ElapsedMilliseconds} ms");
 			foreach (var f in matchingFiles)

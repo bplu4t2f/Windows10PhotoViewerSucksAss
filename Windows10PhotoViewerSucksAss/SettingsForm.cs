@@ -16,7 +16,7 @@ namespace Windows10PhotoViewerSucksAss
 			this.owner = owner ?? throw new ArgumentNullException(nameof(owner));
 			this.InitializeComponent();
 
-			//this.settingHelper.CheckBox(this.checkBoxSortCaseSensitive, x => x.Setting_SortCaseSensitive, (x, v) => x.Setting_SortCaseSensitive = v);
+			this.settingHelper.CheckBox(this.checkBoxSortCaseSensitive, x => x.Setting_SortCaseSensitive, (x, v) => x.Setting_SortCaseSensitive = v);
 			this.settingHelper.Color(this.button1, x => x.Setting_BackColor, (x, v) => x.Setting_BackColor = v);
 
 			foreach (var setting in this.settingHelper.Settings)
