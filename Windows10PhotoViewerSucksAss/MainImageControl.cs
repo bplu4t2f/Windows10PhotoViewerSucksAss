@@ -107,14 +107,13 @@ namespace Windows10PhotoViewerSucksAss
 			this.Invalidate();
 		}
 
-		private void ZoomToFit()
+		public void ZoomToFit()
 		{
 			this.transform.Reset();
 			this.zoomToFitEnabled = true;
 			var image = this.Image;
 			if (image != null)
 			{
-				// TODO make this a function; persist zoom-to-fit mode until manual panning or zooming
 				this.transform.Translate(-image.Width / 2, -image.Height / 2);
 				if (image.Height > this.Height || image.Width > this.Width)
 				{

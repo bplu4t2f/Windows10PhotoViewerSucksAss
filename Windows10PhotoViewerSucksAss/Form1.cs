@@ -13,7 +13,6 @@ using System.Windows.Forms;
 
 namespace Windows10PhotoViewerSucksAss
 {
-	// TODO reset zoom to fit
 	// TODO left pane resizable
 	// TODO f1 help menu overlay
 	// TODO f2 rename
@@ -68,6 +67,9 @@ namespace Windows10PhotoViewerSucksAss
 			this.mi_file_name.Enabled = false;
 			var mi_show = this.fileListContextMenu.MenuItems.Add("Show");
 			mi_show.Click += this.HandleMenuShow;
+			var mi_zoom_to_fit = this.fileListContextMenu.MenuItems.Add("Zoom to fit (T)");
+			mi_zoom_to_fit.Click += this.HandleMenuZoomToFit;
+			this.fileListContextMenu.MenuItems.Add("-"); // separator
 			var mi_explore_to = this.fileListContextMenu.MenuItems.Add("Explore to (&E)");
 			mi_explore_to.Click += this.HandleMenuExploreTo;
 			var mi_copy_full_path = this.fileListContextMenu.MenuItems.Add("Copy full path (&F)");
@@ -300,6 +302,11 @@ namespace Windows10PhotoViewerSucksAss
 				this.Previous();
 				return true;
 			}
+			else if (keyData == Keys.T)
+			{
+				this.mainImageControl.ZoomToFit();
+				return true;
+			}
 			else if (keyData == Keys.E)
 			{
 				this.ExploreTo(this.currentDisplayIndex);
@@ -393,6 +400,11 @@ namespace Windows10PhotoViewerSucksAss
 		private void HandleMenuDeleteFile(object sender, EventArgs e)
 		{
 			this.DeleteFile(this.menuItemFileIndex);
+		}
+
+		private void HandleMenuZoomToFit(object sender, EventArgs e)
+		{
+			this.mainImageControl.ZoomToFit();
 		}
 
 		private bool TryGetFile(int index, out string file)
