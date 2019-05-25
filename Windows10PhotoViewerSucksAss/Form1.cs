@@ -52,6 +52,7 @@ namespace Windows10PhotoViewerSucksAss
 			this.splitter.LeftControls.Add(this.overviewControl);
 			this.splitter.RightControls.Add(this.mainImageControl);
 			this.splitter.DragStopped += this.HandleSplitterDragStopped;
+			this.splitter.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
 
 			this.mainImageControl.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 			this.mainImageControl.Left = this.splitter.Right;
