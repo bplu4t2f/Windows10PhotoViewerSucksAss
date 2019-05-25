@@ -13,7 +13,6 @@ using System.Windows.Forms;
 
 namespace Windows10PhotoViewerSucksAss
 {
-	// TODO make case insensitive optional
 	// TODO change global application font
 	// TODO reset zoom to fit
 	// TODO left pane resizable
@@ -28,10 +27,7 @@ namespace Windows10PhotoViewerSucksAss
 	// TODO reset user settings button
 	// TODO other media files
 	// TODO selected item is not centered properly on startup (probably because we're loading settings with width and height after constructor)
-	// TODO refresh menu item shouldn't switch to the item that was clicked on
-	// TODO work properly when f5 is pressed and the current image no longer exists
 	// TODO refresh should reload the image
-	// TODO refresh shouldn't move the scroll bar in the file list
 	// TODO file system watcher
 	// TODO choose extensions
 	// TODO move/copy targets, with optional counter
@@ -224,7 +220,7 @@ namespace Windows10PhotoViewerSucksAss
 			set
 			{
 				Settings.Instance.SortCaseSensitive = value;
-				this.UpdateCurrentFileList();
+				this.UpdateCurrentFileList(scrollSelectedItemIntoView: false);
 			}
 		}
 
@@ -303,7 +299,7 @@ namespace Windows10PhotoViewerSucksAss
 			}
 			else if (keyData == Keys.F5)
 			{
-				this.RefreshFiles(this.currentDisplayIndex);
+				this.RefreshFiles();
 				return true;
 			}
 			else if (keyData == Keys.X)
@@ -363,7 +359,7 @@ namespace Windows10PhotoViewerSucksAss
 
 		private void HandleMenuRefreshFiles(object sender, EventArgs e)
 		{
-			this.RefreshFiles(this.menuItemFileIndex);
+			this.RefreshFiles();
 		}
 
 		private void HandleMenuDeleteFile(object sender, EventArgs e)
@@ -502,14 +498,9 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
-		// TODO this shouldn't have an argument
-		private void RefreshFiles(int fileIndex)
+		private void RefreshFiles()
 		{
-			if (!this.TryGetFile(fileIndex, out string path))
-			{
-				path = this.currentDisplayDir;
-			}
-			this.SetDisplayPath_NoThrowInteractive(path, path_is_definitely_a_directory: true);
+			this.UpdateDisplayPath(scrollSelectedItemIntoView: false);
 		}
 
 		private void Next()
@@ -549,8 +540,9 @@ namespace Windows10PhotoViewerSucksAss
 
 		/// <summary>
 		/// Displays a specific file or folder.
+		/// Automatically determines whether <paramref name="path"/> is a file or directory.
 		/// </summary>
-		public void SetDisplayPath_NoThrowInteractive(string path, bool path_is_definitely_a_directory = false)
+		public void SetDisplayPath_NoThrowInteractive(string path)
 		{
 			if (path == null)
 			{
@@ -581,26 +573,22 @@ namespace Windows10PhotoViewerSucksAss
 			}
 			else
 			{
-				if (!path_is_definitely_a_directory)
+				string parent = Path.GetDirectoryName(path);
+				if (!Directory.Exists(parent))
 				{
-					string parent = Path.GetDirectoryName(path);
-					if (Directory.Exists(parent))
-					{
-						dir = parent;
-						displayFile = null;
-						goto _found_parent;
-					}
+					MessageBox.Show("Specified file doesn't exist: " + path);
+					return;
 				}
 
-				MessageBox.Show("Specified file doesn't exist: " + path);
-				return;
-
-				_found_parent:;
+				dir = parent;
+				displayFile = null;
 			}
 
 			try
 			{
-				this.SetDisplayPath2(dir, displayFile);
+				this.currentDisplayDir = dir;
+				this.currentDisplayFile = displayFile;
+				this.UpdateDisplayPath(scrollSelectedItemIntoView: true);
 			}
 			catch (Exception ex)
 			{
@@ -628,10 +616,20 @@ namespace Windows10PhotoViewerSucksAss
 			this.currentDisplayFile = file;
 		}
 		
-		private void SetDisplayPath2(string dir, string displayFile)
+		/// <summary>
+		/// This assumes that <see cref="currentDisplayDir"/> and <see cref="currentDisplayFile"/> have been set to their desired values.
+		/// Scans <see cref="currentDisplayDir"/> for files and updates the file list.
+		/// </summary>
+		private void UpdateDisplayPath(bool scrollSelectedItemIntoView)
 		{
-			this.currentDisplayDir = dir;
-			var files = Directory.GetFiles(dir);
+			if (this.currentDisplayDir == null)
+			{
+				this.currentFileList = null;
+				this.UpdateCurrentFileList(scrollSelectedItemIntoView);
+				return;
+			}
+
+			var files = Directory.GetFiles(this.currentDisplayDir);
 #if false
 			var regex = new Regex(@"(\.png$)|(\.jpg$)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 			var matchingFiles = files.Where(x => regex.IsMatch(x)).ToList();
@@ -639,38 +637,47 @@ namespace Windows10PhotoViewerSucksAss
 			List<string> matchingFiles = files.ToList();
 #endif
 			this.currentFileList = matchingFiles;
-			this.currentDisplayFile = displayFile;
-			this.UpdateCurrentFileList();
+			this.UpdateCurrentFileList(scrollSelectedItemIntoView);
 		}
 
 		/// <summary>
 		/// Call this after <see cref="currentFileList"/> has been assigned, or when the sorting order has changed.
 		/// </summary>
-		private void UpdateCurrentFileList()
+		private void UpdateCurrentFileList(bool scrollSelectedItemIntoView)
 		{
-#if DEBUG
-			var sw = Stopwatch.StartNew();
-#endif
-			this.currentFileList.Sort(Settings.Instance.SortCaseSensitive ? NatnumSort.Instance_CaseSensitive : NatnumSort.Instance_CaseInsensitive);
-#if DEBUG
-			Debug.WriteLine($"Sorting took {sw.ElapsedMilliseconds} ms");
-			foreach (var f in this.currentFileList)
+			if (this.currentFileList != null)
 			{
-				Debug.WriteLine(f);
-			}
+#if DEBUG
+				var sw = Stopwatch.StartNew();
+#endif
+				this.currentFileList.Sort(Settings.Instance.SortCaseSensitive ? NatnumSort.Instance_CaseSensitive : NatnumSort.Instance_CaseInsensitive);
+#if DEBUG
+				Debug.WriteLine($"Sorting took {sw.ElapsedMilliseconds} ms");
+				foreach (var f in this.currentFileList)
+				{
+					Debug.WriteLine(f);
+				}
 #endif
 
-			var displayIndex = this.currentFileList.IndexOf(this.currentDisplayFile);
+				var displayIndex = this.currentFileList.IndexOf(this.currentDisplayFile);
 
-			if (displayIndex == -1)
-			{
-				displayIndex = 0;
+				if (displayIndex != -1)
+				{
+					this.currentDisplayIndex = displayIndex;
+				}
+				else
+				{
+					// If the file suddenly does not exist anymore, at least try to keep the currently selected index selected.
+					if (this.currentDisplayIndex >= this.currentFileList.Count)
+					{
+						this.currentDisplayIndex = this.currentFileList.Count - 1;
+					}
+				}
+
+				this.overviewControl.Initialize(this.currentFileList);
 			}
 
-			this.currentDisplayIndex = displayIndex;
-			this.overviewControl.Initialize(this.currentFileList);
-
-			this.DisplayCurrent(scrollSelectedItemIntoView: true);
+			this.DisplayCurrent(scrollSelectedItemIntoView);
 		}
 
 
