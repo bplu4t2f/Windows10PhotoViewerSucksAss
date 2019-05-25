@@ -34,6 +34,9 @@
 			this.buttonCancel = new System.Windows.Forms.Button();
 			this.buttonChangeFont = new System.Windows.Forms.Button();
 			this.labelCurrentFont = new System.Windows.Forms.Label();
+			this.trackBarSplitterWidth = new System.Windows.Forms.TrackBar();
+			this.labelSplitterWidth = new System.Windows.Forms.Label();
+			((System.ComponentModel.ISupportInitialize)(this.trackBarSplitterWidth)).BeginInit();
 			this.SuspendLayout();
 			// 
 			// buttonBackgroundColor
@@ -95,11 +98,30 @@
 			this.labelCurrentFont.TabIndex = 5;
 			this.labelCurrentFont.Text = "{CURRENT FONT}";
 			// 
+			// trackBarSplitterWidth
+			// 
+			this.trackBarSplitterWidth.Location = new System.Drawing.Point(12, 93);
+			this.trackBarSplitterWidth.Maximum = 60;
+			this.trackBarSplitterWidth.Name = "trackBarSplitterWidth";
+			this.trackBarSplitterWidth.Size = new System.Drawing.Size(147, 45);
+			this.trackBarSplitterWidth.TabIndex = 6;
+			// 
+			// labelSplitterWidth
+			// 
+			this.labelSplitterWidth.AutoSize = true;
+			this.labelSplitterWidth.Location = new System.Drawing.Point(165, 103);
+			this.labelSplitterWidth.Name = "labelSplitterWidth";
+			this.labelSplitterWidth.Size = new System.Drawing.Size(107, 13);
+			this.labelSplitterWidth.TabIndex = 7;
+			this.labelSplitterWidth.Text = "{SPLITTER WIDTH}";
+			// 
 			// SettingsForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.ClientSize = new System.Drawing.Size(549, 318);
+			this.Controls.Add(this.labelSplitterWidth);
+			this.Controls.Add(this.trackBarSplitterWidth);
 			this.Controls.Add(this.labelCurrentFont);
 			this.Controls.Add(this.buttonChangeFont);
 			this.Controls.Add(this.buttonCancel);
@@ -108,6 +130,7 @@
 			this.Controls.Add(this.buttonBackgroundColor);
 			this.Name = "SettingsForm";
 			this.Text = "Options";
+			((System.ComponentModel.ISupportInitialize)(this.trackBarSplitterWidth)).EndInit();
 			this.ResumeLayout(false);
 			this.PerformLayout();
 
@@ -121,5 +144,7 @@
 		private System.Windows.Forms.Button buttonCancel;
 		private System.Windows.Forms.Button buttonChangeFont;
 		private System.Windows.Forms.Label labelCurrentFont;
+		private System.Windows.Forms.TrackBar trackBarSplitterWidth;
+		private System.Windows.Forms.Label labelSplitterWidth;
 	}
 }

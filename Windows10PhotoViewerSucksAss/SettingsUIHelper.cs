@@ -16,20 +16,17 @@ namespace Windows10PhotoViewerSucksAss
 	{
 		public List<ISetting<TSettings>> Settings { get; } = new List<ISetting<TSettings>>();
 
-		public void CheckBox(CheckBox checkBox, Func<TSettings, bool> getter, Action<TSettings, bool> setter)
-		{
+		public void CheckBox(CheckBox checkBox, Func<TSettings, bool> getter, Action<TSettings, bool> setter) =>
 			this.Settings.Add(new GenericSetting<TSettings, bool>(new CheckBoxSetting(checkBox), getter, setter));
-		}
 
-		public void Color(Button button, Func<TSettings, Color> getter, Action<TSettings, Color> setter)
-		{
+		public void Color(Button button, Func<TSettings, Color> getter, Action<TSettings, Color> setter) =>
 			this.Settings.Add(new GenericSetting<TSettings, Color>(new ColorSetting(button), getter, setter));
-		}
 
-		public void Font(Button button, Label label, Func<TSettings, Font> getter, Action<TSettings, Font> setter)
-		{
+		public void Font(Button button, Label label, Func<TSettings, Font> getter, Action<TSettings, Font> setter) =>
 			this.Settings.Add(new GenericSetting<TSettings, Font>(new FontSetting(button, label), getter, setter));
-		}
+
+		public void IntSlider(TrackBar trackBar, Label label, Func<TSettings, int> getter, Action<TSettings, int> setter) =>
+			this.Settings.Add(new GenericSetting<TSettings, int>(new IntSliderSetting(trackBar, label), getter, setter));
 	}
 
 
@@ -236,6 +233,57 @@ namespace Windows10PhotoViewerSucksAss
 					this.UpdateCurrentFont();
 					this.SomethingChanged?.Invoke(this, e);
 				}
+			}
+		}
+	}
+
+
+	class IntSliderSetting : ISettingHandler<int>
+	{
+		public IntSliderSetting(TrackBar trackBar, Label label)
+		{
+			this.trackBar = trackBar ?? throw new ArgumentNullException(nameof(trackBar));
+			this.label = label;
+			if (label != null)
+			{
+				this.trackBar.ValueChanged += this.HandleTrackBarValueChanged;
+			}
+		}
+
+		private readonly TrackBar trackBar;
+		private readonly Label label;
+		private bool updating = false;
+
+		public event EventHandler SomethingChanged
+		{
+			add { this.trackBar.ValueChanged += value; }
+			remove { this.trackBar.ValueChanged -= value; }
+		}
+
+		public void Load(int value)
+		{
+			this.updating = true;
+			this.trackBar.Value = value;
+			this.updating = false;
+			this.UpdateText();
+		}
+
+		public bool TryGet(out int value)
+		{
+			value = this.trackBar.Value;
+			return true;
+		}
+
+		private void UpdateText()
+		{
+			this.label.Text = this.trackBar.Value.ToString(CultureInfo.InvariantCulture);
+		}
+
+		private void HandleTrackBarValueChanged(object sender, EventArgs e)
+		{
+			if (!this.updating)
+			{
+				this.UpdateText();
 			}
 		}
 	}

@@ -66,6 +66,9 @@
     </Compile>
     <Compile Include="SettingsManager.cs" />
     <Compile Include="SettingsUIHelper.cs" />
+    <Compile Include="SplitterControl.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Util.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

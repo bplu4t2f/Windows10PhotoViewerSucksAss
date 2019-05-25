@@ -57,5 +57,7 @@ namespace Windows10PhotoViewerSucksAss
 		public int WindowHeight { get; set; }
 		public bool SortCaseSensitive { get; set; }
 		public FontDescriptor ApplicationFont { get; set; }
+		public int OverviewControlWidth { get; set; } = -1;
+		public int SplitterWidth { get; set; } = -1;
 	}
 }

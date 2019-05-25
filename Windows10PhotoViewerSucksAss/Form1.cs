@@ -13,7 +13,6 @@ using System.Windows.Forms;
 
 namespace Windows10PhotoViewerSucksAss
 {
-	// TODO left pane resizable
 	// TODO f1 help menu overlay
 	// TODO f2 rename
 	// TODO let's have an icon I guess
@@ -46,15 +45,27 @@ namespace Windows10PhotoViewerSucksAss
 			this.overviewControl.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
 			this.overviewControl.Height = this.ClientSize.Height - this.optionsButton.Height;
 
+			this.splitter.BackColor = Color.Black;
+			this.splitter.Left = this.overviewControl.Right;
+			this.splitter.Height = this.ClientSize.Height;
+			this.splitter.LeftControls.Add(this.optionsButton);
+			this.splitter.LeftControls.Add(this.overviewControl);
+			this.splitter.RightControls.Add(this.mainImageControl);
+			this.splitter.DragStopped += this.HandleSplitterDragStopped;
+
 			this.mainImageControl.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-			this.mainImageControl.Left = this.overviewControl.Width;
-			this.mainImageControl.Size = new Size(this.ClientSize.Width - this.overviewControl.Width, this.ClientSize.Height);
+			this.mainImageControl.Left = this.splitter.Right;
+			this.mainImageControl.Size = new Size(this.ClientSize.Width - this.mainImageControl.Left, this.ClientSize.Height);
 
 			this.SuspendLayout();
 			this.Controls.Add(this.optionsButton);
 			this.Controls.Add(this.mainImageControl);
 			this.Controls.Add(this.overviewControl);
+			this.Controls.Add(this.splitter);
 			this.ResumeLayout();
+
+			// This will make sure that the splitter is visible inside its parent
+			this.splitter.MoveBy(0);
 
 			this.SetOptionsButtonHeight();
 
@@ -98,6 +109,7 @@ namespace Windows10PhotoViewerSucksAss
 		private readonly Button optionsButton = new Button();
 		private readonly MainImageControl mainImageControl = new MainImageControl();
 		private readonly OverviewControl overviewControl = new OverviewControl();
+		private readonly SplitterControl splitter = new SplitterControl();
 
 		private readonly ImageCacheWorker imageCacheWorker = new ImageCacheWorker();
 
@@ -111,6 +123,7 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			this.Size = new Size(960, 640);
 			this.mainImageControl.BackColor = Color.FromArgb(32, 64, 96);
+			this.splitter.Width = 5;
 		}
 
 		private void ApplyUserSettings()
@@ -133,6 +146,14 @@ namespace Windows10PhotoViewerSucksAss
 				{
 					var font = Settings.Instance.ApplicationFont.ToFont();
 					this.Font = font;
+				}
+				if (Settings.Instance.OverviewControlWidth >= 0)
+				{
+					this.overviewControl.Width = Settings.Instance.OverviewControlWidth;
+				}
+				if (Settings.Instance.SplitterWidth >= 0)
+				{
+					this.splitter.Width = Settings.Instance.SplitterWidth;
 				}
 			}
 			catch (Exception ex)
@@ -263,6 +284,24 @@ namespace Windows10PhotoViewerSucksAss
 				Settings.Instance.ApplicationFont = new FontDescriptor(value);
 				Settings.QueueSave();
 			}
+		}
+
+		public int Setting_SplitterWidth
+		{
+			get { return this.splitter.Width; }
+			set
+			{
+				this.splitter.ChangeWidth(value);
+				Settings.Instance.SplitterWidth = value;
+				Settings.QueueSave();
+			}
+		}
+
+		private void HandleSplitterDragStopped(object sender, EventArgs e)
+		{
+			int splitterPos = this.splitter.Left;
+			Settings.Instance.OverviewControlWidth = splitterPos;
+			Settings.QueueSave();
 		}
 
 		protected override void OnResizeEnd(EventArgs e)

@@ -19,6 +19,7 @@ namespace Windows10PhotoViewerSucksAss
 			this.settingHelper.CheckBox(this.checkBoxSortCaseSensitive, x => x.Setting_SortCaseSensitive, (x, v) => x.Setting_SortCaseSensitive = v);
 			this.settingHelper.Color(this.buttonBackgroundColor, x => x.Setting_BackColor, (x, v) => x.Setting_BackColor = v);
 			this.settingHelper.Font(this.buttonChangeFont, this.labelCurrentFont, x => x.Setting_Font, (x, v) => x.Setting_Font = v);
+			this.settingHelper.IntSlider(this.trackBarSplitterWidth, this.labelSplitterWidth, x => x.Setting_SplitterWidth, (x, v) => x.Setting_SplitterWidth = v);
 
 			foreach (var setting in this.settingHelper.Settings)
 			{
