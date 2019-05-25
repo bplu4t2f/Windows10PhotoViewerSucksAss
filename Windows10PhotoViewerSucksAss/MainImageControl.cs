@@ -11,7 +11,7 @@ using System.Diagnostics;
 
 namespace Windows10PhotoViewerSucksAss
 {
-	public partial class MainImageControl : Control
+	public class MainImageControl : Control
 	{
 		public MainImageControl()
 		{
