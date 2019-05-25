@@ -28,20 +28,22 @@
 		/// </summary>
 		private void InitializeComponent()
 		{
-			this.button1 = new System.Windows.Forms.Button();
+			this.buttonBackgroundColor = new System.Windows.Forms.Button();
 			this.checkBoxSortCaseSensitive = new System.Windows.Forms.CheckBox();
 			this.buttonOK = new System.Windows.Forms.Button();
 			this.buttonCancel = new System.Windows.Forms.Button();
+			this.buttonChangeFont = new System.Windows.Forms.Button();
+			this.labelCurrentFont = new System.Windows.Forms.Label();
 			this.SuspendLayout();
 			// 
-			// button1
+			// buttonBackgroundColor
 			// 
-			this.button1.Location = new System.Drawing.Point(12, 35);
-			this.button1.Name = "button1";
-			this.button1.Size = new System.Drawing.Size(147, 23);
-			this.button1.TabIndex = 0;
-			this.button1.Text = "Background Color";
-			this.button1.UseVisualStyleBackColor = true;
+			this.buttonBackgroundColor.Location = new System.Drawing.Point(12, 35);
+			this.buttonBackgroundColor.Name = "buttonBackgroundColor";
+			this.buttonBackgroundColor.Size = new System.Drawing.Size(147, 23);
+			this.buttonBackgroundColor.TabIndex = 0;
+			this.buttonBackgroundColor.Text = "Background Color...";
+			this.buttonBackgroundColor.UseVisualStyleBackColor = true;
 			// 
 			// checkBoxSortCaseSensitive
 			// 
@@ -75,15 +77,35 @@
 			this.buttonCancel.UseVisualStyleBackColor = true;
 			this.buttonCancel.Click += new System.EventHandler(this.ButtonCancel_Click);
 			// 
+			// buttonChangeFont
+			// 
+			this.buttonChangeFont.Location = new System.Drawing.Point(12, 64);
+			this.buttonChangeFont.Name = "buttonChangeFont";
+			this.buttonChangeFont.Size = new System.Drawing.Size(147, 23);
+			this.buttonChangeFont.TabIndex = 4;
+			this.buttonChangeFont.Text = "Font...";
+			this.buttonChangeFont.UseVisualStyleBackColor = true;
+			// 
+			// labelCurrentFont
+			// 
+			this.labelCurrentFont.AutoSize = true;
+			this.labelCurrentFont.Location = new System.Drawing.Point(165, 69);
+			this.labelCurrentFont.Name = "labelCurrentFont";
+			this.labelCurrentFont.Size = new System.Drawing.Size(100, 13);
+			this.labelCurrentFont.TabIndex = 5;
+			this.labelCurrentFont.Text = "{CURRENT FONT}";
+			// 
 			// SettingsForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.ClientSize = new System.Drawing.Size(549, 318);
+			this.Controls.Add(this.labelCurrentFont);
+			this.Controls.Add(this.buttonChangeFont);
 			this.Controls.Add(this.buttonCancel);
 			this.Controls.Add(this.buttonOK);
 			this.Controls.Add(this.checkBoxSortCaseSensitive);
-			this.Controls.Add(this.button1);
+			this.Controls.Add(this.buttonBackgroundColor);
 			this.Name = "SettingsForm";
 			this.Text = "Options";
 			this.ResumeLayout(false);
@@ -93,9 +115,11 @@
 
 		#endregion
 
-		private System.Windows.Forms.Button button1;
+		private System.Windows.Forms.Button buttonBackgroundColor;
 		private System.Windows.Forms.CheckBox checkBoxSortCaseSensitive;
 		private System.Windows.Forms.Button buttonOK;
 		private System.Windows.Forms.Button buttonCancel;
+		private System.Windows.Forms.Button buttonChangeFont;
+		private System.Windows.Forms.Label labelCurrentFont;
 	}
 }

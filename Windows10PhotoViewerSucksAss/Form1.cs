@@ -13,7 +13,6 @@ using System.Windows.Forms;
 
 namespace Windows10PhotoViewerSucksAss
 {
-	// TODO change global application font
 	// TODO reset zoom to fit
 	// TODO left pane resizable
 	// TODO f1 help menu overlay
@@ -41,9 +40,8 @@ namespace Windows10PhotoViewerSucksAss
 			this.ApplyDefaultSettings();
 			this.ApplyUserSettings();
 
-			this.optionsButton.Text = "Options";
+			this.optionsButton.Text = "Options...";
 			this.optionsButton.Width = this.overviewControl.Width;
-			this.optionsButton.Top = this.ClientRectangle.Height - this.optionsButton.Height;
 			this.optionsButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
 
 			this.overviewControl.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
@@ -58,6 +56,8 @@ namespace Windows10PhotoViewerSucksAss
 			this.Controls.Add(this.mainImageControl);
 			this.Controls.Add(this.overviewControl);
 			this.ResumeLayout();
+
+			this.SetOptionsButtonHeight();
 
 			this.overviewControl.ImageSelected += this.OverviewControl_ImageSelected;
 			this.optionsButton.Click += this.HandleOptionButtonClick;
@@ -127,11 +127,23 @@ namespace Windows10PhotoViewerSucksAss
 				{
 					this.Height = Settings.Instance.WindowHeight;
 				}
+				if (Settings.Instance.ApplicationFont != null)
+				{
+					var font = Settings.Instance.ApplicationFont.ToFont();
+					this.Font = font;
+				}
 			}
 			catch (Exception ex)
 			{
 				Debug.WriteLine(ex);
 			}
+		}
+
+		private void SetOptionsButtonHeight()
+		{
+			int lineHeight = this.optionsButton.Font.Height;
+			this.optionsButton.Height = lineHeight + 10;
+			this.optionsButton.Top = this.ClientRectangle.Height - this.optionsButton.Height;
 		}
 
 
@@ -209,6 +221,7 @@ namespace Windows10PhotoViewerSucksAss
 			this.currentSettingsForm = form;
 			form.FormClosed += (sender1, e1) => { if (this.currentSettingsForm == form) { this.currentSettingsForm = null; } };
 			form.StartPosition = FormStartPosition.Manual;
+			form.Font = this.Font;
 			CenterControl(this, form);
 			form.Show();
 		}
@@ -230,6 +243,22 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				this.mainImageControl.BackColor = value;
 				Settings.Instance.Color = value.ToArgb();
+				Settings.QueueSave();
+			}
+		}
+
+		public Font Setting_Font
+		{
+			get { return this.Font; }
+			set
+			{
+				this.Font = value;
+				if (this.currentSettingsForm != null)
+				{
+					this.currentSettingsForm.Font = value;
+				}
+				this.SetOptionsButtonHeight();
+				Settings.Instance.ApplicationFont = new FontDescriptor(value);
 				Settings.QueueSave();
 			}
 		}

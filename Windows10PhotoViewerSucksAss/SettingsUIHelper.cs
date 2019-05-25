@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,6 +24,11 @@ namespace Windows10PhotoViewerSucksAss
 		public void Color(Button button, Func<TSettings, Color> getter, Action<TSettings, Color> setter)
 		{
 			this.Settings.Add(new GenericSetting<TSettings, Color>(new ColorSetting(button), getter, setter));
+		}
+
+		public void Font(Button button, Label label, Func<TSettings, Font> getter, Action<TSettings, Font> setter)
+		{
+			this.Settings.Add(new GenericSetting<TSettings, Font>(new FontSetting(button, label), getter, setter));
 		}
 	}
 
@@ -177,6 +183,57 @@ namespace Windows10PhotoViewerSucksAss
 				{
 					this.currentColor = dialog.Color;
 					this.UpdateCurrentColor();
+					this.SomethingChanged?.Invoke(this, e);
+				}
+			}
+		}
+	}
+
+
+	class FontSetting : ISettingHandler<Font>
+	{
+		public FontSetting(Button changeButton, Label label)
+		{
+			this.changeButton = changeButton ?? throw new ArgumentNullException(nameof(changeButton));
+			this.label = label ?? throw new ArgumentNullException(nameof(label));
+			this.changeButton.Click += this.HandleButtonClick;
+		}
+
+		private readonly Button changeButton;
+		private readonly Label label;
+
+		public event EventHandler SomethingChanged;
+
+		private Font currentFont;
+
+		public void Load(Font value)
+		{
+			this.currentFont = value;
+			this.UpdateCurrentFont();
+		}
+
+		public bool TryGet(out Font value)
+		{
+			value = this.currentFont;
+			return true;
+		}
+
+		private void UpdateCurrentFont()
+		{
+			var f = this.currentFont;
+			string text = f == null ? String.Empty : String.Format(CultureInfo.InvariantCulture, "{0}, {1}, {2} pt", f.FontFamily.Name, f.Style, f.Size);
+			this.label.Text = text;
+		}
+
+		private void HandleButtonClick(object sender, EventArgs e)
+		{
+			using (var dialog = new FontDialog())
+			{
+				dialog.Font = this.currentFont;
+				if (dialog.ShowDialog() == DialogResult.OK)
+				{
+					this.currentFont = dialog.Font;
+					this.UpdateCurrentFont();
 					this.SomethingChanged?.Invoke(this, e);
 				}
 			}
