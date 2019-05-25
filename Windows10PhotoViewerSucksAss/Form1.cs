@@ -26,7 +26,6 @@ namespace Windows10PhotoViewerSucksAss
 	// TODO show save error upon switching save mode, if applicable
 	// TODO reset user settings button
 	// TODO other media files
-	// TODO selected item is not centered properly on startup (probably because we're loading settings with width and height after constructor)
 	// TODO refresh should reload the image
 	// TODO file system watcher
 	// TODO choose extensions
