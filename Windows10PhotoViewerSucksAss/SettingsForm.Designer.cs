@@ -37,6 +37,8 @@
 			this.trackBarSplitterWidth = new System.Windows.Forms.TrackBar();
 			this.labelSplitterWidth = new System.Windows.Forms.Label();
 			this.labelSplitterWidthHint = new System.Windows.Forms.Label();
+			this.labelMouseWheelModeHint = new System.Windows.Forms.Label();
+			this.comboBoxMouseWheelMode = new System.Windows.Forms.ComboBox();
 			((System.ComponentModel.ISupportInitialize)(this.trackBarSplitterWidth)).BeginInit();
 			this.SuspendLayout();
 			// 
@@ -125,11 +127,31 @@
 			this.labelSplitterWidthHint.TabIndex = 8;
 			this.labelSplitterWidthHint.Text = "Splitter Width:";
 			// 
+			// labelMouseWheelModeHint
+			// 
+			this.labelMouseWheelModeHint.AutoSize = true;
+			this.labelMouseWheelModeHint.Location = new System.Drawing.Point(12, 158);
+			this.labelMouseWheelModeHint.Name = "labelMouseWheelModeHint";
+			this.labelMouseWheelModeHint.Size = new System.Drawing.Size(106, 13);
+			this.labelMouseWheelModeHint.TabIndex = 9;
+			this.labelMouseWheelModeHint.Text = "Mouse Wheel Mode:";
+			// 
+			// comboBoxMouseWheelMode
+			// 
+			this.comboBoxMouseWheelMode.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+			this.comboBoxMouseWheelMode.FormattingEnabled = true;
+			this.comboBoxMouseWheelMode.Location = new System.Drawing.Point(12, 174);
+			this.comboBoxMouseWheelMode.Name = "comboBoxMouseWheelMode";
+			this.comboBoxMouseWheelMode.Size = new System.Drawing.Size(147, 21);
+			this.comboBoxMouseWheelMode.TabIndex = 10;
+			// 
 			// SettingsForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.ClientSize = new System.Drawing.Size(549, 318);
+			this.Controls.Add(this.comboBoxMouseWheelMode);
+			this.Controls.Add(this.labelMouseWheelModeHint);
 			this.Controls.Add(this.labelSplitterWidthHint);
 			this.Controls.Add(this.labelSplitterWidth);
 			this.Controls.Add(this.trackBarSplitterWidth);
@@ -158,5 +180,7 @@
 		private System.Windows.Forms.TrackBar trackBarSplitterWidth;
 		private System.Windows.Forms.Label labelSplitterWidth;
 		private System.Windows.Forms.Label labelSplitterWidthHint;
+		private System.Windows.Forms.Label labelMouseWheelModeHint;
+		private System.Windows.Forms.ComboBox comboBoxMouseWheelMode;
 	}
 }

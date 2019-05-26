@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
 
 namespace Windows10PhotoViewerSucksAss
 {
@@ -59,5 +60,6 @@ namespace Windows10PhotoViewerSucksAss
 		public FontDescriptor ApplicationFont { get; set; }
 		public int OverviewControlWidth { get; set; } = -1;
 		public int SplitterWidth { get; set; } = -1;
+		public string MouseWheelMode { get; set; }
 	}
 }

@@ -20,6 +20,10 @@ namespace Windows10PhotoViewerSucksAss
 			this.settingHelper.Color(this.buttonBackgroundColor, x => x.Setting_BackColor, (x, v) => x.Setting_BackColor = v);
 			this.settingHelper.Font(this.buttonChangeFont, this.labelCurrentFont, x => x.Setting_Font, (x, v) => x.Setting_Font = v);
 			this.settingHelper.IntSlider(this.trackBarSplitterWidth, this.labelSplitterWidth, x => x.Setting_SplitterWidth, (x, v) => x.Setting_SplitterWidth = v);
+			var comboBox_mouseWheelMode = this.settingHelper.ComboBox(this.comboBoxMouseWheelMode, x => x.Setting_MouseWheelMode, (x, v) => x.Setting_MouseWheelMode = v);
+
+			comboBox_mouseWheelMode.AddValue(MouseWheelMode.NextPrevious, "Next/Previous File");
+			comboBox_mouseWheelMode.AddValue(MouseWheelMode.ZoomAndScroll, "Zoom Image");
 
 			foreach (var setting in this.settingHelper.Settings)
 			{

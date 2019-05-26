@@ -46,6 +46,14 @@ namespace Windows10PhotoViewerSucksAss
 			this.Invalidate();
 		}
 
+		/// <summary>
+		/// Positive is down, negative is up.
+		/// </summary>
+		public void ScrollList(int amount)
+		{
+			this.scrollBar.Value = Math.Min(Math.Max(this.scrollBar.Value + amount, 0), this.scrollBar.Maximum - this.scrollBar.LargeChange + 1);
+		}
+
 		public void SetDisplayIndex(int index, bool scrollSelectedItemIntoView)
 		{
 			this.selectedIndex = index;

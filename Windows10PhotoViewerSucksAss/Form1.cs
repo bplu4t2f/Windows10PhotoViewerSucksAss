@@ -156,6 +156,10 @@ namespace Windows10PhotoViewerSucksAss
 				{
 					this.splitter.Width = Settings.Instance.SplitterWidth;
 				}
+				if (Enum.TryParse(Settings.Instance.MouseWheelMode, out MouseWheelMode mouseWheelMode))
+				{
+					this.MouseWheelMode = mouseWheelMode;
+				}
 			}
 			catch (Exception ex)
 			{
@@ -169,6 +173,8 @@ namespace Windows10PhotoViewerSucksAss
 			this.optionsButton.Height = lineHeight + 10;
 			this.optionsButton.Top = this.ClientRectangle.Height - this.optionsButton.Height;
 		}
+
+		public MouseWheelMode MouseWheelMode { get; set; }
 
 
 		//
@@ -298,6 +304,17 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
+		public MouseWheelMode Setting_MouseWheelMode
+		{
+			get { return this.MouseWheelMode; }
+			set
+			{
+				this.MouseWheelMode = value;
+				Settings.Instance.MouseWheelMode = value.ToString();
+				Settings.QueueSave();
+			}
+		}
+
 		private void HandleSplitterDragStopped(object sender, EventArgs e)
 		{
 			int splitterPos = this.splitter.Left;
@@ -316,17 +333,45 @@ namespace Windows10PhotoViewerSucksAss
 		protected override void OnMouseWheel(MouseEventArgs e)
 		{
 			base.OnMouseWheel(e);
-			if (this.currentFileList == null)
+
+			switch (this.MouseWheelMode)
 			{
-				return;
-			}
-			if (e.Delta < 0)
-			{
-				this.Next();
-			}
-			else if (e.Delta > 0)
-			{
-				this.Previous();
+				case MouseWheelMode.NextPrevious:
+				default:
+					if (this.currentFileList == null)
+					{
+						return;
+					}
+					if (e.Delta < 0)
+					{
+						this.Next();
+					}
+					else if (e.Delta > 0)
+					{
+						this.Previous();
+					}
+					break;
+
+				case MouseWheelMode.ZoomAndScroll:
+					Control scrollTarget = this.GetChildAtPoint(e.Location);
+					if (scrollTarget == this.mainImageControl)
+					{
+						Point clientPoint = new Point(e.Location.X - this.mainImageControl.Location.X, e.Location.Y - this.mainImageControl.Location.Y);
+						const float scroll_zoom_factor = 1.25f;
+						if (e.Delta > 0)
+						{
+							this.mainImageControl.ZoomAtLocation(clientPoint, scroll_zoom_factor);
+						}
+						else if (e.Delta < 0)
+						{
+							this.mainImageControl.ZoomAtLocation(clientPoint, 1.0f / scroll_zoom_factor);
+						}
+					}
+					else if (scrollTarget == this.overviewControl)
+					{
+						this.overviewControl.ScrollList(-Math.Sign(e.Delta) * SystemInformation.MouseWheelScrollLines);
+					}
+					break;
 			}
 		}
 
@@ -859,5 +904,15 @@ namespace Windows10PhotoViewerSucksAss
 
 			this.mainImageControl.Image = this.displayedHandle?.Image;
 		}
+	}
+
+
+	public enum MouseWheelMode
+	{
+		NextPrevious,
+		/// <summary>
+		/// Zoom while in image, scroll while in file list.
+		/// </summary>
+		ZoomAndScroll
 	}
 }

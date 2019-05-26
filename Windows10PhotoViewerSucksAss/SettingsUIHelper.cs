@@ -27,6 +27,13 @@ namespace Windows10PhotoViewerSucksAss
 
 		public void IntSlider(TrackBar trackBar, Label label, Func<TSettings, int> getter, Action<TSettings, int> setter) =>
 			this.Settings.Add(new GenericSetting<TSettings, int>(new IntSliderSetting(trackBar, label), getter, setter));
+
+		public ComboBoxSetting<T> ComboBox<T>(ComboBox comboBox, Func<TSettings, T> getter, Action<TSettings, T> setter)
+		{
+			var tmp = new ComboBoxSetting<T>(comboBox);
+			this.Settings.Add(new GenericSetting<TSettings, T>(tmp, getter, setter));
+			return tmp;
+		}
 	}
 
 
@@ -284,6 +291,73 @@ namespace Windows10PhotoViewerSucksAss
 			if (!this.updating)
 			{
 				this.UpdateText();
+			}
+		}
+	}
+
+
+	class ComboBoxSetting<T> : ISettingHandler<T>
+	{
+		public ComboBoxSetting(ComboBox comboBox)
+		{
+			this.comboBox = comboBox ?? throw new ArgumentNullException(nameof(comboBox));
+		}
+
+		private readonly ComboBox comboBox;
+
+		public void AddValue(T value, string displayText)
+		{
+			this.comboBox.Items.Add(new ComboBoxItem(value, displayText));
+		}
+
+		private sealed class ComboBoxItem
+		{
+			public ComboBoxItem(T value, string displayText)
+			{
+				this.value = value;
+				this.displayText = displayText;
+			}
+			public readonly T value;
+			public readonly string displayText;
+			public override string ToString()
+			{
+				return this.displayText;
+			}
+		}
+
+		public event EventHandler SomethingChanged
+		{
+			add { this.comboBox.SelectedIndexChanged += value; }
+			remove { this.comboBox.SelectedIndexChanged -= value; }
+		}
+
+		public void Load(T value)
+		{
+			for (int i = 0; i < this.comboBox.Items.Count; ++i)
+			{
+				if (this.comboBox.Items[i] is ComboBoxItem item)
+				{
+					if (Object.Equals(item.value, value))
+					{
+						this.comboBox.SelectedIndex = i;
+						return;
+					}
+				}
+			}
+			this.comboBox.SelectedIndex = -1;
+		}
+
+		public bool TryGet(out T value)
+		{
+			if (this.comboBox.SelectedItem is ComboBoxItem item)
+			{
+				value = item.value;
+				return true;
+			}
+			else
+			{
+				value = default(T);
+				return false;
 			}
 		}
 	}

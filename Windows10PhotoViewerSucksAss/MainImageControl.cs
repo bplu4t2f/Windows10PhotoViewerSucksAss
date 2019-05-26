@@ -160,5 +160,14 @@ namespace Windows10PhotoViewerSucksAss
 			g.DrawLine(pen, -size, 0, 0, 0);
 			g.DrawLine(pen, size, 0, 0, 0);
 		}
+
+		public void ZoomAtLocation(Point center, float factor)
+		{
+			this.zoomToFitEnabled = false;
+			this.transform.Translate(-center.X + this.Width / 2, -center.Y + this.Height / 2, MatrixOrder.Append);
+			this.transform.Scale(factor, factor, MatrixOrder.Append);
+			this.transform.Translate(center.X - this.Width / 2, center.Y - this.Height / 2, MatrixOrder.Append);
+			this.Invalidate();
+		}
 	}
 }
