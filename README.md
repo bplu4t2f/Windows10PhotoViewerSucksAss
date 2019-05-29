@@ -3,8 +3,6 @@ An alternative to the default windows 10 photo viewer.
 
 This program exists because the standard Windows 10 photo viewer sucks so much ass. It is fucking slow and annoying.
 
-The program was hacked together in frustration and therefore the architecture is abysmal. But it's still better. Programming this was actually the very first thing I did after installing Windows 10 last year, and I've been using it since then.
-
 ## Controls:
 
 | Button | Function |
@@ -12,6 +10,7 @@ The program was hacked together in frustration and therefore the architecture is
 | LMB | Pan |
 | LMB doubleclick | 1:1 |
 | RMB | Zoom |
+| T | Zoom to fit |
 | S / D / Down / Right / MouseWheelDown | Next |
 | A / W / Up / Left / MouseWheelUp | Previous |
 | E | Open explorer at file |
@@ -35,3 +34,7 @@ It turned out that finding reasonable C# code that does this was tricky. Check o
 ## AppData
 
 The application stores user preferences such as background color and window size in %LOCALAPPDATA%. The sub folder is equal to the name of the executable without its extension, so by default it is %LOCALAPPDATA%\Windows10PhotoViewerSucksAss.
+
+## Origin
+
+The program was hacked together in frustration and therefore the architecture is abysmal. But it's still better. Programming this was actually the very first thing I did after installing Windows 10 last year, and I've been using it since then.
