@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -16,6 +17,8 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			Application.EnableVisualStyles();
 			Application.SetCompatibleTextRenderingDefault(false);
+
+			AppDomain.CurrentDomain.UnhandledException += HandleAppDomainException;
 
 			ExecutablePath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
 			if (String.IsNullOrWhiteSpace(ExecutablePath))
@@ -35,5 +38,12 @@ namespace Windows10PhotoViewerSucksAss
 		}
 
 		public static string ExecutablePath { get; private set; }
+
+		private static void HandleAppDomainException(object sender, UnhandledExceptionEventArgs e)
+		{
+			var message = "Unhandled AppDomain Exception:\r\n" + (e.ExceptionObject?.ToString() ?? "<null>");
+			Debug.WriteLine(message);
+			MessageBox.Show(message);
+		}
 	}
 }
