@@ -29,7 +29,7 @@ namespace Windows10PhotoViewerSucksAss
 	// TODO move/copy targets, with optional counter
 	// TODO file list colors
 	// TODO custom scroll bar colors
-	// TODO save session (use WM_APP messages with EnumWindows for communication)
+	// TODO save session (use WM_APP messages with EnumWindows for communication) (maybe RegisterWindowMessageA instead with HWND_BROADCAST?)
 
 	public class Form1 : Form
 	{
@@ -99,11 +99,14 @@ namespace Windows10PhotoViewerSucksAss
 			var mi_delete_file = this.fileListContextMenu.MenuItems.Add("Move to Recycle Bin (Del)");
 			mi_delete_file.Click += this.HandleMenuDeleteFile;
 
+			this.synchronizationContext = SynchronizationContext.Current;
+
 			this.imageCacheWorker.NotFound += this.HandleImageCacheItemNotFound;
 			this.imageCacheWorker.DisplayItemLoaded += this.HandleImageCacheDisplayItemLoaded;
 			this.imageCacheWorker.StartWorkerThread();
 		}
 
+		private readonly SynchronizationContext synchronizationContext;
 		private readonly ContextMenu fileListContextMenu = new ContextMenu();
 		private readonly MenuItem mi_file_name;
 
@@ -809,7 +812,7 @@ namespace Windows10PhotoViewerSucksAss
 
 		private void HandleImageCacheItemNotFound(string file)
 		{
-			this.BeginInvoke(new MethodInvoker(() =>
+			this.synchronizationContext.Post(_ =>
 			{
 				if (this.currentFileList == null)
 				{
@@ -818,7 +821,7 @@ namespace Windows10PhotoViewerSucksAss
 				int index = this.currentFileList.IndexOf(file);
 				this.ForgetFile(index);
 				// Don't need to update the displayed image -- a HandleImageCacheDisplayItemLoaded will follow if applicable.
-			}));
+			}, null);
 		}
 
 		static readonly int[] fileLoadOrder = new int[] { 0, 1, -1, 2, -2 };
@@ -879,7 +882,7 @@ namespace Windows10PhotoViewerSucksAss
 			if (this.pendingImageContainer == lastLoadedItem)
 			{
 				this.lastLoadedItem = lastLoadedItem;
-				this.BeginInvoke(new MethodInvoker(() => this.DisplayPendingImage()));
+				this.synchronizationContext.Post(_ => this.DisplayPendingImage(), null);
 			}
 		}
 
