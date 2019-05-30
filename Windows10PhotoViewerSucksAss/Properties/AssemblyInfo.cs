@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 //[assembly: AssemblyTitle("Windows10PhotoViewerSucksAss")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("15")]
 //[assembly: AssemblyProduct("Windows10PhotoViewerSucksAss")]
 //[assembly: AssemblyCopyright("Copyright ©  2016")]
 [assembly: AssemblyTrademark("")]
