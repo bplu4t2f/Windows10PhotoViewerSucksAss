@@ -20,13 +20,16 @@ namespace Windows10PhotoViewerSucksAss
 
 			AppDomain.CurrentDomain.UnhandledException += HandleAppDomainException;
 
-			ExecutablePath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
-			if (String.IsNullOrWhiteSpace(ExecutablePath))
+			var executablePath = Application.ExecutablePath;
+			if (String.IsNullOrWhiteSpace(executablePath))
 			{
-				ExecutablePath = "Windows10PhotoViewerSucksAss";
+				ApplicationName = "Windows10PhotoViewerSucksAss";
 			}
-			string applicationName = System.IO.Path.GetFileNameWithoutExtension(ExecutablePath);
-			Settings.Initialize(applicationName);
+			else
+			{
+				ApplicationName = System.IO.Path.GetFileNameWithoutExtension(executablePath); ;
+			}
+			Settings.Initialize(ApplicationName);
 			Settings.Load();
 
 			var form = new Form1();
@@ -37,7 +40,7 @@ namespace Windows10PhotoViewerSucksAss
 			Application.Run(form);
 		}
 
-		public static string ExecutablePath { get; private set; }
+		public static string ApplicationName { get; private set; }
 
 		private static void HandleAppDomainException(object sender, UnhandledExceptionEventArgs e)
 		{
