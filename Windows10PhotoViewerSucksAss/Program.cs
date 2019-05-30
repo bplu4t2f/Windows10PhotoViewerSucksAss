@@ -27,7 +27,7 @@ namespace Windows10PhotoViewerSucksAss
 			}
 			else
 			{
-				ApplicationName = System.IO.Path.GetFileNameWithoutExtension(executablePath); ;
+				ApplicationName = System.IO.Path.GetFileNameWithoutExtension(executablePath);
 			}
 			Settings.Initialize(ApplicationName);
 			Settings.Load();
