@@ -934,18 +934,27 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			if (this.mainImageControl.Image != null)
 			{
-				using (var bitmap = new Bitmap(16, 16, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
+				try
 				{
-					using (var g = Graphics.FromImage(bitmap))
+					using (var bitmap = new Bitmap(16, 16, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
 					{
-						g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
-						RectangleF rect = Util.ResizeProportionalFit(bitmap.Size, this.mainImageControl.Image.Size);
-						g.DrawImage(this.mainImageControl.Image, rect);
-						g.DrawRectangle(HalfTransparentBlackPen, rect.Left + 0.5f, rect.Top + 0.5f, rect.Width - 1.0f, rect.Height - 1.0f);
+						using (var g = Graphics.FromImage(bitmap))
+						{
+							g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
+							RectangleF rect = Util.ResizeProportionalFit(bitmap.Size, this.mainImageControl.Image.Size);
+							g.DrawImage(this.mainImageControl.Image, rect);
+							g.DrawRectangle(HalfTransparentBlackPen, rect.Left + 0.5f, rect.Top + 0.5f, rect.Width - 1.0f, rect.Height - 1.0f);
+						}
+						var icon_builder = new IconBuilder();
+						icon_builder.IconImages.Add(IconBuilder.IconImage.FromBitmap(bitmap));
+						this.Icon = icon_builder.ConvertToIcon();
 					}
-					var icon_builder = new IconBuilder();
-					icon_builder.IconImages.Add(IconBuilder.IconImage.FromBitmap(bitmap));
-					this.Icon = icon_builder.ConvertToIcon();
+				}
+				catch (Exception ex)
+				{
+					// Not sure what kind of exception could happen here, but I don't trust the Icon(Stream) constructor.
+					Debug.WriteLine(ex);
+					this.Icon = null;
 				}
 			}
 			else
