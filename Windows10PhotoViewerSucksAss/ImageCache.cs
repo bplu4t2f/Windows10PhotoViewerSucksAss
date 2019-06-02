@@ -41,25 +41,22 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
-		public void SetPersistent(IEnumerable<string> persistentFiles)
+		internal CacheWorkItem current_work_item;
+
+		/// <summary>
+		/// Deletes all unused containers where the work item does not match <paramref name="current_work_item"/>.
+		/// Must be called after <see cref="ImageContainer.last_requesting_work_item"/> has been set for all elements that should remain.
+		/// </summary>
+		internal void PruneUnusedContainers(CacheWorkItem current_work_item)
 		{
 			lock (this.cache)
 			{
-				foreach (var kv in this.cache.ToArray())
+				this.current_work_item = current_work_item;
+				foreach (ImageContainer container in this.cache.Values.ToArray())
 				{
-					kv.Value.persist = persistentFiles.Contains(kv.Key, StringComparer.OrdinalIgnoreCase);
-					if (!kv.Value.IsAlive)
+					if (container.last_requesting_work_item != this.current_work_item && !container.IsHandleAlive)
 					{
-						this.DisposeContainer(kv.Value);
-					}
-				}
-				foreach (var key in persistentFiles)
-				{
-					if (!this.cache.ContainsKey(key))
-					{
-						var container = new ImageContainer(this, key);
-						container.persist = true;
-						this.cache.Add(key, container);
+						this.DisposeContainer(container);
 					}
 				}
 			}
@@ -68,6 +65,9 @@ namespace Windows10PhotoViewerSucksAss
 		private void DisposeContainer(ImageContainer container)
 		{
 			Debug.Assert(Monitor.IsEntered(this.cache));
+			Debug.Assert(!container.IsHandleAlive);
+			Debug.Assert(container.last_requesting_work_item != this.current_work_item);
+
 			container.image?.Dispose();
 			container.image = null;
 			// We can't leave the lock in this state - we must remove it from the dictionary
@@ -80,13 +80,16 @@ namespace Windows10PhotoViewerSucksAss
 			Debug.Assert(!Monitor.IsEntered(this.cache));
 			lock (this.cache)
 			{
-				this.DisposeContainer(container);
+				if (container.last_requesting_work_item != this.current_work_item)
+				{
+					this.DisposeContainer(container);
+				}
 			}
 		}
 
 		public void PurgeAll()
 		{
-			this.SetPersistent(new string[0]);
+			this.PruneUnusedContainers(null);
 		}
 
 		public bool ContainsKey(string key)
@@ -98,7 +101,7 @@ namespace Windows10PhotoViewerSucksAss
 		}
 	}
 
-	public struct CacheWorkItem
+	public class CacheWorkItem
 	{
 		public CacheWorkItem(string displayPath, string[] surroundingPaths)
 		{
@@ -143,21 +146,6 @@ namespace Windows10PhotoViewerSucksAss
 			return this.imageCache.GetOrCreateContainer(key);
 		}
 
-		public bool TryGetExistingImageHandle(string key, out ImageHandle handle)
-		{
-			var container = this.imageCache.GetExistingContainer(key);
-			if (container != null)
-			{
-				handle = container.AddHandle();
-				return true;
-			}
-			else
-			{
-				handle = null;
-				return false;
-			}
-		}
-
 		private void NotFound_QueueForget(string file)
 		{
 			if (!File.Exists(file))
@@ -170,6 +158,8 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			while (true)
 			{
+				_retry:
+
 				this.cacheWorkWait.Wait();
 				CacheWorkItem item;
 				lock (this.sync)
@@ -185,34 +175,48 @@ namespace Windows10PhotoViewerSucksAss
 				}
 
 				ImageContainer displayedImageContainer = this.imageCache.GetExistingContainer(item.DisplayPath);
-				// It can be null if it wasn't one of the surrounding ones from the last time, and the GUI decided that it doesn't want it anymore after we started the work item.
-				if (displayedImageContainer != null && !displayedImageContainer.IsLoaded)
+				// It can be null if it wasn't one of the surrounding ones from the last time, and the GUI
+				// decided that it doesn't want it anymore after we started the work item.
+				if (displayedImageContainer != null)
 				{
-					this.LoadContainer(displayedImageContainer);
+					displayedImageContainer.last_requesting_work_item = item;
+					if (!displayedImageContainer.IsLoaded)
+					{
+						this.LoadContainer(displayedImageContainer);
+					}
 				}
 
 				if (this.cacheWorkWait.IsSet)
 				{
-					continue;
+					goto _retry;
 				}
 
 				// displayedImageContainer.Image can still be null if the file is not a valid image.
 				this.DisplayItemLoaded?.Invoke(displayedImageContainer);
 
-				this.imageCache.SetPersistent(item.SurroundingPaths);
-
 				foreach (var key in item.SurroundingPaths)
 				{
 					if (this.cacheWorkWait.IsSet)
 					{
-						break;
+						goto _retry;
 					}
-					var container = this.imageCache.GetExistingContainer(key);
+					var container = this.imageCache.GetOrCreateContainer(key);
+					container.last_requesting_work_item = item;
 					if (!container.IsLoaded)
 					{
 						this.LoadContainer(container);
 					}
 				}
+
+
+				if (this.cacheWorkWait.IsSet)
+				{
+					goto _retry;
+				}
+
+				// Prune old containers
+				// NOTE: We must do this after we have set last_requesting_work_item on each container.
+				this.imageCache.PruneUnusedContainers(item);
 			}
 		}
 
@@ -248,14 +252,14 @@ namespace Windows10PhotoViewerSucksAss
 		public string Key { get; }
 
 		internal Image image;
-		internal bool persist;
+		internal CacheWorkItem last_requesting_work_item;
 
 		public Image Image => this.image;
 		public bool IsLoaded { get; private set; }
 
 		private int openHandleCount;
 
-		public bool IsAlive => this.openHandleCount > 0 || this.persist;
+		public bool IsHandleAlive => this.openHandleCount > 0;
 
 		internal ImageHandle AddHandle()
 		{
@@ -267,7 +271,7 @@ namespace Windows10PhotoViewerSucksAss
 		internal void RemoveHandle()
 		{
 			this.openHandleCount -= 1;
-			if (!this.IsAlive)
+			if (!this.IsHandleAlive)
 			{
 				this.owner.UnregisterContainer(this);
 			}
@@ -285,6 +289,7 @@ namespace Windows10PhotoViewerSucksAss
 	{
 		internal ImageHandle(ImageContainer container)
 		{
+			Debug.Assert(container != null);
 			this.container = container;
 		}
 

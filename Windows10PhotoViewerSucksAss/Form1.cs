@@ -894,11 +894,11 @@ namespace Windows10PhotoViewerSucksAss
 		private ImageContainer pendingImageContainer;
 		private ImageContainer lastLoadedItem;
 
-		private void HandleImageCacheDisplayItemLoaded(ImageContainer lastLoadedItem)
+		private void HandleImageCacheDisplayItemLoaded(ImageContainer loadedImageContainer)
 		{
-			if (this.pendingImageContainer == lastLoadedItem)
+			if (this.pendingImageContainer == loadedImageContainer)
 			{
-				this.lastLoadedItem = lastLoadedItem;
+				this.lastLoadedItem = loadedImageContainer;
 				this.synchronizationContext.Post(_ => this.DisplayPendingImage(), null);
 			}
 		}
@@ -937,10 +937,13 @@ namespace Windows10PhotoViewerSucksAss
 			this.displayedHandle?.Dispose();
 			this.displayedHandle = handle;
 
-			this.mainImageControl.Image = this.displayedHandle?.Image;
-			if (Settings.Instance.UseCurrentImageAsWindowIcon)
+			if (this.mainImageControl.Image != this.displayedHandle?.Image)
 			{
-				this.UpdateWindowIcon();
+				this.mainImageControl.Image = this.displayedHandle?.Image;
+				if (Settings.Instance.UseCurrentImageAsWindowIcon)
+				{
+					this.UpdateWindowIcon();
+				}
 			}
 		}
 
@@ -950,6 +953,9 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				try
 				{
+#if DEBUG
+					var sw = Stopwatch.StartNew();
+#endif
 					using (var bitmap = new Bitmap(16, 16, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
 					{
 						using (var g = Graphics.FromImage(bitmap))
@@ -963,6 +969,9 @@ namespace Windows10PhotoViewerSucksAss
 						icon_builder.IconImages.Add(IconBuilder.IconImage.FromBitmap(bitmap));
 						this.Icon = icon_builder.ConvertToIcon();
 					}
+#if DEBUG
+					Debug.WriteLine($"Icon generation: {sw.ElapsedMilliseconds}");
+#endif
 				}
 				catch (Exception ex)
 				{
