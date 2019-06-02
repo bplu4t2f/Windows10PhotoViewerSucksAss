@@ -876,7 +876,7 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				this.overviewControl.SetDisplayIndex(this.currentDisplayIndex, scrollSelectedItemIntoView);
 				var displayFile = this.currentFileList[this.currentDisplayIndex];
-				this.Text = displayFile;
+				this.Text = String.Format("{0} ({1})", Path.GetFileName(displayFile), displayFile);
 
 				ImageContainer displayedContainer = this.imageCacheWorker.GetOrCreateContainer(displayFile);
 				if (displayedContainer.IsLoaded)
