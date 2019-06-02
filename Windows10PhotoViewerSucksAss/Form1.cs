@@ -765,6 +765,7 @@ namespace Windows10PhotoViewerSucksAss
 		/// <summary>
 		/// This assumes that <see cref="currentDisplayDir"/> and <see cref="currentDisplayFile"/> have been set to their desired values.
 		/// Scans <see cref="currentDisplayDir"/> for files and updates the file list.
+		/// Keeps the currently selected file visible if possible.
 		/// </summary>
 		private void UpdateDisplayPath(bool scrollSelectedItemIntoView)
 		{
@@ -788,6 +789,7 @@ namespace Windows10PhotoViewerSucksAss
 
 		/// <summary>
 		/// Call this after <see cref="currentFileList"/> has been assigned, or when the sorting order has changed.
+		/// Keeps the currently selected file visible if possible.
 		/// </summary>
 		private void UpdateCurrentFileList(bool scrollSelectedItemIntoView)
 		{
@@ -828,40 +830,14 @@ namespace Windows10PhotoViewerSucksAss
 
 
 
-		private void HandleImageCacheItemNotFound(string file)
-		{
-			this.synchronizationContext.Post(_ =>
-			{
-				if (this.currentFileList == null)
-				{
-					return;
-				}
-				int index = this.currentFileList.IndexOf(file);
-				this.ForgetFile(index);
-				// Don't need to update the displayed image -- a HandleImageCacheDisplayItemLoaded will follow if applicable.
-			}, null);
-		}
 
-		static readonly int[] fileLoadOrder = new int[] { 0, 1, -1, 2, -2 };
+		
 
-		private CacheWorkItem GetCacheWorkItemForCurrentDisplayIndex()
-		{
-			var items = new string[fileLoadOrder.Length];
-			var list = this.currentFileList;
-			for (int i = 0; i < items.Length; ++i)
-			{
-				int offset = fileLoadOrder[i];
-				int index = this.currentDisplayIndex + offset;
-				int tmp_wrapped_around = index % list.Count;
-				if (tmp_wrapped_around < 0)
-				{
-					tmp_wrapped_around += list.Count;
-				}
-				items[i] = list[tmp_wrapped_around];
-			}
-			return new CacheWorkItem(items[0], items);
-		}
 
+		/// <summary>
+		/// Displays <see cref="currentDisplayIndex"/>, so this must be called after that value changes.
+		/// If <see cref="currentFileList"/> is null, or if it doesn't contain the specified index, no image can be displayed.
+		/// </summary>
 		private void DisplayCurrent(bool scrollSelectedItemIntoView)
 		{
 			if (this.currentFileList == null || this.currentDisplayIndex == -1 || this.currentDisplayIndex >= this.currentFileList.Count)
@@ -888,9 +864,32 @@ namespace Windows10PhotoViewerSucksAss
 					this.pendingImageContainer = displayedContainer;
 				}
 
+				// This makes sure we preload the files around the current file.
 				this.imageCacheWorker.SetCacheWorkItem(this.GetCacheWorkItemForCurrentDisplayIndex());
 			}
 		}
+
+		static readonly int[] fileLoadOrder = new int[] { 0, 1, -1, 2, -2 };
+
+		private CacheWorkItem GetCacheWorkItemForCurrentDisplayIndex()
+		{
+			var items = new string[fileLoadOrder.Length];
+			var list = this.currentFileList;
+			for (int i = 0; i < items.Length; ++i)
+			{
+				int offset = fileLoadOrder[i];
+				int index = this.currentDisplayIndex + offset;
+				int tmp_wrapped_around = index % list.Count;
+				if (tmp_wrapped_around < 0)
+				{
+					tmp_wrapped_around += list.Count;
+				}
+				items[i] = list[tmp_wrapped_around];
+			}
+			return new CacheWorkItem(items[0], items);
+		}
+
+
 
 		private ImageContainer pendingImageContainer;
 		private ImageContainer lastLoadedItem;
@@ -902,6 +901,21 @@ namespace Windows10PhotoViewerSucksAss
 				this.lastLoadedItem = lastLoadedItem;
 				this.synchronizationContext.Post(_ => this.DisplayPendingImage(), null);
 			}
+		}
+
+		private void HandleImageCacheItemNotFound(string file)
+		{
+			// TODO better unify this with the other event so that we know which container we even attempted to load
+			this.synchronizationContext.Post(_ =>
+			{
+				if (this.currentFileList == null)
+				{
+					return;
+				}
+				int index = this.currentFileList.IndexOf(file);
+				this.ForgetFile(index);
+				// Don't need to update the displayed image -- a HandleImageCacheDisplayItemLoaded will follow if applicable.
+			}, null);
 		}
 
 		private void DisplayPendingImage()
