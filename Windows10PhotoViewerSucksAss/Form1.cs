@@ -318,6 +318,24 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
+		public bool Setting_UseCurrentImageAsWindowIcon
+		{
+			get { return Settings.Instance.UseCurrentImageAsWindowIcon; }
+			set
+			{
+				Settings.Instance.UseCurrentImageAsWindowIcon = value;
+				Settings.QueueSave();
+				if (value)
+				{
+					this.UpdateWindowIcon();
+				}
+				else
+				{
+					this.Icon = null;
+				}
+			}
+		}
+
 		private void HandleSplitterDragStopped(object sender, EventArgs e)
 		{
 			int splitterPos = this.splitter.Left;
@@ -906,7 +924,37 @@ namespace Windows10PhotoViewerSucksAss
 			this.displayedHandle = handle;
 
 			this.mainImageControl.Image = this.displayedHandle?.Image;
+			if (Settings.Instance.UseCurrentImageAsWindowIcon)
+			{
+				this.UpdateWindowIcon();
+			}
 		}
+
+		private void UpdateWindowIcon()
+		{
+			if (this.mainImageControl.Image != null)
+			{
+				using (var bitmap = new Bitmap(16, 16, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
+				{
+					using (var g = Graphics.FromImage(bitmap))
+					{
+						g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
+						RectangleF rect = Util.ResizeProportionalFit(bitmap.Size, this.mainImageControl.Image.Size);
+						g.DrawImage(this.mainImageControl.Image, rect);
+						g.DrawRectangle(HalfTransparentBlackPen, rect.Left + 0.5f, rect.Top + 0.5f, rect.Width - 1.0f, rect.Height - 1.0f);
+					}
+					var icon_builder = new IconBuilder();
+					icon_builder.IconImages.Add(IconBuilder.IconImage.FromBitmap(bitmap));
+					this.Icon = icon_builder.ConvertToIcon();
+				}
+			}
+			else
+			{
+				this.Icon = null;
+			}
+		}
+
+		private static Pen HalfTransparentBlackPen = new Pen(Color.FromArgb(128, 0, 0, 0));
 	}
 
 

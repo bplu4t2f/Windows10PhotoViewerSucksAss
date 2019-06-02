@@ -58,5 +58,23 @@ namespace Windows10PhotoViewerSucksAss
 			Clipboard.Clear();
 			Clipboard.SetDataObject(dataObject, true);
 		}
+
+		public static RectangleF ResizeProportionalFit(Size container, Size content)
+		{
+			float scale_w = (float)container.Width / content.Width;
+			float scale_h = (float)container.Height / content.Height;
+			float scale = Math.Min(scale_w, scale_h);
+			float new_w = scale * content.Width;
+			float new_h = scale * content.Height;
+			float x = (container.Width - new_w) / 2.0f;
+			float y = (container.Height - new_h) / 2.0f;
+			float bad_x = (float)(x - Math.Truncate(x));
+			float bad_y = (float)(y - Math.Truncate(y));
+			x -= bad_x;
+			y -= bad_y;
+			new_w -= bad_x;
+			new_h -= bad_y;
+			return new RectangleF(x, y, new_w, new_h);
+		}
 	}
 }
