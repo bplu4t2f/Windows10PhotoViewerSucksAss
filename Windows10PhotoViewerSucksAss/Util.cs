@@ -16,6 +16,7 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			// Must do it this way, with Image.FromFile, or with the Bitmap(string) constructor, the file stays locked.
 			// Bitmap(Stream) says we must leave the stream open.
+#warning TODO use from stream with a better file stream
 			using (var tmpImage = Image.FromFile(file))
 			{
 				return new Bitmap(tmpImage);

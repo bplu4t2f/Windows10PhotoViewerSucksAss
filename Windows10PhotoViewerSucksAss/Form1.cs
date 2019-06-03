@@ -13,6 +13,7 @@ using System.Windows.Forms;
 
 namespace Windows10PhotoViewerSucksAss
 {
+	// TODO maybe create downscaled icon image with the scan0 bitmap constructor
 	// TODO f1 help menu overlay
 	// TODO f2 rename
 	// TODO let's have an icon I guess
