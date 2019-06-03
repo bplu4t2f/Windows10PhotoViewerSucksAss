@@ -15,6 +15,8 @@ namespace Windows10PhotoViewerSucksAss
 		public ImageCache()
 		{
 			this.cache = new Dictionary<FileListEntry, ImageContainer>();
+			this.disposeOneContainerHelperDelegate = this.DisposeOneContainerHelper;
+			this.disposeManyContainersHelperDelegate = this.DisposeManyContainersHelper;
 		}
 
 		private readonly Dictionary<FileListEntry, ImageContainer> cache;
@@ -49,6 +51,8 @@ namespace Windows10PhotoViewerSucksAss
 		/// </summary>
 		internal void PruneUnusedContainers(CacheWorkItem current_work_item)
 		{
+			var disposableContainers = new List<ImageContainer>();
+
 			lock (this.cache)
 			{
 				this.current_work_item = current_work_item;
@@ -56,35 +60,74 @@ namespace Windows10PhotoViewerSucksAss
 				{
 					if (container.last_requesting_work_item != this.current_work_item && !container.IsHandleAlive)
 					{
-						this.DisposeContainer(container);
+						// Do not dispose here while we're in the lock - the Dispose might take a relatively long time.
+						disposableContainers.Add(container);
+						this.cache.Remove(container.Key);
 					}
 				}
 			}
+
+			ThreadPool.QueueUserWorkItem(this.disposeManyContainersHelperDelegate, disposableContainers);
 		}
 
+		private readonly WaitCallback disposeManyContainersHelperDelegate;
+		private void DisposeManyContainersHelper(object state)
+		{
+			var containers = (List<ImageContainer>)state;
+			Debug.Assert(containers != null);
+			foreach (var container in containers)
+			{
+				this.DisposeContainer(container);
+			}
+		}
+
+		/// <summary>
+		/// Actually disposes the image in a <paramref name="container"/>.
+		/// NOTE: Disposing an image might take time. So this should always be called on some low priority background worker thread.
+		/// </summary>
 		private void DisposeContainer(ImageContainer container)
 		{
-			Debug.Assert(Monitor.IsEntered(this.cache));
+			Debug.Assert(!Monitor.IsEntered(this.cache));
 			Debug.Assert(!container.IsHandleAlive);
 			Debug.Assert(container.last_requesting_work_item != this.current_work_item);
 
 			container.image?.Dispose();
 			container.image = null;
-			// We can't leave the lock in this state - we must remove it from the dictionary
-			// immediately after we dispose of the initial handle.
-			this.cache.Remove(container.Key);
 		}
 
-		internal void UnregisterContainer(ImageContainer container)
+		/// <summary>
+		/// Call this when the container's active handle count has reached 0.
+		/// If the container is otherwise unused, it will be disposed.
+		/// </summary>
+		internal void DisposeContainerIfNecessary(ImageContainer container)
 		{
+			Debug.Assert(container != null);
 			Debug.Assert(!Monitor.IsEntered(this.cache));
+			Debug.Assert(!container.IsHandleAlive);
+			bool needDispose = false;
+
 			lock (this.cache)
 			{
 				if (container.last_requesting_work_item != this.current_work_item)
 				{
-					this.DisposeContainer(container);
+					this.cache.Remove(container.Key);
+					needDispose = true;
 				}
 			}
+
+			if (needDispose)
+			{
+				// Dispose might actually take a long time if it was a big image.
+				ThreadPool.QueueUserWorkItem(this.disposeOneContainerHelperDelegate, container);
+			}
+		}
+
+		private readonly WaitCallback disposeOneContainerHelperDelegate;
+		private void DisposeOneContainerHelper(object state)
+		{
+			var container = (ImageContainer)state;
+			Debug.Assert(container != null);
+			this.DisposeContainer(container);
 		}
 
 		public void PurgeAll()
@@ -263,7 +306,7 @@ namespace Windows10PhotoViewerSucksAss
 			this.openHandleCount -= 1;
 			if (!this.IsHandleAlive)
 			{
-				this.owner.UnregisterContainer(this);
+				this.owner.DisposeContainerIfNecessary(this);
 			}
 		}
 
