@@ -82,7 +82,7 @@ namespace Windows10PhotoViewerSucksAss
 			this.mi_file_name.Enabled = false;
 			var mi_show = this.fileListContextMenu.MenuItems.Add("Show");
 			mi_show.Click += this.HandleMenuShow;
-			var mi_zoom_to_fit = this.fileListContextMenu.MenuItems.Add("Zoom to fit (T)");
+			var mi_zoom_to_fit = this.fileListContextMenu.MenuItems.Add("Zoom to fit (&T)");
 			mi_zoom_to_fit.Click += this.HandleMenuZoomToFit;
 			this.fileListContextMenu.MenuItems.Add("-"); // separator
 			var mi_explore_to = this.fileListContextMenu.MenuItems.Add("Explore to (&E)");
