@@ -33,11 +33,15 @@ namespace Windows10PhotoViewerSucksAss
 	// TODO save session (use WM_APP messages with EnumWindows for communication) (maybe RegisterWindowMessageA instead with HWND_BROADCAST?)
 	// TODO menu items with tabs
 	// TODO maybe use an explicit low priority thread for disposing images rather than the thread pool
+	// TODO maybe it's time to do something about unifying keyboard commands and menu item commands :/
 
 	public class Form1 : Form
 	{
 		public Form1()
 		{
+			// This seems to have only positive effects: Reduces artifacts when moving controls around (such as the splitter).
+			this.SetStyle(ControlStyles.AllPaintingInWmPaint, true);
+
 			this.ApplyDefaultSettings();
 			this.ApplyUserSettings();
 
@@ -178,6 +182,9 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
+		/// <summary>
+		/// Must be called when the font of the options button has changed (and after initial allocation).
+		/// </summary>
 		private void SetOptionsButtonHeight()
 		{
 			int lineHeight = this.optionsButton.Font.Height;
