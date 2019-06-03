@@ -104,7 +104,6 @@ namespace Windows10PhotoViewerSucksAss
 
 			this._displayWantedImageDelegate = _ => this.DisplayWantedImage();
 
-			this.imageCacheWorker.NotFound += this.HandleImageCacheItemNotFound;
 			this.imageCacheWorker.DisplayItemLoaded += this.HandleImageCacheDisplayItemLoaded;
 			this.imageCacheWorker.StartWorkerThread();
 		}
@@ -912,21 +911,6 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				this.synchronizationContext.Post(this._displayWantedImageDelegate, null);
 			}
-		}
-
-		private void HandleImageCacheItemNotFound(string file)
-		{
-			// TODO better unify this with the other event so that we know which container we even attempted to load
-			this.synchronizationContext.Post(_ =>
-			{
-				if (this.currentFileList == null)
-				{
-					return;
-				}
-				int index = this.currentFileList.IndexOf(file);
-				this.ForgetFile(index);
-				// Don't need to update the displayed image -- a HandleImageCacheDisplayItemLoaded will follow if applicable.
-			}, null);
 		}
 
 		private ImageHandle displayedHandle;

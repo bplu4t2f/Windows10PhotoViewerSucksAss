@@ -121,8 +121,11 @@ namespace Windows10PhotoViewerSucksAss
 		private Thread cacheBuildWorker;
 		private CacheWorkItem cacheWorkItem;
 
+		/// <summary>
+		/// Does not necessarily mean that loading was successful.
+		/// If it was not successful, <see cref="ImageContainer.Image"/> will be null.
+		/// </summary>
 		public event Action<ImageContainer> DisplayItemLoaded;
-		public event Action<string> NotFound;
 
 		public void StartWorkerThread()
 		{
@@ -144,14 +147,6 @@ namespace Windows10PhotoViewerSucksAss
 		public ImageContainer GetOrCreateContainer(string key)
 		{
 			return this.imageCache.GetOrCreateContainer(key);
-		}
-
-		private void NotFound_QueueForget(string file)
-		{
-			if (!File.Exists(file))
-			{
-				this.NotFound?.Invoke(file);
-			}
 		}
 
 		private void CacheBuildWorkerThreadProc()
@@ -234,7 +229,6 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				Debug.WriteLine(ex.ToString());
 				container.SetImage(null);
-				this.NotFound_QueueForget(key);
 			}
 			Debug.Assert(container.IsLoaded);
 		}
