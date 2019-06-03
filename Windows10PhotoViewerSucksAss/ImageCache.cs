@@ -14,12 +14,12 @@ namespace Windows10PhotoViewerSucksAss
 	{
 		public ImageCache()
 		{
-			this.cache = new Dictionary<string, ImageContainer>(StringComparer.OrdinalIgnoreCase);
+			this.cache = new Dictionary<FileListEntry, ImageContainer>();
 		}
 
-		private readonly Dictionary<string, ImageContainer> cache;
+		private readonly Dictionary<FileListEntry, ImageContainer> cache;
 
-		public ImageContainer GetOrCreateContainer(string key)
+		public ImageContainer GetOrCreateContainer(FileListEntry key)
 		{
 			lock (this.cache)
 			{
@@ -32,7 +32,7 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
-		public ImageContainer GetExistingContainer(string key)
+		public ImageContainer GetExistingContainer(FileListEntry key)
 		{
 			lock (this.cache)
 			{
@@ -91,26 +91,18 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			this.PruneUnusedContainers(null);
 		}
-
-		public bool ContainsKey(string key)
-		{
-			lock (this.cache)
-			{
-				return this.cache.ContainsKey(key);
-			}
-		}
 	}
 
 	public class CacheWorkItem
 	{
-		public CacheWorkItem(string displayPath, string[] surroundingPaths)
+		public CacheWorkItem(FileListEntry displayPath, FileListEntry[] surroundingPaths)
 		{
 			this.DisplayPath = displayPath;
 			this.SurroundingPaths = surroundingPaths;
 		}
 
-		public string DisplayPath { get; }
-		public string[] SurroundingPaths { get; }
+		public FileListEntry DisplayPath { get; }
+		public FileListEntry[] SurroundingPaths { get; }
 	}
 
 	public class ImageCacheWorker
@@ -126,6 +118,7 @@ namespace Windows10PhotoViewerSucksAss
 		/// If it was not successful, <see cref="ImageContainer.Image"/> will be null.
 		/// </summary>
 		public event Action<ImageContainer> DisplayItemLoaded;
+		public event Action WorkItemCompleted;
 
 		public void StartWorkerThread()
 		{
@@ -144,7 +137,7 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
-		public ImageContainer GetOrCreateContainer(string key)
+		public ImageContainer GetOrCreateContainer(FileListEntry key)
 		{
 			return this.imageCache.GetOrCreateContainer(key);
 		}
@@ -203,11 +196,12 @@ namespace Windows10PhotoViewerSucksAss
 					}
 				}
 
-
 				if (this.cacheWorkWait.IsSet)
 				{
 					goto _retry;
 				}
+
+				this.WorkItemCompleted?.Invoke();
 
 				// Prune old containers
 				// NOTE: We must do this after we have set last_requesting_work_item on each container.
@@ -222,12 +216,14 @@ namespace Windows10PhotoViewerSucksAss
 			Debug.Assert(key != null);
 			try
 			{
-				var image = Util.LoadImageFromFile(key);
+				var image = Util.LoadImageFromFile(key.FullPath);
+				key.LastFileStatus = LastFileStatus.OK;
 				container.SetImage(image);
 			}
 			catch (Exception ex)
 			{
 				Debug.WriteLine(ex.ToString());
+				key.LastFileStatus = LastFileStatus.Error;
 				container.SetImage(null);
 			}
 			Debug.Assert(container.IsLoaded);
@@ -236,14 +232,14 @@ namespace Windows10PhotoViewerSucksAss
 
 	public class ImageContainer
 	{
-		internal ImageContainer(ImageCache owner, string key)
+		internal ImageContainer(ImageCache owner, FileListEntry key)
 		{
 			this.Key = key ?? throw new ArgumentNullException(nameof(key));
 			this.owner = owner ?? throw new ArgumentNullException(nameof(owner));
 		}
 
 		private readonly ImageCache owner;
-		public string Key { get; }
+		public FileListEntry Key { get; }
 
 		internal Image image;
 		internal CacheWorkItem last_requesting_work_item;
@@ -289,7 +285,7 @@ namespace Windows10PhotoViewerSucksAss
 
 		public ImageContainer Container { get; private set; }
 
-		public string Key => this.Container.Key;
+		public FileListEntry Key => this.Container.Key;
 		public Image Image => this.Container.Image;
 		public bool IsLoaded => this.Container.IsLoaded;
 

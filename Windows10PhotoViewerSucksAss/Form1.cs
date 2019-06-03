@@ -31,6 +31,7 @@ namespace Windows10PhotoViewerSucksAss
 	// TODO file list colors
 	// TODO custom scroll bar colors
 	// TODO save session (use WM_APP messages with EnumWindows for communication) (maybe RegisterWindowMessageA instead with HWND_BROADCAST?)
+	// TODO menu items with tabs
 
 	public class Form1 : Form
 	{
@@ -102,9 +103,11 @@ namespace Windows10PhotoViewerSucksAss
 
 			this.synchronizationContext = SynchronizationContext.Current;
 
-			this._displayWantedImageDelegate = _ => this.DisplayWantedImage();
+			this.displayWantedImageDelegate = _ => this.DisplayWantedImage();
+			this.refreshOverviewDelegate = _ => this.RefreshOverview();
 
 			this.imageCacheWorker.DisplayItemLoaded += this.HandleImageCacheDisplayItemLoaded;
+			this.imageCacheWorker.WorkItemCompleted += this.HandleImageCacheWorkItemCompleted;
 			this.imageCacheWorker.StartWorkerThread();
 		}
 
@@ -213,12 +216,12 @@ namespace Windows10PhotoViewerSucksAss
 
 			if (e.RightClick)
 			{
-				if (!this.TryGetFile(index, out string filePath))
+				if (!this.TryGetFile(index, out FileListEntry file))
 				{
 					return;
 				}
 				this.menuItemFileIndex = index;
-				this.mi_file_name.Text = Path.GetFileName(filePath);
+				this.mi_file_name.Text = Path.GetFileName(file.FullPath);
 				this.fileListContextMenu.Show(this.overviewControl, e.ClickLocation);
 			}
 			else
@@ -515,7 +518,7 @@ namespace Windows10PhotoViewerSucksAss
 			this.mainImageControl.ZoomToFit();
 		}
 
-		private bool TryGetFile(int index, out string file)
+		private bool TryGetFile(int index, out FileListEntry file)
 		{
 			if (this.currentFileList == null || index < 0 || index >= this.currentFileList.Count)
 			{
@@ -528,13 +531,13 @@ namespace Windows10PhotoViewerSucksAss
 
 		private void ExploreTo(int fileIndex)
 		{
-			if (!this.TryGetFile(fileIndex, out string displayFile))
+			if (!this.TryGetFile(fileIndex, out FileListEntry file))
 			{
 				return;
 			}
 			try
 			{
-				int hresult = FileIO.SelectInFileExplorer(displayFile);
+				int hresult = FileIO.SelectInFileExplorer(file.FullPath);
 				System.Runtime.InteropServices.Marshal.ThrowExceptionForHR(hresult);
 			}
 			catch (Exception ex)
@@ -545,11 +548,11 @@ namespace Windows10PhotoViewerSucksAss
 
 		private void CopyFullPath(int fileIndex)
 		{
-			if (this.TryGetFile(fileIndex, out string file))
+			if (this.TryGetFile(fileIndex, out FileListEntry file))
 			{
 				try
 				{
-					Clipboard.SetText(file);
+					Clipboard.SetText(file.FullPath);
 				}
 				catch (Exception ex)
 				{
@@ -560,11 +563,11 @@ namespace Windows10PhotoViewerSucksAss
 
 		private void CopyFile(int fileIndex)
 		{
-			if (this.TryGetFile(fileIndex, out string file))
+			if (this.TryGetFile(fileIndex, out FileListEntry file))
 			{
 				try
 				{
-					Clipboard.SetFileDropList(new System.Collections.Specialized.StringCollection() { file });
+					Clipboard.SetFileDropList(new System.Collections.Specialized.StringCollection() { file.FullPath });
 				}
 				catch (Exception ex)
 				{
@@ -575,21 +578,28 @@ namespace Windows10PhotoViewerSucksAss
 
 		private void CutFile(int fileIndex)
 		{
-			if (this.TryGetFile(fileIndex, out string file))
+			if (this.TryGetFile(fileIndex, out FileListEntry file))
 			{
-				Util.ClipboardCutFileList(new string[] { file });
+				try
+				{
+					Util.ClipboardCutFileList(new string[] { file.FullPath });
+				}
+				catch (Exception ex)
+				{
+					MessageBox.Show(ex.ToString());
+				}
 			}
 		}
 
 		private void DeleteFile(int fileIndex)
 		{
-			if (!this.TryGetFile(fileIndex, out string file))
+			if (!this.TryGetFile(fileIndex, out FileListEntry file))
 			{
 				return;
 			}
-			FileIO.Send(file, FileIO.FileOperationFlags.FOF_SILENT);
+			FileIO.Send(file.FullPath, FileIO.FileOperationFlags.FOF_SILENT);
 			// Who knows that that function is really doing...
-			if (File.Exists(file))
+			if (File.Exists(file.FullPath))
 			{
 				return;
 			}
@@ -601,7 +611,7 @@ namespace Windows10PhotoViewerSucksAss
 		/// </summary>
 		private void ForgetFile(int fileIndex)
 		{
-			if (!this.TryGetFile(fileIndex, out string file))
+			if (!this.TryGetFile(fileIndex, out FileListEntry file))
 			{
 				return;
 			}
@@ -624,12 +634,13 @@ namespace Windows10PhotoViewerSucksAss
 
 		private void Fork(int fileIndex)
 		{
-			if (this.TryGetFile(fileIndex, out string file))
+			if (this.TryGetFile(fileIndex, out FileListEntry file))
 			{
 				try
 				{
 					string exe_name = Process.GetCurrentProcess().MainModule.FileName;
-					Process.Start(exe_name, $"\"{file}\"");
+					string arg0 = file.FullPath;
+					Process.Start(exe_name, $"\"{arg0}\"");
 				}
 				catch (Exception ex)
 				{
@@ -640,9 +651,9 @@ namespace Windows10PhotoViewerSucksAss
 
 		private void FileProperties(int fileIndex)
 		{
-			if (this.TryGetFile(fileIndex, out string file))
+			if (this.TryGetFile(fileIndex, out FileListEntry file))
 			{
-				FileIO.ShowFileProperties(file);
+				FileIO.ShowFileProperties(file.FullPath);
 			}
 		}
 
@@ -749,7 +760,7 @@ namespace Windows10PhotoViewerSucksAss
 		// Needed for Refresh.
 		private string currentDisplayDir;
 		// currentFlieList may be null, and the display index may be invalid.
-		private List<string> currentFileList;
+		private List<FileListEntry> currentFileList;
 		// Full path to the file that is currently being displayed. This must be synchronized with currentDisplayIndex.
 		// Requried because the sorting order in the list may change. In that case, the selected file's display index may change.
 		private string currentDisplayFile;
@@ -760,8 +771,8 @@ namespace Windows10PhotoViewerSucksAss
 		/// </summary>
 		private void SetCurrentDisplayFileFromCurrentDisplayIndex()
 		{
-			this.TryGetFile(this.currentDisplayIndex, out string file);
-			this.currentDisplayFile = file;
+			this.TryGetFile(this.currentDisplayIndex, out FileListEntry file);
+			this.currentDisplayFile = file?.FullPath;
 		}
 		
 		/// <summary>
@@ -783,11 +794,21 @@ namespace Windows10PhotoViewerSucksAss
 			var regex = new Regex(@"(\.png$)|(\.jpg$)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 			var matchingFiles = files.Where(x => regex.IsMatch(x)).ToList();
 #else
-			List<string> matchingFiles = files.ToList();
+			List<FileListEntry> matchingFiles = files.Select(x => new FileListEntry(x)).ToList();
 #endif
 			this.currentFileList = matchingFiles;
 			this.UpdateCurrentFileList(scrollSelectedItemIntoView);
 		}
+
+		private sealed class FileListComparer : IComparer<FileListEntry>
+		{
+			public int Compare(FileListEntry x, FileListEntry y)
+			{
+				return NatnumSort.Sort(x.FullPath, y.FullPath, !Settings.Instance.SortCaseSensitive);
+			}
+		}
+
+		private readonly FileListComparer fileListComparer = new FileListComparer();
 
 		/// <summary>
 		/// Call this after <see cref="currentFileList"/> has been assigned, or when the sorting order has changed.
@@ -800,7 +821,7 @@ namespace Windows10PhotoViewerSucksAss
 #if DEBUG
 				var sw = Stopwatch.StartNew();
 #endif
-				this.currentFileList.Sort(Settings.Instance.SortCaseSensitive ? NatnumSort.Instance_CaseSensitive : NatnumSort.Instance_CaseInsensitive);
+				this.currentFileList.Sort(this.fileListComparer);
 #if DEBUG
 				Debug.WriteLine($"Sorting took {sw.ElapsedMilliseconds} ms");
 				foreach (var f in this.currentFileList)
@@ -808,8 +829,17 @@ namespace Windows10PhotoViewerSucksAss
 					Debug.WriteLine(f);
 				}
 #endif
-
-				var displayIndex = this.currentFileList.IndexOf(this.currentDisplayFile);
+				
+				// Try to preselect the currently displayed file, if possible.
+				int displayIndex = -1;
+				for (int i = 0; i < this.currentFileList.Count; ++i)
+				{
+					if (String.Equals(this.currentFileList[i].FullPath, this.currentDisplayFile, StringComparison.OrdinalIgnoreCase))
+					{
+						displayIndex = i;
+						break;
+					}
+				}
 
 				if (displayIndex != -1)
 				{
@@ -855,7 +885,8 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				this.overviewControl.SetDisplayIndex(this.currentDisplayIndex, scrollSelectedItemIntoView);
 				var displayFile = this.currentFileList[this.currentDisplayIndex];
-				this.Text = String.Format("{0} ({1})", Path.GetFileName(displayFile), displayFile);
+				// Update window title with the current file name:
+				this.Text = String.Format("{0} ({1})", Path.GetFileName(displayFile.FullPath), displayFile.FullPath);
 
 				ImageContainer displayedContainer = this.imageCacheWorker.GetOrCreateContainer(displayFile);
 				if (this.wantedImageHandle?.Container != displayedContainer)
@@ -879,7 +910,7 @@ namespace Windows10PhotoViewerSucksAss
 
 		private CacheWorkItem GetCacheWorkItemForCurrentDisplayIndex()
 		{
-			var items = new string[fileLoadOrder.Length];
+			var items = new FileListEntry[fileLoadOrder.Length];
 			var list = this.currentFileList;
 			for (int i = 0; i < items.Length; ++i)
 			{
@@ -909,7 +940,7 @@ namespace Windows10PhotoViewerSucksAss
 			// posting to the UI thread if we already know that it won't work.
 			if (this.wantedImageHandle.Container == loadedImageContainer)
 			{
-				this.synchronizationContext.Post(this._displayWantedImageDelegate, null);
+				this.synchronizationContext.Post(this.displayWantedImageDelegate, null);
 			}
 		}
 
@@ -947,7 +978,7 @@ namespace Windows10PhotoViewerSucksAss
 		/// <summary>
 		/// For reduced memory allocation overhead in <see cref="HandleImageCacheDisplayItemLoaded"/>.
 		/// </summary>
-		private readonly SendOrPostCallback _displayWantedImageDelegate;
+		private readonly SendOrPostCallback displayWantedImageDelegate;
 
 		private void UpdateWindowIcon()
 		{
@@ -989,6 +1020,40 @@ namespace Windows10PhotoViewerSucksAss
 		}
 
 		private static Pen HalfTransparentBlackPen = new Pen(Color.FromArgb(128, 0, 0, 0));
+
+
+		private readonly SendOrPostCallback refreshOverviewDelegate;
+		private void HandleImageCacheWorkItemCompleted()
+		{
+			// All we need to do here is redraw the overview control because the file state
+			// of some files other than the current display index might have changed.
+			this.synchronizationContext.Post(this.refreshOverviewDelegate, null);
+		}
+
+		private void RefreshOverview()
+		{
+			this.overviewControl.Invalidate();
+		}
+	}
+
+
+	public class FileListEntry
+	{
+		public FileListEntry(string fullPath)
+		{
+			this.FullPath = fullPath;
+		}
+
+		public string FullPath { get; }
+		public LastFileStatus LastFileStatus { get; set; }
+	}
+
+
+	public enum LastFileStatus
+	{
+		Unknown,
+		OK,
+		Error
 	}
 
 

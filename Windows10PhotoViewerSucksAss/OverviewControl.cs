@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
+using System.Diagnostics;
 
 namespace Windows10PhotoViewerSucksAss
 {
@@ -27,10 +28,23 @@ namespace Windows10PhotoViewerSucksAss
 		}
 
 		private readonly VScrollBar scrollBar = new VScrollBar();
-		private IList<string> availableFiles;
+		private IList<OverviewFileListEntry> availableFiles;
 		private int selectedIndex = -1;
 
-		public void Initialize(IList<string> availableFiles)
+		private sealed class OverviewFileListEntry
+		{
+			public OverviewFileListEntry(FileListEntry fileListEntry)
+			{
+				Debug.Assert(fileListEntry != null);
+				this.fileListEntry = fileListEntry;
+				this.fileName = Path.GetFileName(this.fileListEntry.FullPath);
+			}
+
+			public readonly FileListEntry fileListEntry;
+			public readonly string fileName;
+		}
+
+		public void Initialize(IList<FileListEntry> availableFiles)
 		{
 			if (availableFiles == null)
 			{
@@ -38,7 +52,7 @@ namespace Windows10PhotoViewerSucksAss
 			}
 			else
 			{
-				this.availableFiles = availableFiles.Select(x => Path.GetFileName(x)).ToArray();
+				this.availableFiles = availableFiles.Select(x => new OverviewFileListEntry(x)).ToArray();
 				this.scrollBar.Maximum = availableFiles.Count + this.scrollBar.LargeChange - 2;
 			}
 			this.scrollBar.Enabled = availableFiles != null;
@@ -113,11 +127,25 @@ namespace Windows10PhotoViewerSucksAss
 			int imageIndex = this.scrollBar.Value;
 			for (int y = 0; y < this.Height && imageIndex < this.availableFiles.Count; ++imageIndex)
 			{
-				var file = this.availableFiles[imageIndex];
+				OverviewFileListEntry file = this.availableFiles[imageIndex];
 				Font font = imageIndex == this.selectedIndex ? this.GetSelectionFont() : this.Font;
 				Rectangle textRect = new Rectangle(0, y, this.Width - this.scrollBar.Width, lineHeight);
-				TextRenderer.DrawText(g, file, font, textRect, this.ForeColor, this.BackColor, flags);
+				Color textColor = GetFileStatusColor(file.fileListEntry.LastFileStatus);
+				TextRenderer.DrawText(g, file.fileName, font, textRect, textColor, this.BackColor, flags);
 				y += lineHeight;
+			}
+		}
+
+		private static Color GetFileStatusColor(LastFileStatus status)
+		{
+			switch (status)
+			{
+				case LastFileStatus.Unknown:
+				case LastFileStatus.OK:
+					return Color.Black;
+				case LastFileStatus.Error:
+				default:
+					return Color.Firebrick;
 			}
 		}
 
