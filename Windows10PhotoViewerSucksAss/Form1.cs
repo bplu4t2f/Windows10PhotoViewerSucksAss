@@ -102,6 +102,8 @@ namespace Windows10PhotoViewerSucksAss
 
 			this.synchronizationContext = SynchronizationContext.Current;
 
+			this._displayWantedImageDelegate = _ => this.DisplayWantedImage();
+
 			this.imageCacheWorker.NotFound += this.HandleImageCacheItemNotFound;
 			this.imageCacheWorker.DisplayItemLoaded += this.HandleImageCacheDisplayItemLoaded;
 			this.imageCacheWorker.StartWorkerThread();
@@ -845,7 +847,8 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				this.overviewControl.SetDisplayIndex(-1, false);
 
-				this.SetDisplayedImageHandle(null);
+				this.wantedImageHandle = null;
+				this.DisplayWantedImage();
 
 				this.imageCacheWorker.SetCacheWorkItem(new CacheWorkItem(null, null));
 			}
@@ -856,13 +859,16 @@ namespace Windows10PhotoViewerSucksAss
 				this.Text = String.Format("{0} ({1})", Path.GetFileName(displayFile), displayFile);
 
 				ImageContainer displayedContainer = this.imageCacheWorker.GetOrCreateContainer(displayFile);
-				if (displayedContainer.IsLoaded)
+				if (this.wantedImageHandle?.Container != displayedContainer)
 				{
-					this.SetDisplayedImageHandle(displayedContainer.AddHandle());
+					this.wantedImageHandle?.Dispose();
+					this.wantedImageHandle = displayedContainer.AddHandle();
 				}
-				else
+
+				if (this.wantedImageHandle.IsLoaded)
 				{
-					this.pendingImageContainer = displayedContainer;
+					// We can display this item immediately, rather than waiting for the event from the ImageCache worker.
+					this.DisplayWantedImage();
 				}
 
 				// This makes sure we preload the files around the current file.
@@ -891,16 +897,20 @@ namespace Windows10PhotoViewerSucksAss
 		}
 
 
-
-		private ImageContainer pendingImageContainer;
-		private ImageContainer lastLoadedItem;
+		/// <summary>
+		/// The image we *want* to display. This is not necessarily the currently displayed image container because
+		/// it might not be loaded yet.
+		/// <para>While it is not loaded yet, the previous image container (if any) continues to be displayed instead.</para>
+		/// </summary>
+		private ImageHandle wantedImageHandle;
 
 		private void HandleImageCacheDisplayItemLoaded(ImageContainer loadedImageContainer)
 		{
-			if (this.pendingImageContainer == loadedImageContainer)
+			// The wanted image might have changed already. Even though DisplayWantedImage will check this, we can avoid
+			// posting to the UI thread if we already know that it won't work.
+			if (this.wantedImageHandle.Container == loadedImageContainer)
 			{
-				this.lastLoadedItem = loadedImageContainer;
-				this.synchronizationContext.Post(_ => this.DisplayPendingImage(), null);
+				this.synchronizationContext.Post(this._displayWantedImageDelegate, null);
 			}
 		}
 
@@ -919,34 +929,41 @@ namespace Windows10PhotoViewerSucksAss
 			}, null);
 		}
 
-		private void DisplayPendingImage()
-		{
-			if (this.pendingImageContainer == this.lastLoadedItem)
-			{
-				this.SetDisplayedImageHandle(this.lastLoadedItem.AddHandle());
-			}
-		}
-
 		private ImageHandle displayedHandle;
 
-		private void SetDisplayedImageHandle(ImageHandle handle)
+		/// <summary>
+		/// Call this to display <see cref="wantedImageHandle"/> (if it is loaded).
+		/// <para>It will display it if possible and set <see cref="displayedHandle"/> accordingly.</para>
+		/// <para>There is no point calling this if <see cref="wantedImageHandle"/> is not loaded yet.</para>
+		/// </summary>
+		private void DisplayWantedImage()
 		{
-			if (handle?.IsLoaded == false || handle == this.displayedHandle)
+			if (this.wantedImageHandle?.IsLoaded == false || this.wantedImageHandle.Container == this.displayedHandle?.Container)
 			{
 				return;
 			}
-			this.displayedHandle?.Dispose();
-			this.displayedHandle = handle;
 
-			if (this.mainImageControl.Image != this.displayedHandle?.Image)
+			this.displayedHandle?.Dispose();
+			this.displayedHandle = this.wantedImageHandle?.Container.AddHandle();
+
+#if DEBUG
+			if (this.displayedHandle?.Image != null && this.mainImageControl.Image == this.displayedHandle?.Image)
 			{
-				this.mainImageControl.Image = this.displayedHandle?.Image;
-				if (Settings.Instance.UseCurrentImageAsWindowIcon)
-				{
-					this.UpdateWindowIcon();
-				}
+				Debug.WriteLine("Displaying the same image again #FIXME");
+			}
+#endif
+
+			this.mainImageControl.Image = this.displayedHandle?.Image;
+			if (Settings.Instance.UseCurrentImageAsWindowIcon)
+			{
+				this.UpdateWindowIcon();
 			}
 		}
+
+		/// <summary>
+		/// For reduced memory allocation overhead in <see cref="HandleImageCacheDisplayItemLoaded"/>.
+		/// </summary>
+		private readonly SendOrPostCallback _displayWantedImageDelegate;
 
 		private void UpdateWindowIcon()
 		{

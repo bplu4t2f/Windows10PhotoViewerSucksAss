@@ -290,19 +290,19 @@ namespace Windows10PhotoViewerSucksAss
 		internal ImageHandle(ImageContainer container)
 		{
 			Debug.Assert(container != null);
-			this.container = container;
+			this.Container = container;
 		}
 
-		private ImageContainer container;
+		public ImageContainer Container { get; private set; }
 
-		public string Key => this.container.Key;
-		public Image Image => this.container.Image;
-		public bool IsLoaded => this.container.IsLoaded;
+		public string Key => this.Container.Key;
+		public Image Image => this.Container.Image;
+		public bool IsLoaded => this.Container.IsLoaded;
 
 		public void Dispose()
 		{
-			this.container?.RemoveHandle();
-			this.container = null;
+			this.Container?.RemoveHandle();
+			this.Container = null;
 		}
 	}
 }
