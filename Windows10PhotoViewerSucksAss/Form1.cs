@@ -32,6 +32,7 @@ namespace Windows10PhotoViewerSucksAss
 	// TODO custom scroll bar colors
 	// TODO save session (use WM_APP messages with EnumWindows for communication) (maybe RegisterWindowMessageA instead with HWND_BROADCAST?)
 	// TODO menu items with tabs
+	// TODO maybe use an explicit low priority thread for disposing images rather than the thread pool
 
 	public class Form1 : Form
 	{
@@ -212,6 +213,11 @@ namespace Windows10PhotoViewerSucksAss
 
 		private void OverviewControl_ImageSelected(object sender, ImageSelectionEventArgs e)
 		{
+			if (this.currentFileList == null)
+			{
+				return;
+			}
+
 			int index = e.Index;
 
 			if (e.RightClick)
@@ -664,6 +670,11 @@ namespace Windows10PhotoViewerSucksAss
 
 		private void Next()
 		{
+			if (this.currentFileList == null)
+			{
+				return;
+			}
+
 			if (this.currentDisplayIndex >= this.currentFileList.Count - 1)
 			{
 				this.currentDisplayIndex = 0;
@@ -678,6 +689,11 @@ namespace Windows10PhotoViewerSucksAss
 
 		private void Previous()
 		{
+			if (this.currentFileList == null)
+			{
+				return;
+			}
+
 			if (this.currentDisplayIndex <= 0)
 			{
 				this.currentDisplayIndex = this.currentFileList.Count - 1;
@@ -953,7 +969,7 @@ namespace Windows10PhotoViewerSucksAss
 		/// </summary>
 		private void DisplayWantedImage()
 		{
-			if (this.wantedImageHandle?.IsLoaded == false || this.wantedImageHandle.Container == this.displayedHandle?.Container)
+			if (this.wantedImageHandle?.IsLoaded == false || this.wantedImageHandle?.Container == this.displayedHandle?.Container)
 			{
 				return;
 			}
