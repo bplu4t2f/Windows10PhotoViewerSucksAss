@@ -826,7 +826,7 @@ namespace Windows10PhotoViewerSucksAss
 				Debug.WriteLine($"Sorting took {sw.ElapsedMilliseconds} ms");
 				foreach (var f in this.currentFileList)
 				{
-					Debug.WriteLine(f);
+					Debug.WriteLine(f.FullPath);
 				}
 #endif
 				
