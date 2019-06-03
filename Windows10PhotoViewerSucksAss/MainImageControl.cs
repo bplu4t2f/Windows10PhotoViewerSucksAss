@@ -55,21 +55,18 @@ namespace Windows10PhotoViewerSucksAss
 		protected override void OnMouseDoubleClick(MouseEventArgs e)
 		{
 			base.OnMouseDoubleClick(e);
-			this.zoomToFitEnabled = false;
-			var image = this.Image;
-			if (image != null)
-			{
-				this.transform.Reset();
-				this.transform.Translate(-image.Width / 2, -image.Height / 2);
-			}
+			this.ZoomOriginalSize();
 		}
 
 		protected override void OnMouseUp(MouseEventArgs e)
 		{
 			base.OnMouseUp(e);
-			this.panning = false;
-			this.zooming = false;
-			this.Invalidate();
+			if (this.panning || this.zooming)
+			{
+				this.panning = false;
+				this.zooming = false;
+				this.Invalidate();
+			}
 		}
 
 		protected override void OnMouseMove(MouseEventArgs e)
@@ -122,6 +119,18 @@ namespace Windows10PhotoViewerSucksAss
 					var min = Math.Min(ratioH, ratioW);
 					this.transform.Scale(min, min, MatrixOrder.Append);
 				}
+			}
+			this.Invalidate();
+		}
+
+		public void ZoomOriginalSize()
+		{
+			this.zoomToFitEnabled = false;
+			var image = this.Image;
+			if (image != null)
+			{
+				this.transform.Reset();
+				this.transform.Translate(-image.Width / 2, -image.Height / 2);
 			}
 			this.Invalidate();
 		}

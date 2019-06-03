@@ -84,6 +84,8 @@ namespace Windows10PhotoViewerSucksAss
 			mi_show.Click += this.HandleMenuShow;
 			var mi_zoom_to_fit = this.fileListContextMenu.MenuItems.Add("Zoom to fit (&T)");
 			mi_zoom_to_fit.Click += this.HandleMenuZoomToFit;
+			var mi_original_size = this.fileListContextMenu.MenuItems.Add("Original size (&O)");
+			mi_original_size.Click += this.HandleMenuOriginalSize;
 			this.fileListContextMenu.MenuItems.Add("-"); // separator
 			var mi_explore_to = this.fileListContextMenu.MenuItems.Add("Explore to (&E)");
 			mi_explore_to.Click += this.HandleMenuExploreTo;
@@ -424,6 +426,11 @@ namespace Windows10PhotoViewerSucksAss
 				this.mainImageControl.ZoomToFit();
 				return true;
 			}
+			else if (keyData == Keys.O)
+			{
+				this.mainImageControl.ZoomOriginalSize();
+				return true;
+			}
 			else if (keyData == Keys.E)
 			{
 				this.ExploreTo(this.currentDisplayIndex);
@@ -522,6 +529,11 @@ namespace Windows10PhotoViewerSucksAss
 		private void HandleMenuZoomToFit(object sender, EventArgs e)
 		{
 			this.mainImageControl.ZoomToFit();
+		}
+
+		private void HandleMenuOriginalSize(object sender, EventArgs e)
+		{
+			this.mainImageControl.ZoomOriginalSize();
 		}
 
 		private bool TryGetFile(int index, out FileListEntry file)
