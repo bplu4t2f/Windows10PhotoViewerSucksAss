@@ -34,6 +34,8 @@ namespace Windows10PhotoViewerSucksAss
 	// TODO menu items with tabs
 	// TODO maybe use an explicit low priority thread for disposing images rather than the thread pool
 	// TODO maybe it's time to do something about unifying keyboard commands and menu item commands :/
+	// TODO explore to file is not very good when the file does not exist anymore
+	// TODO pixel perfect mode
 
 	public class Form1 : Form
 	{
