@@ -39,3 +39,21 @@ The application stores user preferences such as background color and window size
 ## Origin
 
 The program was hacked together in frustration and therefore the architecture is abysmal. But it's still better. Programming this was actually the very first thing I did after installing Windows 10 last year, and I've been using it since then.
+
+## Bootstrap configuration
+
+The application will attempt to read an xml file with the same name as the executable file, but with ".xml" attached. E.g. if the program's executable is "Windows10PhotoViewerSucksAss.exe", then it will look for "Windows10PhotoViewerSucksAss.exe.xml".
+
+The file is optional looks like this:
+
+```
+<BootstrapData>
+  <FriendlyApplicationName>Windows10PhotoViewerSucksDonkey</FriendlyApplicationName>
+  <AppDataFolderName>Windows10PhotoViewerSucksDonkey</AppDataFolderName>
+</BootstrapData>
+```
+
+| Property Name | Description |
+|---------------|-------------|
+| FriendlyApplicationName | Specifies how the program appears in the Open With menu and dialog. This is written to the application's Progid's open verb in the registry (if file associations are requested by the user). |
+| AppDataFolderName | Specifies the subdirectory inside %LOCALAPPDATA% where the application will save user settings, such as window position and background color. |
