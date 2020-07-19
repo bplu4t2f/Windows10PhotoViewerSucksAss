@@ -15,6 +15,7 @@ namespace Windows10PhotoViewerSucksAss
 		public RenameForm()
 		{
 			this.InitializeComponent();
+			this.Icon = Properties.Resources.generic_picture;
 		}
 
 		protected override void OnLoad(EventArgs e)

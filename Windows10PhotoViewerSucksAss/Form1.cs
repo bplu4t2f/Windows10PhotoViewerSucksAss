@@ -15,8 +15,6 @@ namespace Windows10PhotoViewerSucksAss
 {
 	// TODO maybe create downscaled icon image with the scan0 bitmap constructor
 	// TODO f1 help menu overlay
-	// TODO f2 rename
-	// TODO let's have an icon I guess
 	// TODO "shell" menu
 	// TODO "save user settings" check box
 	// TODO option to save user settings with application exe
@@ -41,6 +39,8 @@ namespace Windows10PhotoViewerSucksAss
 		public Form1(StartupInfo startupInfo)
 		{
 			this.StartupInfo = startupInfo ?? throw new ArgumentNullException(nameof(startupInfo));
+
+			this.Icon = Properties.Resources.generic_picture;
 
 			// This seems to have only positive effects: Reduces artifacts when moving controls around (such as the splitter).
 			this.SetStyle(ControlStyles.AllPaintingInWmPaint, true);
@@ -350,7 +350,7 @@ namespace Windows10PhotoViewerSucksAss
 				}
 				else
 				{
-					this.Icon = null;
+					this.Icon = Properties.Resources.generic_picture;
 				}
 			}
 		}
@@ -1091,12 +1091,12 @@ namespace Windows10PhotoViewerSucksAss
 				{
 					// Not sure what kind of exception could happen here, but I don't trust the Icon(Stream) constructor.
 					Debug.WriteLine(ex);
-					this.Icon = null;
+					this.Icon = Properties.Resources.generic_picture;
 				}
 			}
 			else
 			{
-				this.Icon = null;
+				this.Icon = Properties.Resources.generic_picture;
 			}
 		}
 

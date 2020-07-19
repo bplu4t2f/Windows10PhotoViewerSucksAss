@@ -17,6 +17,8 @@ namespace Windows10PhotoViewerSucksAss
 			this.owner = owner ?? throw new ArgumentNullException(nameof(owner));
 			this.InitializeComponent();
 
+			this.Icon = Properties.Resources.generic_picture;
+
 			this.settingHelper.CheckBox(this.checkBoxSortCaseSensitive, x => x.Setting_SortCaseSensitive, (x, v) => x.Setting_SortCaseSensitive = v);
 			this.settingHelper.Color(this.buttonBackgroundColor, x => x.Setting_BackColor, (x, v) => x.Setting_BackColor = v);
 			this.settingHelper.Font(this.buttonChangeFont, this.labelCurrentFont, x => x.Setting_Font, (x, v) => x.Setting_Font = v);
@@ -59,6 +61,7 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			using (var Form = new Form())
 			{
+				Form.Icon = Properties.Resources.generic_picture;
 				Form.StartPosition = FormStartPosition.Manual;
 				Form.Size = new Size(900, 650);
 				Util.CenterControl(Owner, Form);
