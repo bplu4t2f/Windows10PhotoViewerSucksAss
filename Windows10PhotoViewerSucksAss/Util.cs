@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -79,6 +80,24 @@ namespace Windows10PhotoViewerSucksAss
 			new_w -= bad_x;
 			new_h -= bad_y;
 			return new RectangleF(x, y, new_w, new_h);
+		}
+
+		public static bool ContainsSafe<T>(this T[] arr, T item)
+		{
+			return arr?.Contains(item) ?? false;
+		}
+
+		public static bool EqualsOICSafe(string a, string b)
+		{
+			if (a == b) return true;
+			if (a == null || b == null) return false;
+			return string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+		}
+
+		public static void WriteLine2(this TextWriter Writer, string Message)
+		{
+			Debug.WriteLine(Message);
+			Writer?.WriteLine(Message);
 		}
 	}
 }
