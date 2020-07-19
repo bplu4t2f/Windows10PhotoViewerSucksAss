@@ -28,7 +28,6 @@ namespace Windows10PhotoViewerSucksAss
 	// TODO file list colors
 	// TODO custom scroll bar colors
 	// TODO save session (use WM_APP messages with EnumWindows for communication) (maybe RegisterWindowMessageA instead with HWND_BROADCAST?)
-	// TODO menu items with tabs
 	// TODO maybe use an explicit low priority thread for disposing images rather than the thread pool
 	// TODO maybe it's time to do something about unifying keyboard commands and menu item commands :/
 	// TODO explore to file is not very good when the file does not exist anymore
@@ -90,28 +89,28 @@ namespace Windows10PhotoViewerSucksAss
 			this.mi_file_name.Enabled = false;
 			var mi_show = this.fileListContextMenu.MenuItems.Add("Show");
 			mi_show.Click += this.HandleMenuShow;
-			var mi_zoom_to_fit = this.fileListContextMenu.MenuItems.Add("Zoom to fit (&T)");
+			var mi_zoom_to_fit = this.fileListContextMenu.MenuItems.Add("Zoom to fit\tT");
 			mi_zoom_to_fit.Click += this.HandleMenuZoomToFit;
-			var mi_original_size = this.fileListContextMenu.MenuItems.Add("Original size (&O)");
+			var mi_original_size = this.fileListContextMenu.MenuItems.Add("Original size\tO");
 			mi_original_size.Click += this.HandleMenuOriginalSize;
 			this.fileListContextMenu.MenuItems.Add("-"); // separator
-			var mi_explore_to = this.fileListContextMenu.MenuItems.Add("Explore to (&E)");
+			var mi_explore_to = this.fileListContextMenu.MenuItems.Add("Explore to\tE");
 			mi_explore_to.Click += this.HandleMenuExploreTo;
-			var mi_copy_full_path = this.fileListContextMenu.MenuItems.Add("Copy full path (&F)");
+			var mi_copy_full_path = this.fileListContextMenu.MenuItems.Add("Copy full path\tF");
 			mi_copy_full_path.Click += this.HandleMenuCopyFullPath;
-			var mi_copy_file = this.fileListContextMenu.MenuItems.Add("Copy file (&C)");
+			var mi_copy_file = this.fileListContextMenu.MenuItems.Add("Copy file\tC");
 			mi_copy_file.Click += this.HandleMenuCopyFile;
-			var mi_cut_file = this.fileListContextMenu.MenuItems.Add("Cut file (&X)");
+			var mi_cut_file = this.fileListContextMenu.MenuItems.Add("Cut file\tX");
 			mi_cut_file.Click += this.HandleMenuCutFile;
-			var mi_fork = this.fileListContextMenu.MenuItems.Add("Fork (&G)");
+			var mi_fork = this.fileListContextMenu.MenuItems.Add("Fork\tG");
 			mi_fork.Click += this.HandleMenuFork;
-			var mi_file_properties = this.fileListContextMenu.MenuItems.Add("File properties (&P)");
+			var mi_file_properties = this.fileListContextMenu.MenuItems.Add("File properties\tP");
 			mi_file_properties.Click += this.HandleMenuFileProperties;
-			var mi_refresh_files = this.fileListContextMenu.MenuItems.Add("Refresh files (F5)");
+			var mi_refresh_files = this.fileListContextMenu.MenuItems.Add("Refresh files\tF5");
 			mi_refresh_files.Click += this.HandleMenuRefreshFiles;
-			var mi_rename_file = this.fileListContextMenu.MenuItems.Add("Rename file... (F2)");
+			var mi_rename_file = this.fileListContextMenu.MenuItems.Add("Rename file...\tF2");
 			mi_rename_file.Click += this.HandleMenuRenameFile;
-			var mi_delete_file = this.fileListContextMenu.MenuItems.Add("Move to Recycle Bin (Del)");
+			var mi_delete_file = this.fileListContextMenu.MenuItems.Add("Move to Recycle Bin\tDel");
 			mi_delete_file.Click += this.HandleMenuDeleteFile;
 
 			this.synchronizationContext = SynchronizationContext.Current;
