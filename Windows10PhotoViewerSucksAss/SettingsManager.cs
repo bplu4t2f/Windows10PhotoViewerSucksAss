@@ -11,17 +11,15 @@ using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Serialization;
 
-using TSettings = Windows10PhotoViewerSucksAss.Settings;
-
 namespace Windows10PhotoViewerSucksAss
 {
 	class SettingsManager<T>
 		where T : new()
 	{
-		public SettingsManager(string applicationName)
+		public SettingsManager(string appDataFolderName)
 		{
 			string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-			this.SettingsFilePath = Path.Combine(appData, $@"{applicationName}\settings.xml");
+			this.SettingsFilePath = Path.Combine(appData, $@"{appDataFolderName}\settings.xml");
 		}
 
 		private readonly object sync = new object();

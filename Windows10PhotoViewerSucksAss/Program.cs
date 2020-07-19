@@ -21,18 +21,17 @@ namespace Windows10PhotoViewerSucksAss
 			AppDomain.CurrentDomain.UnhandledException += HandleAppDomainException;
 
 			var executablePath = Application.ExecutablePath;
-			if (String.IsNullOrWhiteSpace(executablePath))
-			{
-				ApplicationName = "Windows10PhotoViewerSucksAss";
-			}
-			else
-			{
-				ApplicationName = System.IO.Path.GetFileNameWithoutExtension(executablePath);
-			}
-			Settings.Initialize(ApplicationName);
+			string BootstrapFilePath = executablePath == null ? null : executablePath + ".xml";
+			BootstrapData BootstrapData = BootstrapFilePath == null ? null : Bootstrapping.Load(BootstrapFilePath);
+
+			// Load user settings
+			string AppDataFolderName = BootstrapData?.AppDataFolderName ?? GetFallbackAppDataFolderName(executablePath);
+			Settings.Initialize(AppDataFolderName);
 			Settings.Load();
 
-			var form = new Form1();
+			var StartupInfo = new StartupInfo(executablePath, BootstrapData?.FriendlyApplicationName ?? AppDataFolderName);
+
+			var form = new Form1(StartupInfo);
 			if (args.Length >= 1)
 			{
 				form.SetDisplayPath_NoThrowInteractive(args[0]);
@@ -40,7 +39,20 @@ namespace Windows10PhotoViewerSucksAss
 			Application.Run(form);
 		}
 
-		public static string ApplicationName { get; private set; }
+		/// <summary>
+		/// For settings folder if BootstrapData doesn't exist.
+		/// </summary>
+		private static string GetFallbackAppDataFolderName(string ExecutablePath)
+		{
+			if (String.IsNullOrWhiteSpace(ExecutablePath))
+			{
+				return "Windows10PhotoViewerSucksAss";
+			}
+			else
+			{
+				return System.IO.Path.GetFileNameWithoutExtension(ExecutablePath);
+			}
+		}
 
 		private static void HandleAppDomainException(object sender, UnhandledExceptionEventArgs e)
 		{

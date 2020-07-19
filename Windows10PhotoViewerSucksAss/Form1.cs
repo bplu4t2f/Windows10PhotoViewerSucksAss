@@ -18,7 +18,6 @@ namespace Windows10PhotoViewerSucksAss
 	// TODO f2 rename
 	// TODO let's have an icon I guess
 	// TODO "shell" menu
-	// TODO file associations
 	// TODO "save user settings" check box
 	// TODO option to save user settings with application exe
 	// TODO show save error upon switching save mode, if applicable
@@ -39,8 +38,10 @@ namespace Windows10PhotoViewerSucksAss
 
 	public class Form1 : Form
 	{
-		public Form1()
+		public Form1(StartupInfo startupInfo)
 		{
+			this.StartupInfo = startupInfo ?? throw new ArgumentNullException(nameof(startupInfo));
+
 			// This seems to have only positive effects: Reduces artifacts when moving controls around (such as the splitter).
 			this.SetStyle(ControlStyles.AllPaintingInWmPaint, true);
 
@@ -119,6 +120,8 @@ namespace Windows10PhotoViewerSucksAss
 			this.imageCacheWorker.WorkItemCompleted += this.HandleImageCacheWorkItemCompleted;
 			this.imageCacheWorker.StartWorkerThread();
 		}
+
+		public StartupInfo StartupInfo { get; }
 
 		private readonly SynchronizationContext synchronizationContext;
 		private readonly ContextMenu fileListContextMenu = new ContextMenu();

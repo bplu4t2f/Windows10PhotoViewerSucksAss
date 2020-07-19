@@ -12,10 +12,10 @@ namespace Windows10PhotoViewerSucksAss
 {
 	public class Settings
 	{
-		public static void Initialize(string applicationName)
+		public static void Initialize(string appDataFolderName)
 		{
 			Debug.Assert(_manager == null);
-			_manager = new SettingsManager<Settings>(applicationName);
+			_manager = new SettingsManager<Settings>(appDataFolderName);
 		}
 
 		public static void Load()
@@ -25,7 +25,6 @@ namespace Windows10PhotoViewerSucksAss
 
 		public static void QueueSave()
 		{
-			// TODO save in background
 			var tmp = Instance;
 			Debug.Assert(tmp != null);
 			GetManager().QueueSave(tmp);

@@ -37,7 +37,7 @@ namespace Windows10PhotoViewerSucksAss
 
 		// It's retarded.
 
-		public static void CheckFileAssociations(TextWriter Issues, string ApplicationPath, bool Install)
+		public static void CheckFileAssociations(TextWriter Issues, string ApplicationPath, string FriendlyAppName, bool Install)
 		{
 			// Info: The default verb is the default value of the "shell" key. If it's not set, it takes the first subkey alphabetically, which is often "open".
 
@@ -57,15 +57,22 @@ namespace Windows10PhotoViewerSucksAss
 				CheckFileExtension_VerifySystemDefaults(Issues, Info.ExpectedPerceivedType, Info.Extension, Info.ExpectedSystemFileHandler);
 			}
 
-			Issues.WriteLine2("===========================================================================================================================");
-			if (ApplicationPath.IndexOf('"') != -1) throw new ArgumentOutOfRangeException(nameof(ApplicationPath));
-			string CommandLine = $"\"{ApplicationPath}\" \"%1\"";
-			Issues.WriteLine2($"HKCU Progid: -- Expected Command Line: {CommandLine}");
+			if (ApplicationPath != null)
+			{
+				Issues.WriteLine2("===========================================================================================================================");
+				if (ApplicationPath.IndexOf('"') != -1) throw new ArgumentOutOfRangeException(nameof(ApplicationPath));
+				string CommandLine = $"\"{ApplicationPath}\" \"%1\"";
+				Issues.WriteLine2($"HKCU Progid: -- Expected Command Line: {CommandLine}");
 
-			// Should probably hash the current file name.
+				// Should probably hash the current file name.
 
-			// Should probably build this automatically.
-			CheckProgidKey(Issues, Install, ThisApplicationProgid, CommandLine);
+				// Should probably build this automatically.
+				CheckProgidKey(Issues, Install, ThisApplicationProgid, CommandLine, FriendlyAppName);
+			}
+			else if (Install)
+			{
+				throw new ArgumentNullException(nameof(ApplicationPath));
+			}
 
 			Issues.WriteLine2("===========================================================================================================================");
 			Issues.WriteLine2("Extensions (HKCU Progid Registered):");
@@ -185,7 +192,7 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
-		private static void CheckProgidKey(TextWriter Issues, bool Install, string Progid, string ExpectedCommand)
+		private static void CheckProgidKey(TextWriter Issues, bool Install, string Progid, string ExpectedCommand, string FriendlyAppName)
 		{
 			// Check that the progid key exists in HKCU classes, and that it has a valid open verb as its only verb.
 			var Key = Registry.CurrentUser.OpenSubKey($@"software\classes\{Progid}", writable: Install);
@@ -251,6 +258,25 @@ namespace Windows10PhotoViewerSucksAss
 			}
 
 			Debug.Assert(Key_Open != null);
+
+			string CurrentFriendlyAppName = Key_Open.GetValue("FriendlyAppName") as string;
+			if (CurrentFriendlyAppName != FriendlyAppName)
+			{
+				Issues.WriteLine2($"ProgidKey {Progid}'s open verb has incorrect FriendlyAppName \"{CurrentFriendlyAppName}\"; expected \"{FriendlyAppName}\".");
+				if (Install)
+				{
+					if (FriendlyAppName != null)
+					{
+						Key_Open.SetValue("FriendlyAppName", FriendlyAppName, RegistryValueKind.String);
+						Issues.WriteLine2($"FriendlyAppName for {Progid} set to \"{FriendlyAppName}\".");
+					}
+					else
+					{
+						Key_Open.DeleteValue("FriendlyAppName");
+						Issues.WriteLine2($"FriendlyAppName for {Progid} removed.");
+					}
+				}
+			}
 
 			var Key_Command = Key_Open.OpenSubKey("command", writable: Install);
 			if (Key_Command == null)
