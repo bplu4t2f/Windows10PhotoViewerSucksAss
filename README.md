@@ -20,6 +20,7 @@ This program exists because the standard Windows 10 photo viewer sucks so much a
 | G | Fork program at current file |
 | P | Open file properties |
 | F5 | Refresh file list |
+| F2 | Rename file |
 | Del | Move to recycle bin |
 
 
