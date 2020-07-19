@@ -44,7 +44,7 @@ The program was hacked together in frustration and therefore the architecture is
 
 The application will attempt to read an xml file with the same name as the executable file, but with ".xml" attached. E.g. if the program's executable is "Windows10PhotoViewerSucksAss.exe", then it will look for "Windows10PhotoViewerSucksAss.exe.xml".
 
-The file is optional looks like this:
+The file is optional and looks like this:
 
 ```
 <BootstrapData>
