@@ -20,17 +20,16 @@ namespace Windows10PhotoViewerSucksAss
 	// TODO option to save user settings with application exe
 	// TODO show save error upon switching save mode, if applicable
 	// TODO reset user settings button
-	// TODO other media files
+	// TODO other media files (animated gif isn't that bad actually)
 	// TODO refresh should reload the image
 	// TODO file system watcher
-	// TODO choose extensions
+	// TODO choose extensions (file list filter)
 	// TODO move/copy targets, with optional counter
 	// TODO file list colors
 	// TODO custom scroll bar colors
 	// TODO save session (use WM_APP messages with EnumWindows for communication) (maybe RegisterWindowMessageA instead with HWND_BROADCAST?)
 	// TODO maybe use an explicit low priority thread for disposing images rather than the thread pool
 	// TODO maybe it's time to do something about unifying keyboard commands and menu item commands :/
-	// TODO explore to file is not very good when the file does not exist anymore
 	// TODO pixel perfect mode
 
 	public class Form1 : Form
@@ -579,14 +578,21 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				return;
 			}
+			string fullPath = file.FullPath;
 			try
 			{
-				int hresult = FileIO.SelectInFileExplorer(file.FullPath);
+				if (!File.Exists(fullPath))
+				{
+					MessageBox.Show($"File \"{fullPath}\" doesn't exist.");
+					return;
+				}
+				int hresult = FileIO.SelectInFileExplorer(fullPath);
 				System.Runtime.InteropServices.Marshal.ThrowExceptionForHR(hresult);
 			}
 			catch (Exception ex)
 			{
-				MessageBox.Show(ex.ToString());
+				Debug.WriteLine(ex.ToString());
+				MessageBox.Show($"Unable to navigate to the specified file: {fullPath}\r\n\r\n{ex.Message}");
 			}
 		}
 
