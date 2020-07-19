@@ -99,5 +99,14 @@ namespace Windows10PhotoViewerSucksAss
 			Debug.WriteLine(Message);
 			Writer?.WriteLine(Message);
 		}
+
+		// Because I don't trust CenterParent one bit.
+		public static void CenterControl(Control container, Control content)
+		{
+			content.Location = new Point(
+				(int)(container.Left + (container.Width - content.Width) / 2.0),
+				(int)(container.Top + (container.Height - content.Height) / 2.0)
+				);
+		}
 	}
 }

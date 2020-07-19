@@ -108,6 +108,8 @@ namespace Windows10PhotoViewerSucksAss
 			mi_file_properties.Click += this.HandleMenuFileProperties;
 			var mi_refresh_files = this.fileListContextMenu.MenuItems.Add("Refresh files (F5)");
 			mi_refresh_files.Click += this.HandleMenuRefreshFiles;
+			var mi_rename_file = this.fileListContextMenu.MenuItems.Add("Rename file... (F2)");
+			mi_rename_file.Click += this.HandleMenuRenameFile;
 			var mi_delete_file = this.fileListContextMenu.MenuItems.Add("Move to Recycle Bin (Del)");
 			mi_delete_file.Click += this.HandleMenuDeleteFile;
 
@@ -248,20 +250,11 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				int effectiveIndex = Math.Min(Math.Max(index, 0), this.currentFileList.Count - 1);
 				this.currentDisplayIndex = effectiveIndex;
-				this.SetCurrentDisplayFileFromCurrentDisplayIndex();
 				this.DisplayCurrent(scrollSelectedItemIntoView: false);
 			}
 		}
 
 		private SettingsForm currentSettingsForm;
-
-		private static void CenterControl(Control container, Control content)
-		{
-			content.Location = new Point(
-				(int)(container.Left + (container.Width - content.Width) / 2.0),
-				(int)(container.Top + (container.Height - content.Height) / 2.0)
-				);
-		}
 
 		private void HandleOptionButtonClick(object sender, EventArgs e)
 		{
@@ -280,7 +273,7 @@ namespace Windows10PhotoViewerSucksAss
 			form.FormClosed += (sender1, e1) => { if (this.currentSettingsForm == form) { this.currentSettingsForm = null; } };
 			form.StartPosition = FormStartPosition.Manual;
 			form.Font = this.Font;
-			CenterControl(this, form);
+			Util.CenterControl(this, form);
 			form.Show();
 		}
 
@@ -290,7 +283,8 @@ namespace Windows10PhotoViewerSucksAss
 			set
 			{
 				Settings.Instance.SortCaseSensitive = value;
-				this.UpdateCurrentFileList(scrollSelectedItemIntoView: false);
+				this.TryGetFile(this.currentDisplayIndex, out var file);
+				this.UpdateCurrentFileList(scrollSelectedItemIntoView: false, file?.FullPath);
 			}
 		}
 
@@ -483,6 +477,11 @@ namespace Windows10PhotoViewerSucksAss
 				this.DeleteFile(this.currentDisplayIndex);
 				return true;
 			}
+			else if (keyData == Keys.F2)
+			{
+				this.RenameFile(this.currentDisplayIndex);
+				return true;
+			}
 			else
 			{
 				return base.ProcessCmdKey(ref msg, keyData);
@@ -494,7 +493,6 @@ namespace Windows10PhotoViewerSucksAss
 		private void HandleMenuShow(object sender, EventArgs e)
 		{
 			this.currentDisplayIndex = this.menuItemFileIndex;
-			this.SetCurrentDisplayFileFromCurrentDisplayIndex();
 			this.DisplayCurrent(scrollSelectedItemIntoView: true);
 		}
 
@@ -531,6 +529,11 @@ namespace Windows10PhotoViewerSucksAss
 		private void HandleMenuRefreshFiles(object sender, EventArgs e)
 		{
 			this.RefreshFiles();
+		}
+
+		private void HandleMenuRenameFile(object sender, EventArgs e)
+		{
+			this.RenameFile(this.menuItemFileIndex);
 		}
 
 		private void HandleMenuDeleteFile(object sender, EventArgs e)
@@ -641,7 +644,7 @@ namespace Windows10PhotoViewerSucksAss
 		/// </summary>
 		private void ForgetFile(int fileIndex)
 		{
-			if (!this.TryGetFile(fileIndex, out FileListEntry file))
+			if (!this.TryGetFile(fileIndex, out _))
 			{
 				return;
 			}
@@ -657,9 +660,55 @@ namespace Windows10PhotoViewerSucksAss
 					this.currentDisplayIndex = this.currentFileList.Count - 1;
 				}
 			}
-			this.SetCurrentDisplayFileFromCurrentDisplayIndex();
 			this.overviewControl.Initialize(this.currentFileList);
 			this.DisplayCurrent(scrollSelectedItemIntoView: false);
+		}
+
+		private void RenameFile(int fileIndex)
+		{
+			if (!this.TryGetFile(fileIndex, out var file))
+			{
+				return;
+			}
+
+			var dir = this.currentDisplayDir;
+			string from_full = file.FullPath;
+			var from = Path.GetFileName(from_full);
+			string choice;
+			using (var renameForm = new RenameForm())
+			{
+				renameForm.StartPosition = FormStartPosition.Manual;
+				Util.CenterControl(this, renameForm);
+				renameForm.Initialize(dir, from);
+				renameForm.ShowDialog();
+				choice = renameForm.Choice;
+			}
+
+			if (string.IsNullOrEmpty(choice))
+			{
+				// Canceled by user. Also avoiding empty string because that will give a weird error message.
+				return;
+			}
+
+			string to_full = Path.Combine(Path.GetDirectoryName(from_full), choice);
+			try
+			{
+				File.Move(from_full, to_full);
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine(ex.ToString());
+				MessageBox.Show($"Error renaming file from\r\n\"{from_full}\"\r\nto\r\n\"{to_full}\"\r\n\r\n{ex.Message}");
+				return;
+			}
+
+			// Now the file list must be updated. This is a bit awkward since it caches the file names.
+			this.currentFileList[fileIndex].FullPath = to_full;
+			this.overviewControl.Initialize(this.currentFileList);
+			if (fileIndex == this.currentDisplayIndex)
+			{
+				this.UpdateWindowTitle();
+			}
 		}
 
 		private void Fork(int fileIndex)
@@ -689,7 +738,8 @@ namespace Windows10PhotoViewerSucksAss
 
 		private void RefreshFiles()
 		{
-			this.UpdateDisplayPath(scrollSelectedItemIntoView: false);
+			this.TryGetFile(this.currentDisplayIndex, out var file);
+			this.UpdateDisplayPath(scrollSelectedItemIntoView: false, file?.FullPath);
 		}
 
 		private void Next()
@@ -707,7 +757,6 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				this.currentDisplayIndex += 1;
 			}
-			this.SetCurrentDisplayFileFromCurrentDisplayIndex();
 			this.DisplayCurrent(scrollSelectedItemIntoView: true);
 		}
 
@@ -726,7 +775,6 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				this.currentDisplayIndex -= 1;
 			}
-			this.SetCurrentDisplayFileFromCurrentDisplayIndex();
 			this.DisplayCurrent(scrollSelectedItemIntoView: true);
 		}
 
@@ -740,6 +788,7 @@ namespace Windows10PhotoViewerSucksAss
 		/// <summary>
 		/// Displays a specific file or folder.
 		/// Automatically determines whether <paramref name="path"/> is a file or directory.
+		/// This is for when a specific file or folder should be displayed, either because it's the process startup argument, or because of drag and drop.
 		/// </summary>
 		public void SetDisplayPath_NoThrowInteractive(string path)
 		{
@@ -786,8 +835,7 @@ namespace Windows10PhotoViewerSucksAss
 			try
 			{
 				this.currentDisplayDir = dir;
-				this.currentDisplayFile = displayFile;
-				this.UpdateDisplayPath(scrollSelectedItemIntoView: true);
+				this.UpdateDisplayPath(scrollSelectedItemIntoView: true, displayFile);
 			}
 			catch (Exception ex)
 			{
@@ -801,31 +849,19 @@ namespace Windows10PhotoViewerSucksAss
 		private string currentDisplayDir;
 		// currentFlieList may be null, and the display index may be invalid.
 		private List<FileListEntry> currentFileList;
-		// Full path to the file that is currently being displayed. This must be synchronized with currentDisplayIndex.
-		// Requried because the sorting order in the list may change. In that case, the selected file's display index may change.
-		private string currentDisplayFile;
 		private int currentDisplayIndex;
 
 		/// <summary>
-		/// Call this when assigning <see cref="currentDisplayIndex"/> to update <see cref="currentDisplayFile"/>.
-		/// </summary>
-		private void SetCurrentDisplayFileFromCurrentDisplayIndex()
-		{
-			this.TryGetFile(this.currentDisplayIndex, out FileListEntry file);
-			this.currentDisplayFile = file?.FullPath;
-		}
-		
-		/// <summary>
-		/// This assumes that <see cref="currentDisplayDir"/> and <see cref="currentDisplayFile"/> have been set to their desired values.
+		/// This assumes that <see cref="currentDisplayDir"/> has been set to its desired value.
 		/// Scans <see cref="currentDisplayDir"/> for files and updates the file list.
 		/// Keeps the currently selected file visible if possible.
 		/// </summary>
-		private void UpdateDisplayPath(bool scrollSelectedItemIntoView)
+		private void UpdateDisplayPath(bool scrollSelectedItemIntoView, string selectedFilePath)
 		{
 			if (this.currentDisplayDir == null)
 			{
 				this.currentFileList = null;
-				this.UpdateCurrentFileList(scrollSelectedItemIntoView);
+				this.UpdateCurrentFileList(scrollSelectedItemIntoView, selectedFilePath);
 				return;
 			}
 
@@ -837,7 +873,7 @@ namespace Windows10PhotoViewerSucksAss
 			List<FileListEntry> matchingFiles = files.Select(x => new FileListEntry(x)).ToList();
 #endif
 			this.currentFileList = matchingFiles;
-			this.UpdateCurrentFileList(scrollSelectedItemIntoView);
+			this.UpdateCurrentFileList(scrollSelectedItemIntoView, selectedFilePath);
 		}
 
 		private sealed class FileListComparer : IComparer<FileListEntry>
@@ -852,9 +888,9 @@ namespace Windows10PhotoViewerSucksAss
 
 		/// <summary>
 		/// Call this after <see cref="currentFileList"/> has been assigned, or when the sorting order has changed.
-		/// Keeps the currently selected file visible if possible.
+		/// Keeps the currently selected file, passed via <paramref name="selectedFilePath"/>, visible if possible.
 		/// </summary>
-		private void UpdateCurrentFileList(bool scrollSelectedItemIntoView)
+		private void UpdateCurrentFileList(bool scrollSelectedItemIntoView, string selectedFilePath)
 		{
 			if (this.currentFileList != null)
 			{
@@ -872,27 +908,19 @@ namespace Windows10PhotoViewerSucksAss
 				
 				// Try to preselect the currently displayed file, if possible.
 				int displayIndex = -1;
-				for (int i = 0; i < this.currentFileList.Count; ++i)
+				if (selectedFilePath != null)
 				{
-					if (String.Equals(this.currentFileList[i].FullPath, this.currentDisplayFile, StringComparison.OrdinalIgnoreCase))
+					for (int i = 0; i < this.currentFileList.Count; ++i)
 					{
-						displayIndex = i;
-						break;
+						if (String.Equals(this.currentFileList[i].FullPath, selectedFilePath, StringComparison.OrdinalIgnoreCase))
+						{
+							displayIndex = i;
+							break;
+						}
 					}
 				}
 
-				if (displayIndex != -1)
-				{
-					this.currentDisplayIndex = displayIndex;
-				}
-				else
-				{
-					// If the file suddenly does not exist anymore, at least try to keep the currently selected index selected.
-					if (this.currentDisplayIndex >= this.currentFileList.Count)
-					{
-						this.currentDisplayIndex = this.currentFileList.Count - 1;
-					}
-				}
+				this.currentDisplayIndex = displayIndex;
 
 				this.overviewControl.Initialize(this.currentFileList);
 			}
@@ -914,6 +942,7 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			if (this.currentFileList == null || this.currentDisplayIndex == -1 || this.currentDisplayIndex >= this.currentFileList.Count)
 			{
+				// TODO this isn't ideal because it requires that displaying a file requires that it is in a browsable directory. It should be possible to display an item by its full path alone. But that makes rename extremely complicated because it would have to rename the direct display path too.
 				this.overviewControl.SetDisplayIndex(-1, false);
 
 				this.wantedImageHandle = null;
@@ -926,7 +955,7 @@ namespace Windows10PhotoViewerSucksAss
 				this.overviewControl.SetDisplayIndex(this.currentDisplayIndex, scrollSelectedItemIntoView);
 				var displayFile = this.currentFileList[this.currentDisplayIndex];
 				// Update window title with the current file name:
-				this.Text = String.Format("{0} ({1})", Path.GetFileName(displayFile.FullPath), displayFile.FullPath);
+				this.UpdateWindowTitle();
 
 				ImageContainer displayedContainer = this.imageCacheWorker.GetOrCreateContainer(displayFile);
 				if (this.wantedImageHandle?.Container != displayedContainer)
@@ -943,6 +972,18 @@ namespace Windows10PhotoViewerSucksAss
 
 				// This makes sure we preload the files around the current file.
 				this.imageCacheWorker.SetCacheWorkItem(this.GetCacheWorkItemForCurrentDisplayIndex());
+			}
+		}
+
+		private void UpdateWindowTitle()
+		{
+			if (this.TryGetFile(this.currentDisplayIndex, out var displayFile))
+			{
+				this.Text = String.Format("{0} ({1})", Path.GetFileName(displayFile.FullPath), displayFile.FullPath);
+			}
+			else
+			{
+				this.Text = this.StartupInfo.FriendlyAppName;
 			}
 		}
 
@@ -1059,7 +1100,7 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
-		private static Pen HalfTransparentBlackPen = new Pen(Color.FromArgb(128, 0, 0, 0));
+		private static readonly Pen HalfTransparentBlackPen = new Pen(Color.FromArgb(128, 0, 0, 0));
 
 
 		private readonly SendOrPostCallback refreshOverviewDelegate;
@@ -1084,7 +1125,8 @@ namespace Windows10PhotoViewerSucksAss
 			this.FullPath = fullPath;
 		}
 
-		public string FullPath { get; }
+		// NOTE: This can change if the file gets renamed.
+		public string FullPath { get; set; }
 		public LastFileStatus LastFileStatus { get; set; }
 	}
 

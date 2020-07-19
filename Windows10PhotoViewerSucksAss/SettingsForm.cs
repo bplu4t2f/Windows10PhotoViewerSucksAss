@@ -59,9 +59,9 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			using (var Form = new Form())
 			{
-				Form.Owner = Owner;
-				Form.StartPosition = FormStartPosition.CenterParent;
+				Form.StartPosition = FormStartPosition.Manual;
 				Form.Size = new Size(900, 650);
+				Util.CenterControl(Owner, Form);
 				var TextBox = new TextBox();
 				TextBox.Text = Message;
 				TextBox.Dock = DockStyle.Fill;

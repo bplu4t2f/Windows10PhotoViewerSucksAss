@@ -81,7 +81,7 @@ namespace Windows10PhotoViewerSucksAss
 		}
 
 		/// <summary>
-		/// Changes <see cref="Width"/> while also moving the <see cref="RightControls"/>.
+		/// Changes <see cref="Control.Width"/> while also moving the <see cref="RightControls"/>.
 		/// </summary>
 		public void ChangeWidth(int targetWidth)
 		{
