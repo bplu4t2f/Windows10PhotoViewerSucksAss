@@ -67,6 +67,7 @@ namespace Windows10PhotoViewerSucksAss
 			this.mainImageControl.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 			this.mainImageControl.Left = this.splitter.Right;
 			this.mainImageControl.Size = new Size(this.ClientSize.Width - this.mainImageControl.Left, this.ClientSize.Height);
+			this.mainImageControl.BeginDragHandler = this.HandleBeginDrag;
 
 			this.SuspendLayout();
 			this.Controls.Add(this.optionsButton);
@@ -225,6 +226,17 @@ namespace Windows10PhotoViewerSucksAss
 				return;
 			}
 			this.BeginInvoke(new MethodInvoker(() => this.SetDisplayPath_NoThrowInteractive(files[0])));
+		}
+
+		// Begin drag operation from the current file
+		private void HandleBeginDrag()
+		{
+			if (!this.TryGetFile(this.currentDisplayIndex, out var file)) return;
+			string[] dragFiles = new string[]
+			{
+				file.FullPath
+			};
+			this.DoDragDrop(new DataObject(DataFormats.FileDrop, dragFiles), DragDropEffects.Copy);
 		}
 
 		private void OverviewControl_ImageSelected(object sender, ImageSelectionEventArgs e)

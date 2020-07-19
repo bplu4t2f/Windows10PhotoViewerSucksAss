@@ -30,16 +30,26 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
-		private Matrix transform = new Matrix();
+		private readonly Matrix transform = new Matrix();
 		private bool panning;
 		private bool zooming;
 		private bool zoomToFitEnabled;
 		private Point actionStartPosition;
 		private Point actionLastIterationPosition;
 
+		public Action BeginDragHandler { get; set; }
+
 		protected override void OnMouseDown(MouseEventArgs e)
 		{
 			base.OnMouseDown(e);
+
+			if (Control.ModifierKeys.HasFlag(Keys.Control))
+			{
+				// Begin drag drop operation.
+				this.BeginDragHandler?.Invoke();
+				return;
+			}
+
 			this.actionStartPosition = e.Location;
 			this.actionLastIterationPosition = e.Location;
 			if (e.Button == MouseButtons.Left)
