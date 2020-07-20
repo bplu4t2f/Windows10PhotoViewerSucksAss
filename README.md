@@ -10,9 +10,10 @@ This program exists because the standard Windows 10 photo viewer sucks so much a
 | LMB | Pan |
 | LMB doubleclick | 1:1 |
 | RMB | Zoom |
-| T | Zoom to fit |
 | S / D / Down / Right / MouseWheelDown | Next |
 | A / W / Up / Left / MouseWheelUp | Previous |
+| T | Zoom to fit |
+| O | Original size (1:1) |
 | E | Open explorer at file |
 | F | Full file path to clipboard |
 | C | Copy file to clipboard |
@@ -35,6 +36,8 @@ It turned out that finding reasonable C# code that does this was tricky. Check o
 ## AppData
 
 The application stores user preferences such as background color and window size in %LOCALAPPDATA%. The sub folder is equal to the name of the executable without its extension, so by default it is %LOCALAPPDATA%\Windows10PhotoViewerSucksAss.
+
+The name of the subfolder can be overridden with the bootstrap configuration; see below.
 
 ## Origin
 
