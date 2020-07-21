@@ -24,6 +24,8 @@ This program exists because the standard Windows 10 photo viewer sucks so much a
 | F2 | Rename file |
 | Del | Move to recycle bin |
 
+Hold CTRL while dragging from the image window to copy the file somewhere via drag and drop.
+
 
 ![screenshot](img/screenshot.png)
 
