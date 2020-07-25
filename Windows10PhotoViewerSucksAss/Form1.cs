@@ -45,6 +45,7 @@ namespace Windows10PhotoViewerSucksAss
 			this.Size = new Size(960, 640);
 			this.mainImageControl.BackColor = Color.FromArgb(32, 64, 96);
 			this.splitter.Width = 5;
+			this.SetApplicationFont(SystemFonts.MenuFont); // MenuFont is normally Segoe UI 9, which, in this application, looks way better than Microsoft Sans Serif 8 (which, contrary to what MSDN says, is the default application font).
 
 			// ==================================================================================================================================================================
 			// ==================================================================================================================================================================
@@ -198,7 +199,7 @@ namespace Windows10PhotoViewerSucksAss
 		private readonly ContextMenu fileListContextMenu = new ContextMenu();
 		private readonly MenuItem mi_file_name;
 
-		private readonly Button optionsButton = new Button();
+		private readonly DifferentButton optionsButton = new DifferentButton();
 		private readonly MainImageControl mainImageControl = new MainImageControl();
 		private readonly OverviewControl overviewControl = new OverviewControl();
 		private readonly SplitterControl splitter = new SplitterControl();

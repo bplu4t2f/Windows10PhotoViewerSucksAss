@@ -52,6 +52,9 @@
   <ItemGroup>
     <Compile Include="BootstrapData.cs" />
     <Compile Include="Bootstrapping.cs" />
+    <Compile Include="DifferentButton.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="EmbedScrollBar.cs" />
     <Compile Include="FileAssociationBullshit.cs" />
     <Compile Include="FileIO.cs" />
