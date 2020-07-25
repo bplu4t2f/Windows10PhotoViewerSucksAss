@@ -119,7 +119,7 @@ namespace Windows10PhotoViewerSucksAss
 			this.optionsButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
 
 			this.overviewControl.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
-			this.overviewControl.Height = this.ClientSize.Height - this.optionsButton.Height;
+			// Height is set in UpdateOptionsButtonHeight
 
 			this.splitter.BackColor = Color.Black;
 			this.splitter.Left = this.overviewControl.Right;
@@ -145,7 +145,7 @@ namespace Windows10PhotoViewerSucksAss
 			// This will make sure that the splitter is visible inside its parent
 			this.splitter.MoveBy(0);
 
-			this.SetOptionsButtonHeight();
+			this.UpdateOptionsButtonHeight();
 
 			this.overviewControl.ImageSelected += this.OverviewControl_ImageSelected;
 			this.optionsButton.Click += this.HandleOptionButtonClick;
@@ -214,11 +214,13 @@ namespace Windows10PhotoViewerSucksAss
 		/// <summary>
 		/// Must be called when the font of the options button has changed (and after initial allocation).
 		/// </summary>
-		private void SetOptionsButtonHeight()
+		private void UpdateOptionsButtonHeight()
 		{
 			int lineHeight = this.optionsButton.Font.Height;
 			this.optionsButton.Height = lineHeight + 10;
-			this.optionsButton.Top = this.ClientRectangle.Height - this.optionsButton.Height;
+			int optionsButtonTop = this.ClientRectangle.Height - this.optionsButton.Height;
+			this.optionsButton.Top = optionsButtonTop;
+			this.overviewControl.Height = optionsButtonTop;
 		}
 
 		public MouseWheelMode MouseWheelMode { get; set; }
@@ -336,7 +338,7 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				this.currentSettingsForm.Font = value;
 			}
-			this.SetOptionsButtonHeight();
+			this.UpdateOptionsButtonHeight();
 		}
 
 		private void SetUseCurrentImageAsWindowIcon(bool value)
