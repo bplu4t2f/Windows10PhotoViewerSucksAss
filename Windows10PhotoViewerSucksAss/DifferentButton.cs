@@ -44,7 +44,6 @@ namespace Windows10PhotoViewerSucksAss
 
 		protected override void OnMouseUp(MouseEventArgs e)
 		{
-			base.OnMouseUp(e);
 			var oldMouseDown = this.mouseDown;
 			if (this.mouseDown != MouseButtons.None)
 			{
@@ -54,8 +53,13 @@ namespace Windows10PhotoViewerSucksAss
 			if (e.Button == MouseButtons.Left && oldMouseDown == MouseButtons.Left && this.IsInside(e.Location))
 			{
 				// Click!
+				// NOTE: Even order according to MSDN is MouseDown - Click - MouseClick - MouseUp
+				// Similarly, for double click: MouseDown - Click - MouseClick - MouseUp - MouseDown - DoubleClick - MouseDoubleClick - MouseUp
+				// Background: Click and DoubleClick are more like abstract "Activate" or "Confirm" events that can also be raised from keyboard or other events.
 				this.OnClick(e);
+				this.OnMouseClick(e);
 			}
+			base.OnMouseUp(e);
 		}
 
 		private bool IsInside(Point location)
