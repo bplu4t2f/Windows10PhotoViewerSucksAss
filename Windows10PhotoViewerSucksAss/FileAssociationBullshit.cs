@@ -37,20 +37,20 @@ namespace Windows10PhotoViewerSucksAss
 
 		// It's retarded.
 
-		public static void CheckFileAssociations(TextWriter Issues, string ApplicationPath, string FriendlyAppName, bool Install)
+		public static void CheckFileAssociations(IssueTracker Issues, string ApplicationPath, string FriendlyAppName, bool Install)
 		{
 			// Info: The default verb is the default value of the "shell" key. If it's not set, it takes the first subkey alphabetically, which is often "open".
 
-			Issues.WriteLine2("===========================================================================================================================");
-			Issues.WriteLine2("File Handler Verbs:");
+			Issues.Info("===========================================================================================================================");
+			Issues.Info("File Handler Verbs:");
 
 			CheckFileHandlerVerbs(Issues, "jpegfile");
 			CheckFileHandlerVerbs(Issues, "pjpegfile");
 			CheckFileHandlerVerbs(Issues, "pngfile");
 			CheckFileHandlerVerbs(Issues, "Paint.Picture");
 
-			Issues.WriteLine2("===========================================================================================================================");
-			Issues.WriteLine2("Extensions (System Defaults):");
+			Issues.Info("===========================================================================================================================");
+			Issues.Info("Extensions (System Defaults):");
 
 			foreach (var Info in FileAssocationExtensionInfo)
 			{
@@ -59,14 +59,11 @@ namespace Windows10PhotoViewerSucksAss
 
 			if (ApplicationPath != null)
 			{
-				Issues.WriteLine2("===========================================================================================================================");
+				Issues.Info("===========================================================================================================================");
+				Issues.Info($"HKCU Progid:");
+
 				if (ApplicationPath.IndexOf('"') != -1) throw new ArgumentOutOfRangeException(nameof(ApplicationPath));
 				string CommandLine = $"\"{ApplicationPath}\" \"%1\"";
-				Issues.WriteLine2($"HKCU Progid: -- Expected Command Line: {CommandLine}");
-
-				// Should probably hash the current file name.
-
-				// Should probably build this automatically.
 				CheckProgidKey(Issues, Install, ThisApplicationProgid, CommandLine, FriendlyAppName);
 			}
 			else if (Install)
@@ -74,16 +71,16 @@ namespace Windows10PhotoViewerSucksAss
 				throw new ArgumentNullException(nameof(ApplicationPath));
 			}
 
-			Issues.WriteLine2("===========================================================================================================================");
-			Issues.WriteLine2("Extensions (HKCU Progid Registered):");
+			Issues.Info("===========================================================================================================================");
+			Issues.Info("Extensions (HKCU Progid Registered):");
 
 			foreach (var Info in FileAssocationExtensionInfo)
 			{
 				CheckFileExtension_ContainsProgid(Issues, Install, ThisApplicationProgid, Info.Extension);
 			}
 
-			Issues.WriteLine2("===========================================================================================================================");
-			Issues.WriteLine2("User Choice:");
+			Issues.Info("===========================================================================================================================");
+			Issues.Info("User Choice:");
 
 			foreach (var Info in FileAssocationExtensionInfo)
 			{
@@ -92,7 +89,7 @@ namespace Windows10PhotoViewerSucksAss
 		}
 
 
-		private static void CheckUserChoice(TextWriter Issues, string Extension, string Progid)
+		private static void CheckUserChoice(IssueTracker Issues, string Extension, string Progid)
 		{
 			// Check whether a program *other* than Progid is written in the UserChoice key of the extension.
 			// If that key doesn't exist, or if no user choice is available, that's also OK. The point here is to make sure that Windows asks
@@ -115,50 +112,50 @@ namespace Windows10PhotoViewerSucksAss
 				return;
 			}
 
-			Issues.WriteLine2($"UserChoice for {Extension} is \"{CurrentProgid}\", but \"{Progid}\" was expected.");
+			Issues.Issue($"UserChoice for {Extension} is \"{CurrentProgid}\", but \"{Progid}\" was expected.");
 		}
 
 
-		private static void CheckFileExtension_VerifySystemDefaults(TextWriter Issues, string ExpectedPerceivedType, string Extension, string ExpectedSystemProgid)
+		private static void CheckFileExtension_VerifySystemDefaults(IssueTracker Issues, string ExpectedPerceivedType, string Extension, string ExpectedSystemProgid)
 		{
 			// The standard image formats have a direct association in the (default value) of their extension, and then the same thing
 			// in the Progid. Both are in HKLM only. E.g. ".jpg" -> default value is "jpegfile", "OpenWithProgids" contains "jpegfile" (empty string).
 			var Key = Registry.LocalMachine.OpenSubKey($@"software\classes\{Extension}");
 			if (Key == null)
 			{
-				Issues.WriteLine2($"Extension key {Extension} missing in HKLM.");
+				Issues.Issue($"Extension key {Extension} missing in HKLM.");
 				return;
 			}
 			var DefaultValue = Key.GetValue(null) as string;
 			if (!Util.EqualsOICSafe(DefaultValue, ExpectedSystemProgid))
 			{
-				Issues.WriteLine2($"Extension key {Extension}'s (HKLM) default value is {DefaultValue}, but {ExpectedSystemProgid} was expected.");
+				Issues.Issue($"Extension key {Extension}'s (HKLM) default value is {DefaultValue}, but {ExpectedSystemProgid} was expected.");
 			}
 			var Key_OpenWithProgids = Key.OpenSubKey("openwithprogids");
 			string[] OpenWithProgids = Key_OpenWithProgids?.GetValueNames();
 			if (OpenWithProgids == null)
 			{
-				Issues.WriteLine2($"{Extension} (HKLM) doesn't contain OpenWithProgids, but it should.");
+				Issues.Issue($"{Extension} (HKLM) doesn't contain OpenWithProgids, but it should.");
 			}
 			else
 			{
 				bool ContainsOpenWithProgid = OpenWithProgids.Any(x => Util.EqualsOICSafe(x, ExpectedSystemProgid));
 				if (!ContainsOpenWithProgid)
 				{
-					Issues.WriteLine2($"OpenWithProgids in {Extension} (HKLM) doesn't contain {ExpectedSystemProgid}. Available entries: {string.Join(",", OpenWithProgids)}");
+					Issues.Issue($"OpenWithProgids in {Extension} (HKLM) doesn't contain {ExpectedSystemProgid}. Available entries: {string.Join(",", OpenWithProgids)}");
 				}
 			}
 
 			CheckPerceivedType(Issues, ExpectedPerceivedType, Key, Extension);
 		}
 
-		private static void CheckFileHandlerVerbs(TextWriter Issues, string FileHandlerName)
+		private static void CheckFileHandlerVerbs(IssueTracker Issues, string FileHandlerName)
 		{
 			// None of the image extension keys (".jpg" etc), nor file handlers ("jpegfile" etc) should have an "open" verb, except giffile.
 			var Key_HKLM = Registry.LocalMachine.OpenSubKey($@"software\classes\{FileHandlerName}");
 			if (Key_HKLM == null)
 			{
-				Issues.WriteLine2($"{FileHandlerName} not found in HKLM.");
+				Issues.Issue($"{FileHandlerName} not found in HKLM.");
 			}
 			else
 			{
@@ -172,7 +169,7 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
-		private static void CheckFileHandlerVerbsInternal(TextWriter Issues, string FileHandlerName, RegistryKey Key)
+		private static void CheckFileHandlerVerbsInternal(IssueTracker Issues, string FileHandlerName, RegistryKey Key)
 		{
 			var Key_Shell = Key.OpenSubKey("shell");
 			if (Key_Shell == null)
@@ -182,27 +179,27 @@ namespace Windows10PhotoViewerSucksAss
 			string DefaultVerb = Key_Shell.GetValue(string.Empty) as string;
 			if (DefaultVerb != null)
 			{
-				Issues.WriteLine2($"{FileHandlerName} has explicit default verb \"{DefaultVerb}\", which is unexpected.");
+				Issues.Issue($"{FileHandlerName} has explicit default verb \"{DefaultVerb}\", which is unexpected.");
 			}
 
 			var Key_Open = Key_Shell.OpenSubKey("open");
 			if (Key_Open != null)
 			{
-				Issues.WriteLine2($"Key {Key} has open verb, even though it shouldn't.");
+				Issues.Issue($"Key {Key} has open verb, even though it shouldn't.");
 			}
 		}
 
-		private static void CheckProgidKey(TextWriter Issues, bool Install, string Progid, string ExpectedCommand, string FriendlyAppName)
+		private static void CheckProgidKey(IssueTracker Issues, bool Install, string Progid, string ExpectedCommand, string FriendlyAppName)
 		{
 			// Check that the progid key exists in HKCU classes, and that it has a valid open verb as its only verb.
 			var Key = Registry.CurrentUser.OpenSubKey($@"software\classes\{Progid}", writable: Install);
 			if (Key == null)
 			{
-				Issues.WriteLine2($"ProgidKey {Progid} doesn't exist in HKCU.");
+				Issues.Issue($"ProgidKey {Progid} doesn't exist in HKCU.");
 				if (Install)
 				{
 					Key = Registry.CurrentUser.CreateSubKey($@"software\classes\{Progid}");
-					Issues.WriteLine2($"Created Progid key for {Progid} in HKCU.");
+					Issues.Info($"Created Progid key for {Progid} in HKCU.");
 				}
 				else
 				{
@@ -215,11 +212,11 @@ namespace Windows10PhotoViewerSucksAss
 			var Key_Shell = Key.OpenSubKey("shell", writable: Install);
 			if (Key_Shell == null)
 			{
-				Issues.WriteLine2($"ProgidKey {Progid} doesn't have shell in HKCU.");
+				Issues.Issue($"ProgidKey {Progid} doesn't have shell in HKCU.");
 				if (Install)
 				{
 					Key_Shell = Key.CreateSubKey("shell");
-					Issues.WriteLine2($"shell subkey created in {Progid}.");
+					Issues.Info($"shell subkey created in {Progid}.");
 				}
 				else
 				{
@@ -233,11 +230,11 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				if (!Util.EqualsOICSafe(ShellSubKey, "open"))
 				{
-					Issues.WriteLine2($"ProgidKey {Progid} contains verb {ShellSubKey}, which isn't expected.");
+					Issues.Issue($"ProgidKey {Progid} contains verb {ShellSubKey}, which isn't expected.");
 					if (Install)
 					{
 						Key_Shell.DeleteSubKeyTree(ShellSubKey);
-						Issues.WriteLine2($"Verb \"{ShellSubKey}\" deleted in Progid {Progid}.");
+						Issues.Info($"Verb \"{ShellSubKey}\" deleted in Progid {Progid}.");
 					}
 				}
 			}
@@ -245,11 +242,11 @@ namespace Windows10PhotoViewerSucksAss
 			var Key_Open = Key_Shell.OpenSubKey("open", writable: Install);
 			if (Key_Open == null)
 			{
-				Issues.WriteLine2($"ProgidKey {Progid} doesn't have an open verb.");
+				Issues.Issue($"ProgidKey {Progid} doesn't have an open verb.");
 				if (Install)
 				{
 					Key_Open = Key_Shell.CreateSubKey("open");
-					Issues.WriteLine2($"Created open verb in ProgidKey {Progid}");
+					Issues.Info($"Created open verb in ProgidKey {Progid}");
 				}
 				else
 				{
@@ -262,18 +259,18 @@ namespace Windows10PhotoViewerSucksAss
 			string CurrentFriendlyAppName = Key_Open.GetValue("FriendlyAppName") as string;
 			if (CurrentFriendlyAppName != FriendlyAppName)
 			{
-				Issues.WriteLine2($"ProgidKey {Progid}'s open verb has incorrect FriendlyAppName \"{CurrentFriendlyAppName}\"; expected \"{FriendlyAppName}\".");
+				Issues.Issue($"ProgidKey {Progid}'s open verb has incorrect FriendlyAppName \"{CurrentFriendlyAppName}\"; expected \"{FriendlyAppName}\".");
 				if (Install)
 				{
 					if (FriendlyAppName != null)
 					{
 						Key_Open.SetValue("FriendlyAppName", FriendlyAppName, RegistryValueKind.String);
-						Issues.WriteLine2($"FriendlyAppName for {Progid} set to \"{FriendlyAppName}\".");
+						Issues.Info($"FriendlyAppName for {Progid} set to \"{FriendlyAppName}\".");
 					}
 					else
 					{
 						Key_Open.DeleteValue("FriendlyAppName");
-						Issues.WriteLine2($"FriendlyAppName for {Progid} removed.");
+						Issues.Info($"FriendlyAppName for {Progid} removed.");
 					}
 				}
 			}
@@ -281,11 +278,11 @@ namespace Windows10PhotoViewerSucksAss
 			var Key_Command = Key_Open.OpenSubKey("command", writable: Install);
 			if (Key_Command == null)
 			{
-				Issues.WriteLine2($"ProgidKey {Progid}'s open verb doesn't have a command subkey.");
+				Issues.Issue($"ProgidKey {Progid}'s open verb doesn't have a command subkey.");
 				if (Install)
 				{
 					Key_Command = Key_Open.CreateSubKey("command");
-					Issues.WriteLine2($"Created command in {Progid}'s open verb.");
+					Issues.Info($"Created command in {Progid}'s open verb.");
 				}
 				else
 				{
@@ -298,16 +295,16 @@ namespace Windows10PhotoViewerSucksAss
 			string Command = Key_Command.GetValue(null) as string;
 			if (!Util.EqualsOICSafe(Command, ExpectedCommand))
 			{
-				Issues.WriteLine2($"ProgidKey {Progid}'s open verb command is {{{Command}}}, but {{{ExpectedCommand}}} was expected.");
+				Issues.Issue($"ProgidKey {Progid}'s open verb command is {{{Command}}}, but {{{ExpectedCommand}}} was expected.");
 				if (Install)
 				{
 					Key_Command.SetValue(null, ExpectedCommand);
-					Issues.WriteLine2($"Changed command in {Progid}'s open verb to {{{ExpectedCommand}}}.");
+					Issues.Info($"Changed command in {Progid}'s open verb to {{{ExpectedCommand}}}.");
 				}
 			}
 		}
 
-		private static void CheckFileExtension_ContainsProgid(TextWriter Issues, bool Install, string ThisApplicationProgid, string Extension)
+		private static void CheckFileExtension_ContainsProgid(IssueTracker Issues, bool Install, string ThisApplicationProgid, string Extension)
 		{
 			// For our association, we want to add our progid to the HCKU extension's OpenWithProgids.
 			// So HKCU\software\classes\.jpg\openwithprogids
@@ -317,11 +314,11 @@ namespace Windows10PhotoViewerSucksAss
 			var Key = Registry.CurrentUser.OpenSubKey($@"software\classes\{Extension}", writable: Install);
 			if (Key == null)
 			{
-				Issues.WriteLine2($"HKCU key for {Extension} doesn't exist.");
+				Issues.Issue($"HKCU key for {Extension} doesn't exist.");
 				if (Install)
 				{
 					Key = Registry.CurrentUser.CreateSubKey($@"software\classes\{Extension}");
-					Issues.WriteLine2($"Created extension \"{Extension}\" in HKCU.");
+					Issues.Info($"Created extension \"{Extension}\" in HKCU.");
 				}
 				else
 				{
@@ -334,11 +331,11 @@ namespace Windows10PhotoViewerSucksAss
 			var Key_OpenWithProgids = Key.OpenSubKey("openwithprogids", writable: Install);
 			if (Key_OpenWithProgids == null)
 			{
-				Issues.WriteLine2($"HKCU key for {Extension} doesn't have OpenWithProgids.");
+				Issues.Issue($"HKCU key for {Extension} doesn't have OpenWithProgids.");
 				if (Install)
 				{
 					Key_OpenWithProgids = Key.CreateSubKey("OpenWithProgids");
-					Issues.WriteLine2($"Created OpenWithProgids in \"{Extension}\".");
+					Issues.Info($"Created OpenWithProgids in \"{Extension}\".");
 				}
 				else
 				{
@@ -351,26 +348,26 @@ namespace Windows10PhotoViewerSucksAss
 			bool HaveProgid = Key_OpenWithProgids.GetValueNames().Any(x => Util.EqualsOICSafe(x, ThisApplicationProgid));
 			if (!HaveProgid)
 			{
-				Issues.WriteLine2($"HKCU key for {Extension} doesn't contain Progid {ThisApplicationProgid} in OpenWithProgids.");
+				Issues.Issue($"HKCU key for {Extension} doesn't contain Progid {ThisApplicationProgid} in OpenWithProgids.");
 				if (Install)
 				{
 					Key_OpenWithProgids.SetValue(ThisApplicationProgid, string.Empty, RegistryValueKind.String);
-					Issues.WriteLine2($"Added Progid in \"{Extension}\": \"{ThisApplicationProgid}\".");
+					Issues.Info($"Added Progid in \"{Extension}\": \"{ThisApplicationProgid}\".");
 				}
 			}
 		}
 
-		private static void CheckPerceivedType(TextWriter Issues, string ExpectedPerceivedType, RegistryKey Key_HKLM, string Extension)
+		private static void CheckPerceivedType(IssueTracker Issues, string ExpectedPerceivedType, RegistryKey Key_HKLM, string Extension)
 		{
 			// HKLM extension keys (".jpg" etc) should have perceived type "image".
 			string PerceivedType = Key_HKLM.GetValue("perceivedtype") as string;
 			if (PerceivedType == null)
 			{
-				Issues.WriteLine2($"Perceived type in \"{Extension}\" is missing (expected \"{ExpectedPerceivedType}\")");
+				Issues.Issue($"Perceived type in \"{Extension}\" is missing (expected \"{ExpectedPerceivedType}\")");
 			}
 			else if (!Util.EqualsOICSafe(PerceivedType, ExpectedPerceivedType))
 			{
-				Issues.WriteLine2($"Perceived type in \"{Extension}\" ({PerceivedType}) seems wrong (expected \"{ExpectedPerceivedType}\")");
+				Issues.Issue($"Perceived type in \"{Extension}\" ({PerceivedType}) seems wrong (expected \"{ExpectedPerceivedType}\")");
 			}
 		}
 	}
@@ -386,6 +383,35 @@ namespace Windows10PhotoViewerSucksAss
 			this.Extension = Extension;
 			this.ExpectedSystemFileHandler = ExpectedSystemFileHandler;
 			this.ExpectedPerceivedType = ExpectedPerceivedType;
+		}
+	}
+
+	public class IssueTracker
+	{
+		public IssueTracker(TextWriter Writer)
+		{
+			this.Writer = Writer ?? throw new ArgumentNullException(nameof(Writer));
+		}
+
+		private readonly TextWriter Writer;
+		
+		public int NumIssues { get; private set; }
+
+		public void Info(string Message)
+		{
+			this.Writer.WriteLine2(Message);
+		}
+
+		public void Issue(string Message)
+		{
+			this.NumIssues += 1;
+			this.Writer.Write("ISSUE: ");
+			this.Writer.WriteLine2(Message);
+		}
+
+		public override string ToString()
+		{
+			return this.Writer.ToString();
 		}
 	}
 }

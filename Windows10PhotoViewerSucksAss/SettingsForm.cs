@@ -99,10 +99,11 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			try
 			{
-				using (var Issues = new StringWriter())
+				using (var Writer = new StringWriter())
 				{
+					var Issues = new IssueTracker(Writer);
 					FileAssociationBullshit.CheckFileAssociations(Issues, this.ApplicationPath, this.FriendlyAppName, Install: false);
-					DisplayReport(this, $"File Association Check Report:\r\n\r\n{Issues.ToString()}");
+					DisplayReport(this, $"File Association Check Report ({Issues.NumIssues} issue(s) detected):\r\n\r\n{Issues.ToString()}");
 				}
 			}
 			catch (Exception ex)
@@ -126,18 +127,18 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				return;
 			}
-			using (var Issues = new StringWriter())
+			using (var Writer = new StringWriter())
 			{
+				var Issues = new IssueTracker(Writer);
 				try
 				{
-
 					FileAssociationBullshit.CheckFileAssociations(Issues, Path, this.FriendlyAppName, Install: true);
-					DisplayReport(this, $"File Associations installed. Report:\r\n\r\n{Issues.ToString()}");
+					DisplayReport(this, $"File Associations installed. Report ({Issues.NumIssues} issue(s) detected):\r\n\r\n{Issues.ToString()}");
 				}
 				catch (Exception ex)
 				{
 					MessageBox.Show($"Error installing File Associations.\r\n{ex.Message}");
-					DisplayReport(this, $"Failed to install File Associations. Report:\r\n\r\n{Issues.ToString()}");
+					DisplayReport(this, $"Failed to install File Associations. Report ({Issues.NumIssues} issue(s) detected):\r\n\r\n{Issues.ToString()}");
 				}
 			}
 		}
