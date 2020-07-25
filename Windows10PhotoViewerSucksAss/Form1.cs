@@ -68,7 +68,7 @@ namespace Windows10PhotoViewerSucksAss
 				t.Setting(s => s.SortCaseSensitive, (s, v) => s.SortCaseSensitive = v).Applicable(x => this.SetSortCaseSensitive(x))
 				).Bind(Settings.Instance);
 			this.Setting_ApplicationFont = this.serializableUserSettings.AddReturn(
-				t.Setting(s => s.ApplicationFont, (s, v) => s.ApplicationFont = v).Encoding(x => x?.ToFont(), x => FontDescriptor.FromFont(x)).Applicable(x => this.SetApplicationFont(x)).DifferentGetter(() => this.Font)
+				t.Setting(s => s.ApplicationFont, (s, v) => s.ApplicationFont = v).Encoding(x => x?.ToFont(), x => FontDescriptor.FromFont(x)).Applicable(x => { if (x != null) this.SetApplicationFont(x); }).DifferentGetter(() => this.Font)
 				).Bind(Settings.Instance);
 			this.serializableUserSettings.Add(
 				t.Setting(s => s.OverviewControlWidth, (s, v) => s.OverviewControlWidth = v).Applicable(x => { if (x >= 0) this.overviewControl.Width = x; })

@@ -18,6 +18,7 @@ namespace Windows10PhotoViewerSucksAss
 			this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.ResizeRedraw, true);
 			this.SetStyle(ControlStyles.StandardClick | ControlStyles.StandardDoubleClick, false);
 			this.scrollBar.InvalidateCallback = this.Invalidate;
+			this.Size = new Size(225, 150);
 		}
 
 		private readonly CatalogExh.EmbedScrollBar scrollBar = new CatalogExh.EmbedScrollBar();
