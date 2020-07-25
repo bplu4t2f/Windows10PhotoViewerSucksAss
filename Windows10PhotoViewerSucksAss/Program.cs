@@ -29,6 +29,9 @@ namespace Windows10PhotoViewerSucksAss
 				if (executablePath != null)
 				{
 					string ExeDir = Path.GetDirectoryName(executablePath);
+					// TODO: This is actually super broken !!
+					//       It causes Path.Combine("c:\users\...\appdata\", "d:\...\windows10photoviewersucksass\bin\debug") to be called later in the settings manager thing.
+					//       The only reason this works is because Path.Combine just returns the second argument if it sees an absolute path there... bUGgY
 					BootstrapData.AppDataFolderName = BootstrapData.AppDataFolderName.Replace("%%EXE_DIR%%", ExeDir);
 				}
 			}
