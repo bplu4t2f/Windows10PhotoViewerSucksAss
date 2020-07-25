@@ -19,21 +19,26 @@ namespace Windows10PhotoViewerSucksAss
 		public THandler Add<THandler, TValue>(THandler handler, Func<TSettings, TValue> getter, Action<TSettings, TValue> setter)
 			where THandler : ISettingHandler<TValue>
 		{
-			this.Settings.Add(new GenericSetting<TSettings, TValue>(handler, new Setting2<TSettings, TValue>(getter, setter)));
+			this.Settings.Add(new GenericSetting<TSettings, TValue>(handler, new Setting2<TSettings, TValue>(handler.DebugName, getter, setter)));
 			return handler;
 		}
 
 		public THandler Add<THandler, TValue>(THandler handler, Func<TSettings, IGetSet<TValue>> getBound)
 			where THandler : ISettingHandler<TValue>
 		{
-			this.Settings.Add(new GenericSetting<TSettings, TValue>(handler, new Setting2_GetSet<TSettings, TValue>(getBound)));
+			this.Settings.Add(new GenericSetting<TSettings, TValue>(handler, new Setting2_GetSet<TSettings, TValue>(handler.DebugName, getBound)));
 			return handler;
 		}
 	}
 
 
+	/// <summary>
+	/// This interface can be used to iterate over multiple <see cref="GenericSetting{TSettings, TValue}"/> instaces with the same settings container type.
+	/// </summary>
 	interface ISetting<TSettings>
 	{
+		string DebugName { get; }
+
 		void LoadFrom(TSettings source);
 		bool TrySaveTo(TSettings target);
 		event EventHandler SomethingChanged;
@@ -52,6 +57,7 @@ namespace Windows10PhotoViewerSucksAss
 	/// <typeparam name="T">Type of the individual setting that is being changed.</typeparam>
 	interface IGetSet<T>
 	{
+		string DebugName { get; }
 		T GetEffective();
 		void Set(T value);
 	}
@@ -62,6 +68,7 @@ namespace Windows10PhotoViewerSucksAss
 	/// </summary>
 	interface ISetting2<TSettings, T>
 	{
+		string DebugName { get; }
 		T Get(TSettings from);
 		void Set(TSettings to, T value);
 	}
@@ -72,12 +79,14 @@ namespace Windows10PhotoViewerSucksAss
 	/// </summary>
 	sealed class Setting2<TSettings, TValue> : ISetting2<TSettings, TValue>
 	{
-		public Setting2(Func<TSettings, TValue> getter, Action<TSettings, TValue> setter)
+		public Setting2(string debugName, Func<TSettings, TValue> getter, Action<TSettings, TValue> setter)
 		{
+			this.DebugName = debugName;
 			this.getter = getter ?? throw new ArgumentNullException(nameof(getter));
 			this.setter = setter ?? throw new ArgumentNullException(nameof(setter));
 		}
 
+		public string DebugName { get; }
 		private readonly Func<TSettings, TValue> getter;
 		private readonly Action<TSettings, TValue> setter;
 
@@ -90,11 +99,13 @@ namespace Windows10PhotoViewerSucksAss
 	/// </summary>
 	sealed class Setting2_GetSet<TSettings, TValue> : ISetting2<TSettings, TValue>
 	{
-		public Setting2_GetSet(Func<TSettings, IGetSet<TValue>> getBound)
+		public Setting2_GetSet(string debugName, Func<TSettings, IGetSet<TValue>> getBound)
 		{
+			this.DebugName = debugName;
 			this.getBound = getBound ?? throw new ArgumentNullException(nameof(getBound));
 		}
 
+		public string DebugName { get; }
 		private readonly Func<TSettings, IGetSet<TValue>> getBound;
 
 		public TValue Get(TSettings from) => this.getBound(from).GetEffective();
@@ -111,6 +122,7 @@ namespace Windows10PhotoViewerSucksAss
 			this.handler.SomethingChanged += this.HandleSomethingChanged;
 		}
 
+		public string DebugName => this.setting.DebugName;
 		private readonly ISetting2<TSettings, TValue> setting;
 		private readonly ISettingHandler<TValue> handler;
 
@@ -155,6 +167,7 @@ namespace Windows10PhotoViewerSucksAss
 
 	interface ISettingHandler<TValue>
 	{
+		string DebugName { get; }
 		void Load(TValue value);
 		bool TryGet(out TValue value);
 		event EventHandler SomethingChanged;
@@ -171,12 +184,14 @@ namespace Windows10PhotoViewerSucksAss
 
 	class CheckBoxSetting : ISettingHandler<bool>
 	{
-		public CheckBoxSetting(CheckBox checkBox)
+		public CheckBoxSetting(string debugName, CheckBox checkBox)
 		{
+			this.DebugName = debugName;
 			this.checkBox = checkBox ?? throw new ArgumentNullException(nameof(checkBox));
 			checkBox.CheckedChanged += (sender, e) => this.SomethingChanged?.Invoke(this, e);
 		}
 
+		public string DebugName { get; }
 		private readonly CheckBox checkBox;
 
 		public event EventHandler SomethingChanged;
@@ -196,12 +211,14 @@ namespace Windows10PhotoViewerSucksAss
 
 	class ColorSetting : ISettingHandler<Color>
 	{
-		public ColorSetting(Button colorPickerButton)
+		public ColorSetting(string debugName, Button colorPickerButton)
 		{
+			this.DebugName = debugName;
 			this.colorPickerButton = colorPickerButton ?? throw new ArgumentNullException(nameof(colorPickerButton));
 			this.colorPickerButton.Click += this.HandleButtonClick;
 		}
 
+		public string DebugName { get; }
 		private readonly Button colorPickerButton;
 
 		public event EventHandler SomethingChanged;
@@ -246,13 +263,15 @@ namespace Windows10PhotoViewerSucksAss
 
 	class FontSetting : ISettingHandler<Font>
 	{
-		public FontSetting(Button changeButton, Label label)
+		public FontSetting(string debugName, Button changeButton, Label label)
 		{
+			this.DebugName = debugName;
 			this.changeButton = changeButton ?? throw new ArgumentNullException(nameof(changeButton));
 			this.label = label ?? throw new ArgumentNullException(nameof(label));
 			this.changeButton.Click += this.HandleButtonClick;
 		}
 
+		public string DebugName { get; }
 		private readonly Button changeButton;
 		private readonly Label label;
 
@@ -297,8 +316,9 @@ namespace Windows10PhotoViewerSucksAss
 
 	class IntSliderSetting : ISettingHandler<int>
 	{
-		public IntSliderSetting(TrackBar trackBar, Label label)
+		public IntSliderSetting(string debugName, TrackBar trackBar, Label label)
 		{
+			this.DebugName = debugName;
 			this.trackBar = trackBar ?? throw new ArgumentNullException(nameof(trackBar));
 			this.label = label;
 			if (label != null)
@@ -307,6 +327,7 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
+		public string DebugName { get; }
 		private readonly TrackBar trackBar;
 		private readonly Label label;
 		private bool updating = false;
@@ -348,11 +369,13 @@ namespace Windows10PhotoViewerSucksAss
 
 	class ComboBoxSetting<T> : ISettingHandler<T>
 	{
-		public ComboBoxSetting(ComboBox comboBox)
+		public ComboBoxSetting(string debugName, ComboBox comboBox)
 		{
+			this.DebugName = debugName;
 			this.comboBox = comboBox ?? throw new ArgumentNullException(nameof(comboBox));
 		}
 
+		public string DebugName { get; }
 		private readonly ComboBox comboBox;
 
 		public void AddValue(T value, string displayText)

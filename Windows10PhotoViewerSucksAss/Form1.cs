@@ -56,40 +56,40 @@ namespace Windows10PhotoViewerSucksAss
 			var t = this.serializableUserSettings;
 
 			this.Setting_BackColor = this.serializableUserSettings.AddReturn(
-				t.Setting(s => s.Color, (s, v) => s.Color = v).Encoding(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb()).Applicable(x => { if (!x.IsEmpty) this.mainImageControl.BackColor = x; }).DifferentGetter(() => this.mainImageControl.BackColor)
+				t.Setting("ImageBackColor", s => s.Color, (s, v) => s.Color = v).Encoding(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb()).Applicable(x => { if (!x.IsEmpty) this.mainImageControl.BackColor = x; }).DifferentGetter(() => this.mainImageControl.BackColor)
 				).Bind(Settings.Instance);
 			this.serializableUserSettings.Add(
-				t.Setting(s => s.WindowWidth, (s, v) => s.WindowWidth = v).Applicable(x => { if (x != 0) this.Width = x; })
+				t.Setting("WindowWidth", s => s.WindowWidth, (s, v) => s.WindowWidth = v).Applicable(x => { if (x != 0) this.Width = x; })
 				);
 			this.serializableUserSettings.Add(
-				t.Setting(s => s.WindowHeight, (s, v) => s.WindowHeight = v).Applicable(x => { if (x != 0) this.Height = x; })
+				t.Setting("WindowHeight", s => s.WindowHeight, (s, v) => s.WindowHeight = v).Applicable(x => { if (x != 0) this.Height = x; })
 				);
 			this.Setting_SortCaseSensitive = this.serializableUserSettings.AddReturn(
-				t.Setting(s => s.SortCaseSensitive, (s, v) => s.SortCaseSensitive = v).Applicable(x => this.SetSortCaseSensitive(x))
+				t.Setting("SortCaseSensitive", s => s.SortCaseSensitive, (s, v) => s.SortCaseSensitive = v).Applicable(x => this.SetSortCaseSensitive(x))
 				).Bind(Settings.Instance);
 			this.Setting_ApplicationFont = this.serializableUserSettings.AddReturn(
-				t.Setting(s => s.ApplicationFont, (s, v) => s.ApplicationFont = v).Encoding(x => x?.ToFont(), x => FontDescriptor.FromFont(x)).Applicable(x => { if (x != null) this.SetApplicationFont(x); }).DifferentGetter(() => this.Font)
+				t.Setting("ApplicationFont", s => s.ApplicationFont, (s, v) => s.ApplicationFont = v).Encoding(x => x?.ToFont(), x => FontDescriptor.FromFont(x)).Applicable(x => { if (x != null) this.SetApplicationFont(x); }).DifferentGetter(() => this.Font)
 				).Bind(Settings.Instance);
 			this.serializableUserSettings.Add(
-				t.Setting(s => s.OverviewControlWidth, (s, v) => s.OverviewControlWidth = v).Applicable(x => { if (x >= 0) this.overviewControl.Width = x; })
+				t.Setting("OverviewControlWidth", s => s.OverviewControlWidth, (s, v) => s.OverviewControlWidth = v).Applicable(x => { if (x >= 0) this.overviewControl.Width = x; })
 				);
 			this.Setting_SplitterWidth = this.serializableUserSettings.AddReturn(
-				t.Setting(s => s.SplitterWidth, (s, v) => s.SplitterWidth = v).Applicable(x => { if (x >= 0) this.splitter.ChangeWidth(x); }).DifferentGetter(() => this.splitter.Width)
+				t.Setting("SplitterWidth", s => s.SplitterWidth, (s, v) => s.SplitterWidth = v).Applicable(x => { if (x >= 0) this.splitter.ChangeWidth(x); }).DifferentGetter(() => this.splitter.Width)
 				).Bind(Settings.Instance);
 			this.Setting_MouseWheelMode = this.serializableUserSettings.AddReturn(
-				t.Setting(s => s.MouseWheelMode, (s, v) => s.MouseWheelMode = v).Enum<Settings, MouseWheelMode>().Applicable(x => this.MouseWheelMode = x).DifferentGetter(() => this.MouseWheelMode)
+				t.Setting("MouseWheelMode", s => s.MouseWheelMode, (s, v) => s.MouseWheelMode = v).Enum<Settings, MouseWheelMode>().Applicable(x => this.MouseWheelMode = x).DifferentGetter(() => this.MouseWheelMode)
 				).Bind(Settings.Instance);
 			this.Setting_UseCurrentImageAsWindowIcon = this.serializableUserSettings.AddReturn(
-				t.Setting(s => s.UseCurrentImageAsWindowIcon, (s, v) => s.UseCurrentImageAsWindowIcon = v).Applicable(x => this.SetUseCurrentImageAsWindowIcon(x))
+				t.Setting("UseCurrentImageAsWindowIcon", s => s.UseCurrentImageAsWindowIcon, (s, v) => s.UseCurrentImageAsWindowIcon = v).Applicable(x => this.SetUseCurrentImageAsWindowIcon(x))
 				).Bind(Settings.Instance);
 			this.Setting_FileListBackColor = this.serializableUserSettings.AddReturn(
-				t.Setting(s => s.FileListBackColor, (s, v) => s.FileListBackColor = v).Encoding(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb()).Applicable(x => { if (!x.IsEmpty) this.overviewControl.BackColor = x; }).DifferentGetter(() => this.overviewControl.BackColor)
+				t.Setting("FileListBackColor", s => s.FileListBackColor, (s, v) => s.FileListBackColor = v).Encoding(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb()).Applicable(x => { if (!x.IsEmpty) this.overviewControl.BackColor = x; }).DifferentGetter(() => this.overviewControl.BackColor)
 				).Bind(Settings.Instance);
 			this.Setting_FileListForeColor = this.serializableUserSettings.AddReturn(
-				t.Setting(s => s.FileListForeColor, (s, v) => s.FileListForeColor = v).Encoding(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb()).Applicable(x => { if (!x.IsEmpty) this.overviewControl.ForeColor = x; }).DifferentGetter(() => this.overviewControl.ForeColor)
+				t.Setting("FileListForeColor", s => s.FileListForeColor, (s, v) => s.FileListForeColor = v).Encoding(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb()).Applicable(x => { if (!x.IsEmpty) this.overviewControl.ForeColor = x; }).DifferentGetter(() => this.overviewControl.ForeColor)
 				).Bind(Settings.Instance);
 			this.Setting_FileListForeColorError = this.serializableUserSettings.AddReturn(
-				t.Setting(s => s.FileListForeColorError, (s, v) => s.FileListForeColorError = v).Encoding(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb()).Applicable(x => { if (!x.IsEmpty) this.overviewControl.ForeColorError = x; }).DifferentGetter(() => this.overviewControl.ForeColorError)
+				t.Setting("FileListForeColorError", s => s.FileListForeColorError, (s, v) => s.FileListForeColorError = v).Encoding(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb()).Applicable(x => { if (!x.IsEmpty) this.overviewControl.ForeColorError = x; }).DifferentGetter(() => this.overviewControl.ForeColorError)
 				).Bind(Settings.Instance);
 
 			foreach (var setting in this.serializableUserSettings)

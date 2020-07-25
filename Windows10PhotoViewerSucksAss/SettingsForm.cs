@@ -19,16 +19,16 @@ namespace Windows10PhotoViewerSucksAss
 
 			this.Icon = Properties.Resources.generic_picture;
 
-			this.settingHelper.Add(new CheckBoxSetting(this.checkBoxSortCaseSensitive), x => x.Setting_SortCaseSensitive);
-			this.settingHelper.Add(new ColorSetting(this.buttonBackgroundColor), x => x.Setting_BackColor);
-			this.settingHelper.Add(new ColorSetting(this.buttonFileListBackColor), x => x.Setting_FileListBackColor);
-			this.settingHelper.Add(new ColorSetting(this.buttonFileListForeColor), x => x.Setting_FileListForeColor);
-			this.settingHelper.Add(new ColorSetting(this.buttonFileListForeColorError), x => x.Setting_FileListForeColorError);
-			this.settingHelper.Add(new FontSetting(this.buttonChangeFont, this.labelCurrentFont), x => x.Setting_ApplicationFont);
-			this.settingHelper.Add(new IntSliderSetting(this.trackBarSplitterWidth, this.labelSplitterWidth), x => x.Setting_SplitterWidth);
+			this.settingHelper.Add(new CheckBoxSetting("SortCaseSensitive", this.checkBoxSortCaseSensitive), x => x.Setting_SortCaseSensitive);
+			this.settingHelper.Add(new ColorSetting("BackgroundColor", this.buttonBackgroundColor), x => x.Setting_BackColor);
+			this.settingHelper.Add(new ColorSetting("FileListBackColor", this.buttonFileListBackColor), x => x.Setting_FileListBackColor);
+			this.settingHelper.Add(new ColorSetting("FileListForeColor", this.buttonFileListForeColor), x => x.Setting_FileListForeColor);
+			this.settingHelper.Add(new ColorSetting("FileListForeColorError", this.buttonFileListForeColorError), x => x.Setting_FileListForeColorError);
+			this.settingHelper.Add(new FontSetting("Font", this.buttonChangeFont, this.labelCurrentFont), x => x.Setting_ApplicationFont);
+			this.settingHelper.Add(new IntSliderSetting("SplitterWidth", this.trackBarSplitterWidth, this.labelSplitterWidth), x => x.Setting_SplitterWidth);
 			var comboBox_mouseWheelMode = 
-				this.settingHelper.Add(new ComboBoxSetting<MouseWheelMode>(this.comboBoxMouseWheelMode), x => x.Setting_MouseWheelMode);
-			this.settingHelper.Add(new CheckBoxSetting(this.checkBoxUseCurrentImageAsWindowIcon), x => x.Setting_UseCurrentImageAsWindowIcon);
+				this.settingHelper.Add(new ComboBoxSetting<MouseWheelMode>("MouseWheelMode", this.comboBoxMouseWheelMode), x => x.Setting_MouseWheelMode);
+			this.settingHelper.Add(new CheckBoxSetting("UseCurrentImageAsWindowIcon", this.checkBoxUseCurrentImageAsWindowIcon), x => x.Setting_UseCurrentImageAsWindowIcon);
 
 			comboBox_mouseWheelMode.AddValue(MouseWheelMode.NextPrevious, "Next/Previous File");
 			comboBox_mouseWheelMode.AddValue(MouseWheelMode.ZoomAndScroll, "Zoom Image");

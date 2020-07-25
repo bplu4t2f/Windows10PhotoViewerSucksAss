@@ -18,6 +18,7 @@ namespace Windows10PhotoViewerSucksAss
 			this.Setting = setting ?? throw new ArgumentNullException(nameof(setting));
 		}
 
+		public string DebugName => this.Setting.DebugName;
 		public TSettings Settings { get; }
 		public ApplicableSetting_DifferentGetter2<TSettings, T> Setting { get; }
 
@@ -43,6 +44,7 @@ namespace Windows10PhotoViewerSucksAss
 			this.Setting = setting ?? throw new ArgumentNullException(nameof(setting));
 		}
 
+		public string DebugName => this.Setting.DebugName;
 		public TSettings Settings { get; }
 		public ApplicableSetting2<TSettings, T> Setting { get; }
 
@@ -77,6 +79,7 @@ namespace Windows10PhotoViewerSucksAss
 
 	interface IApplicableSetting2<TSettings>
 	{
+		string DebugName { get; }
 		/// <summary>
 		/// Used on program startup to apply values from the stored object.
 		/// </summary>
@@ -101,6 +104,7 @@ namespace Windows10PhotoViewerSucksAss
 			this.getEffective = getEffective ?? throw new ArgumentNullException(nameof(getEffective));
 		}
 
+		public string DebugName => this.applicable.DebugName;
 		private readonly ApplicableSetting2<TSettings, T> applicable;
 		private readonly Func<T> getEffective;
 
@@ -129,6 +133,7 @@ namespace Windows10PhotoViewerSucksAss
 			this.apply = apply;
 		}
 
+		public string DebugName => this.setting.DebugName;
 		private readonly ISetting2<TSettings, T> setting;
 		private readonly Action<T> apply;
 
@@ -163,18 +168,18 @@ namespace Windows10PhotoViewerSucksAss
 		/// Doesn't actually add anything to the list. The list is just used for type inference.
 		/// <para>Use this method instead of allocating <see cref="Setting2{TSettings, TValue}"/> instances directly.</para>
 		/// </summary>
-		public static Setting2<TSettings, TValue> Setting<TSettings, TValue>(this List<IApplicableSetting2<TSettings>> list, Func<TSettings, TValue> getter, Action<TSettings, TValue> setter)
+		public static Setting2<TSettings, TValue> Setting<TSettings, TValue>(this List<IApplicableSetting2<TSettings>> list, string debugName, Func<TSettings, TValue> getter, Action<TSettings, TValue> setter)
 		{
-			return new Setting2<TSettings, TValue>(getter, setter);
+			return new Setting2<TSettings, TValue>(debugName, getter, setter);
 		}
 
 		/// <summary>
 		/// Doesn't actually add anything to the list. The list is just used for type inference.
 		/// <para>Use this method instead of allocating <see cref="Setting2_GetSet{TSettings, TValue}"/> instances directly.</para>
 		/// </summary>
-		public static Setting2_GetSet<TSettings, TValue> Setting<TSettings, TValue>(this List<IApplicableSetting2<TSettings>> list, Func<TSettings, IGetSet<TValue>> getBound)
+		public static Setting2_GetSet<TSettings, TValue> Setting<TSettings, TValue>(this List<IApplicableSetting2<TSettings>> list, string debugName, Func<TSettings, IGetSet<TValue>> getBound)
 		{
-			return new Setting2_GetSet<TSettings, TValue>(getBound);
+			return new Setting2_GetSet<TSettings, TValue>(debugName, getBound);
 		}
 	}
 
@@ -193,6 +198,7 @@ namespace Windows10PhotoViewerSucksAss
 			this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
 		}
 
+		public string DebugName => this.inner.DebugName;
 		private readonly ISetting2<TSettings, string> inner;
 
 		public void Set(TSettings to, T value)
@@ -231,6 +237,7 @@ namespace Windows10PhotoViewerSucksAss
 			this.encode = encode ?? throw new ArgumentNullException(nameof(encode));
 		}
 
+		public string DebugName => this.inner.DebugName;
 		private readonly ISetting2<TSettings, TSer> inner;
 		private readonly Func<TSer, TApp> decode;
 		private readonly Func<TApp, TSer> encode;
