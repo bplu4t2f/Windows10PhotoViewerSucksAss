@@ -96,7 +96,8 @@ namespace Windows10PhotoViewerSucksAss
 
 		private int GetLineHeight()
 		{
-			int lineHeight = this.Font.Height;
+			// NOTE: Do NOT replace this with Font.Height. Font.Height sucks and is inaccurate.
+			int lineHeight = TextRenderer.MeasureText("w", this.Font).Height;
 			if (lineHeight < 2)
 			{
 				// wtf
