@@ -550,10 +550,10 @@ namespace CatalogExh
 						Brush = SystemBrushes.ButtonHighlight;
 						break;
 					case Hotness.Warm:
-						Brush = SystemBrushes.ButtonShadow;
+						Brush = SystemBrushes.ControlDarkDark;
 						break;
 					default:
-						Brush = SystemBrushes.ControlDarkDark;
+						Brush = SystemBrushes.ControlDark;
 						break;
 				}
 				g.FillRectangle(Brush, 0, Metrics.ThumbStart, LayoutInfo.Bounds.Width, Metrics.ThumbSize);
