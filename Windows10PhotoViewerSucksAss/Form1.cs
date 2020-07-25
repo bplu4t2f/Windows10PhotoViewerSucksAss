@@ -53,7 +53,7 @@ namespace Windows10PhotoViewerSucksAss
 			//
 
 			this.Setting_BackColor = this.serializableUserSettings.AddReturn(
-				new EncodingSetting2<Settings, int, Color>(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb(), (s, v) => s.Color = v, s => s.Color).Applicable(x => { if (!x.IsEmpty) this.mainImageControl.BackColor = x; }).Gettable(() => this.mainImageControl.BackColor)
+				new EncodingSetting2<Settings, int, Color>(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb(), new Setting2<Settings, int>(s => s.Color, (s, v) => s.Color = v)).Applicable(x => { if (!x.IsEmpty) this.mainImageControl.BackColor = x; }).Gettable(() => this.mainImageControl.BackColor)
 				).Bind(Settings.Instance);
 			this.serializableUserSettings.Add(
 				new Setting2<Settings, int>(s => s.WindowWidth, (s, v) => s.WindowWidth = v).Applicable(x => { if (x != 0) this.mainImageControl.Width = x; })
@@ -65,7 +65,7 @@ namespace Windows10PhotoViewerSucksAss
 				new Setting2<Settings, bool>(s => s.SortCaseSensitive, (s, v) => s.SortCaseSensitive = v).Applicable(x => this.SetSortCaseSensitive(x))
 				).Bind(Settings.Instance);
 			this.Setting_ApplicationFont = this.serializableUserSettings.AddReturn(
-				new EncodingSetting2<Settings, FontDescriptor, Font>(x => x?.ToFont(), x => FontDescriptor.FromFont(x), (s, v) => s.ApplicationFont = v, s => s.ApplicationFont).Applicable(x => this.SetApplicationFont(x)).Gettable(() => this.Font)
+				new EncodingSetting2<Settings, FontDescriptor, Font>(x => x?.ToFont(), x => FontDescriptor.FromFont(x), new Setting2<Settings, FontDescriptor>(s => s.ApplicationFont, (s, v) => s.ApplicationFont = v)).Applicable(x => this.SetApplicationFont(x)).Gettable(() => this.Font)
 				).Bind(Settings.Instance);
 			this.serializableUserSettings.Add(
 				new Setting2<Settings, int>(s => s.OverviewControlWidth, (s, v) => s.OverviewControlWidth = v).Applicable(x => { if (x >= 0) this.overviewControl.Width = x; })
@@ -74,19 +74,19 @@ namespace Windows10PhotoViewerSucksAss
 				new Setting2<Settings, int>(s => s.SplitterWidth, (s, v) => s.SplitterWidth = v).Applicable(x => { if (x >= 0) this.splitter.ChangeWidth(x); }).Gettable(() => this.splitter.Width)
 				).Bind(Settings.Instance);
 			this.Setting_MouseWheelMode = this.serializableUserSettings.AddReturn(
-				new EnumSetting2<Settings, MouseWheelMode>((s, v) => s.MouseWheelMode = v, s => s.MouseWheelMode).Applicable(x => this.MouseWheelMode = x).Gettable(() => this.MouseWheelMode)
+				new EnumSetting2<Settings, MouseWheelMode>(new Setting2<Settings, string>(s => s.MouseWheelMode, (s, v) => s.MouseWheelMode = v)).Applicable(x => this.MouseWheelMode = x).Gettable(() => this.MouseWheelMode)
 				).Bind(Settings.Instance);
 			this.Setting_UseCurrentImageAsWindowIcon = this.serializableUserSettings.AddReturn(
 				new Setting2<Settings, bool>(s => s.UseCurrentImageAsWindowIcon, (s, v) => s.UseCurrentImageAsWindowIcon = v).Applicable(x => this.SetUseCurrentImageAsWindowIcon(x))
 				).Bind(Settings.Instance);
 			this.Setting_FileListBackColor = this.serializableUserSettings.AddReturn(
-				new EncodingSetting2<Settings, int, Color>(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb(), (s, v) => s.FileListBackColor = v, s => s.FileListBackColor).Applicable(x => { if (!x.IsEmpty) this.overviewControl.BackColor = x; }).Gettable(() => this.overviewControl.BackColor)
+				new EncodingSetting2<Settings, int, Color>(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb(), new Setting2<Settings, int>(s => s.FileListBackColor, (s, v) => s.FileListBackColor = v)).Applicable(x => { if (!x.IsEmpty) this.overviewControl.BackColor = x; }).Gettable(() => this.overviewControl.BackColor)
 				).Bind(Settings.Instance);
 			this.Setting_FileListForeColor = this.serializableUserSettings.AddReturn(
-				new EncodingSetting2<Settings, int, Color>(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb(), (s, v) => s.FileListForeColor = v, s => s.FileListForeColor).Applicable(x => { if (!x.IsEmpty) this.overviewControl.ForeColor = x; }).Gettable(() => this.overviewControl.ForeColor)
+				new EncodingSetting2<Settings, int, Color>(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb(), new Setting2<Settings, int>(s => s.FileListForeColor, (s, v) => s.FileListForeColor = v)).Applicable(x => { if (!x.IsEmpty) this.overviewControl.ForeColor = x; }).Gettable(() => this.overviewControl.ForeColor)
 				).Bind(Settings.Instance);
 			this.Setting_FileListForeColorError = this.serializableUserSettings.AddReturn(
-				new EncodingSetting2<Settings, int, Color>(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb(), (s, v) => s.FileListForeColorError = v, s => s.FileListForeColorError).Applicable(x => { if (!x.IsEmpty) this.overviewControl.ForeColorError = x; }).Gettable(() => this.overviewControl.ForeColorError)
+				new EncodingSetting2<Settings, int, Color>(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb(), new Setting2<Settings, int>(s => s.FileListForeColorError, (s, v) => s.FileListForeColorError = v)).Applicable(x => { if (!x.IsEmpty) this.overviewControl.ForeColorError = x; }).Gettable(() => this.overviewControl.ForeColorError)
 				).Bind(Settings.Instance);
 
 			foreach (var setting in this.serializableUserSettings)

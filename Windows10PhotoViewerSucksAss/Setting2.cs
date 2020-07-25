@@ -169,26 +169,22 @@ namespace Windows10PhotoViewerSucksAss
 	sealed class EnumSetting2<TSettings, T> : ISetting2<TSettings, T>
 		where T : struct, Enum
 	{
-		public Action<TSettings, string> PutSer;
-		public Func<TSettings, string> GetSer;
-
-		public EnumSetting2(
-			Action<TSettings, string> putSer,
-			Func<TSettings, string> getSer)
+		public EnumSetting2(ISetting2<TSettings, string> inner)
 		{
-			this.PutSer = putSer ?? throw new ArgumentNullException(nameof(putSer));
-			this.GetSer = getSer ?? throw new ArgumentNullException(nameof(getSer));
+			this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
 		}
+
+		private readonly ISetting2<TSettings, string> inner;
 
 		public void Set(TSettings to, T value)
 		{
 			string ser = value.ToString();
-			this.PutSer(to, ser);
+			this.inner.Set(to, ser);
 		}
 
 		public T Get(TSettings from)
 		{
-			var ser = this.GetSer(from);
+			var ser = this.inner.Get(from);
 			Enum.TryParse<T>(ser, out T value);
 			return value;
 		}
@@ -196,33 +192,30 @@ namespace Windows10PhotoViewerSucksAss
 
 	sealed class EncodingSetting2<TSettings, TSer, TApp> : ISetting2<TSettings, TApp>
 	{
-		public Func<TSer, TApp> Decode;
-		public Func<TApp, TSer> Encode;
-		public Action<TSettings, TSer> PutSer;
-		public Func<TSettings, TSer> GetSer;
-
 		public EncodingSetting2(
 			Func<TSer, TApp> decode,
 			Func<TApp, TSer> encode,
-			Action<TSettings, TSer> putSer,
-			Func<TSettings, TSer> getSer)
+			ISetting2<TSettings, TSer> inner)
 		{
-			this.Decode = decode ?? throw new ArgumentNullException(nameof(decode));
-			this.Encode = encode ?? throw new ArgumentNullException(nameof(encode));
-			this.PutSer = putSer ?? throw new ArgumentNullException(nameof(putSer));
-			this.GetSer = getSer ?? throw new ArgumentNullException(nameof(getSer));
+			this.decode = decode ?? throw new ArgumentNullException(nameof(decode));
+			this.encode = encode ?? throw new ArgumentNullException(nameof(encode));
+			this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
 		}
+
+		private readonly Func<TSer, TApp> decode;
+		private readonly Func<TApp, TSer> encode;
+		private readonly ISetting2<TSettings, TSer> inner;
 
 		public void Set(TSettings to, TApp value)
 		{
-			var ser = this.Encode(value);
-			this.PutSer(to, ser);
+			var ser = this.encode(value);
+			this.inner.Set(to, ser);
 		}
 
 		public TApp Get(TSettings from)
 		{
-			var ser = this.GetSer(from);
-			var app = this.Decode(ser);
+			var ser = this.inner.Get(from);
+			var app = this.decode(ser);
 			return app;
 		}
 	}
