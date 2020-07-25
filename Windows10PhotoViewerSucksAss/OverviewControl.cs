@@ -31,6 +31,18 @@ namespace Windows10PhotoViewerSucksAss
 		private IList<OverviewFileListEntry> availableFiles;
 		private int selectedIndex = -1;
 
+		private Color _foreColorError = Color.Firebrick;
+		[DefaultValue(typeof(Color), nameof(Color.Firebrick))]
+		public Color ForeColorError
+		{
+			get { return this._foreColorError; }
+			set
+			{
+				this._foreColorError = value;
+				this.Invalidate();
+			}
+		}
+
 		private sealed class OverviewFileListEntry
 		{
 			public OverviewFileListEntry(FileListEntry fileListEntry)
@@ -130,22 +142,22 @@ namespace Windows10PhotoViewerSucksAss
 				OverviewFileListEntry file = this.availableFiles[imageIndex];
 				Font font = imageIndex == this.selectedIndex ? this.GetSelectionFont() : this.Font;
 				Rectangle textRect = new Rectangle(0, y, this.Width - this.scrollBar.Width, lineHeight);
-				Color textColor = GetFileStatusColor(file.fileListEntry.LastFileStatus);
+				Color textColor = this.GetFileStatusColor(file.fileListEntry.LastFileStatus);
 				TextRenderer.DrawText(g, file.fileName, font, textRect, textColor, this.BackColor, flags);
 				y += lineHeight;
 			}
 		}
 
-		private static Color GetFileStatusColor(LastFileStatus status)
+		private Color GetFileStatusColor(LastFileStatus status)
 		{
 			switch (status)
 			{
 				case LastFileStatus.Unknown:
 				case LastFileStatus.OK:
-					return Color.Black;
+					return this.ForeColor;
 				case LastFileStatus.Error:
 				default:
-					return Color.Firebrick;
+					return this.ForeColorError;
 			}
 		}
 

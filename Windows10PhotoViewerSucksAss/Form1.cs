@@ -156,6 +156,18 @@ namespace Windows10PhotoViewerSucksAss
 				{
 					this.mainImageControl.BackColor = Color.FromArgb(Settings.Instance.Color);
 				}
+				if (Settings.Instance.FileListBackColor != 0)
+				{
+					this.overviewControl.BackColor = Color.FromArgb(Settings.Instance.FileListBackColor);
+				}
+				if (Settings.Instance.FileListForeColor != 0)
+				{
+					this.overviewControl.ForeColor = Color.FromArgb(Settings.Instance.FileListForeColor);
+				}
+				if (Settings.Instance.FileListForeColorError != 0)
+				{
+					this.overviewControl.ForeColorError = Color.FromArgb(Settings.Instance.FileListForeColorError);
+				}
 				if (Settings.Instance.WindowWidth != 0)
 				{
 					this.Width = Settings.Instance.WindowWidth;
@@ -305,6 +317,39 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				this.mainImageControl.BackColor = value;
 				Settings.Instance.Color = value.ToArgb();
+				Settings.QueueSave();
+			}
+		}
+
+		public Color Setting_FileListBackColor
+		{
+			get { return this.overviewControl.BackColor; }
+			set
+			{
+				this.overviewControl.BackColor = value;
+				Settings.Instance.FileListBackColor = value.ToArgb();
+				Settings.QueueSave();
+			}
+		}
+
+		public Color Setting_FileListForeColor
+		{
+			get { return this.overviewControl.ForeColor; }
+			set
+			{
+				this.overviewControl.ForeColor = value;
+				Settings.Instance.FileListForeColor = value.ToArgb();
+				Settings.QueueSave();
+			}
+		}
+
+		public Color Setting_FileListForeColorError
+		{
+			get { return this.overviewControl.ForeColorError; }
+			set
+			{
+				this.overviewControl.ForeColorError = value;
+				Settings.Instance.FileListForeColorError = value.ToArgb();
 				Settings.QueueSave();
 			}
 		}

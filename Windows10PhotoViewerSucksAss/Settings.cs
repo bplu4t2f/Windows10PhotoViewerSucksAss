@@ -61,5 +61,8 @@ namespace Windows10PhotoViewerSucksAss
 		public int SplitterWidth { get; set; } = -1;
 		public string MouseWheelMode { get; set; }
 		public bool UseCurrentImageAsWindowIcon { get; set; }
+		public int FileListBackColor { get; set; }
+		public int FileListForeColor { get; set; }
+		public int FileListForeColorError { get; set; }
 	}
 }
