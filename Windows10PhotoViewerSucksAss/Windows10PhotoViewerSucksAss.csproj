@@ -52,6 +52,7 @@
   <ItemGroup>
     <Compile Include="BootstrapData.cs" />
     <Compile Include="Bootstrapping.cs" />
+    <Compile Include="EmbedScrollBar.cs" />
     <Compile Include="FileAssociationBullshit.cs" />
     <Compile Include="FileIO.cs" />
     <Compile Include="Form1.cs">
@@ -64,7 +65,7 @@
     </Compile>
     <Compile Include="NatnumSort.cs" />
     <Compile Include="OverviewControl.cs">
-      <SubType>UserControl</SubType>
+      <SubType>Component</SubType>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

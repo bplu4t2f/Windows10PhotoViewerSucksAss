@@ -11,23 +11,16 @@ using System.Diagnostics;
 
 namespace Windows10PhotoViewerSucksAss
 {
-	public partial class OverviewControl : UserControl
+	public partial class OverviewControl : Control
 	{
 		public OverviewControl()
 		{
-			this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.ResizeRedraw | ControlStyles.StandardClick, true);
-			this.SetStyle(ControlStyles.StandardDoubleClick, false);
-
-			this.scrollBar.Anchor = AnchorStyles.Right | AnchorStyles.Top | AnchorStyles.Bottom;
-			this.scrollBar.Location = new Point(this.Width - this.scrollBar.Width, 0);
-			this.scrollBar.Height = this.Height;
-			this.scrollBar.SmallChange = 1;
-			this.scrollBar.LargeChange = 10;
-			this.scrollBar.ValueChanged += this.ScrollBar_ValueChanged;
-			this.Controls.Add(this.scrollBar);
+			this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.ResizeRedraw, true);
+			this.SetStyle(ControlStyles.StandardClick | ControlStyles.StandardDoubleClick, false);
+			this.scrollBar.InvalidateCallback = this.Invalidate;
 		}
 
-		private readonly VScrollBar scrollBar = new VScrollBar();
+		private readonly CatalogExh.EmbedScrollBar scrollBar = new CatalogExh.EmbedScrollBar();
 		private IList<OverviewFileListEntry> availableFiles;
 		private int selectedIndex = -1;
 
@@ -65,9 +58,7 @@ namespace Windows10PhotoViewerSucksAss
 			else
 			{
 				this.availableFiles = availableFiles.Select(x => new OverviewFileListEntry(x)).ToArray();
-				this.scrollBar.Maximum = availableFiles.Count + this.scrollBar.LargeChange - 2;
 			}
-			this.scrollBar.Enabled = availableFiles != null;
 
 			this.Invalidate();
 		}
@@ -77,7 +68,9 @@ namespace Windows10PhotoViewerSucksAss
 		/// </summary>
 		public void ScrollList(int amount)
 		{
-			this.scrollBar.Value = Math.Min(Math.Max(this.scrollBar.Value + amount, 0), this.scrollBar.Maximum - this.scrollBar.LargeChange + 1);
+			var maximum = this.availableFiles?.Count ?? 0;
+			this.scrollBar.ScrollValue = Math.Min(Math.Max(this.scrollBar.ScrollValue + amount, 0), maximum);
+			this.Invalidate();
 		}
 
 		public void SetDisplayIndex(int index, bool scrollSelectedItemIntoView)
@@ -92,14 +85,7 @@ namespace Windows10PhotoViewerSucksAss
 				int linesOnScreen = this.Height / lineHeight;
 				int scrollPos_ideal = index - linesOnScreen / 2;
 				int scrollPos_actual = Math.Min(Math.Max(scrollPos_ideal, 0), this.availableFiles.Count);
-				try
-				{
-					this.scrollBar.Value = scrollPos_actual;
-				}
-				catch
-				{
-					// I don't even
-				}
+				this.scrollBar.ScrollValue = scrollPos_actual;
 			}
 		}
 
@@ -110,7 +96,7 @@ namespace Windows10PhotoViewerSucksAss
 
 		private int GetLineHeight()
 		{
-			int lineHeight = TextRenderer.MeasureText("w", this.Font).Height;
+			int lineHeight = this.Font.Height;
 			if (lineHeight < 2)
 			{
 				// wtf
@@ -134,18 +120,32 @@ namespace Windows10PhotoViewerSucksAss
 				return;
 			}
 
+			var scrollBarWidth = SystemInformation.VerticalScrollBarWidth;
+
 			TextFormatFlags flags = TextFormatFlags.EndEllipsis;
 			int lineHeight = this.GetLineHeight();
-			int imageIndex = this.scrollBar.Value;
+			int imageIndex = this.scrollBar.ScrollValue;
 			for (int y = 0; y < this.Height && imageIndex < this.availableFiles.Count; ++imageIndex)
 			{
 				OverviewFileListEntry file = this.availableFiles[imageIndex];
 				Font font = imageIndex == this.selectedIndex ? this.GetSelectionFont() : this.Font;
-				Rectangle textRect = new Rectangle(0, y, this.Width - this.scrollBar.Width, lineHeight);
+				Rectangle textRect = new Rectangle(0, y, this.Width - scrollBarWidth, lineHeight);
 				Color textColor = this.GetFileStatusColor(file.fileListEntry.LastFileStatus);
 				TextRenderer.DrawText(g, file.fileName, font, textRect, textColor, this.BackColor, flags);
 				y += lineHeight;
 			}
+
+
+			int numFilesThatFitOnScreen = (this.Height + lineHeight - 1) / lineHeight;
+
+			var scrollBarLayoutInfo = new CatalogExh.EmbedScrollBar.LayoutInfo(
+				Bounds: new Rectangle(this.Width - scrollBarWidth, 0, scrollBarWidth, this.Height),
+				SmallChange: 1,
+				LargeChange: 10,
+				ViewportHeight: numFilesThatFitOnScreen,
+				TotalScrollableHeight: this.availableFiles.Count
+				);
+			this.scrollBar.Paint(g, ref scrollBarLayoutInfo, CatalogExh.EmbedScrollBar.ScrollBarArrowButtonStyle.FlatBorderless);
 		}
 
 		private Color GetFileStatusColor(LastFileStatus status)
@@ -165,6 +165,11 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			base.OnMouseDown(e);
 
+			if (this.scrollBar.HandleMouseDown(e))
+			{
+				return;
+			}
+
 			bool rightClick;
 			if (e.Button == MouseButtons.Left)
 			{
@@ -181,13 +186,35 @@ namespace Windows10PhotoViewerSucksAss
 
 			// Find the selected item
 			var lineHeight = this.GetLineHeight();
-			if (e.X > this.Width - this.scrollBar.Width)
+			int clickedOffset = e.Y / lineHeight;
+			int clickedIndex = this.scrollBar.ScrollValue + clickedOffset;
+			this.ImageSelected?.Invoke(null, new ImageSelectionEventArgs(clickedIndex, rightClick, e.Location));
+		}
+
+		protected override void OnMouseUp(MouseEventArgs e)
+		{
+			base.OnMouseUp(e);
+			if (this.scrollBar.HandleMouseUp(e))
 			{
 				return;
 			}
-			int clickedOffset = e.Y / lineHeight;
-			int clickedIndex = this.scrollBar.Value + clickedOffset;
-			this.ImageSelected?.Invoke(null, new ImageSelectionEventArgs(clickedIndex, rightClick, e.Location));
+		}
+
+		protected override void OnMouseLeave(EventArgs e)
+		{
+			base.OnMouseLeave(e);
+			this.scrollBar.HandleMouseLeave();
+		}
+
+		// NOTE: Not handling mouse wheel event in this application.
+
+		protected override void OnMouseMove(MouseEventArgs e)
+		{
+			base.OnMouseMove(e);
+			if (this.scrollBar.HandleMouseMove(e))
+			{
+				return;
+			}
 		}
 
 		/// <summary>
