@@ -75,6 +75,7 @@
       <DependentUpon>RenameForm.cs</DependentUpon>
     </Compile>
     <Compile Include="SerializableFont.cs" />
+    <Compile Include="Setting2.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="SettingsForm.cs">
       <SubType>Form</SubType>

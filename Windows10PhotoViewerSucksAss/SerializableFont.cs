@@ -21,11 +21,14 @@ namespace Windows10PhotoViewerSucksAss
 		/// </summary>
 		private FontDescriptor() { }
 
-		public FontDescriptor(Font f)
+		public static FontDescriptor FromFont(Font f)
 		{
-			this.FontFamily = f.FontFamily.Name;
-			this.Size = f.Size;
-			this.Style = (int)f.Style;
+			if (f == null) return null;
+			var descriptor = new FontDescriptor();
+			descriptor.FontFamily = f.FontFamily.Name;
+			descriptor.Size = f.Size;
+			descriptor.Style = (int)f.Style;
+			return descriptor;
 		}
 
 		public Font ToFont()

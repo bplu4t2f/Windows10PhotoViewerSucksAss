@@ -32,7 +32,7 @@ namespace Windows10PhotoViewerSucksAss
 	// TODO maybe it's time to do something about unifying keyboard commands and menu item commands :/
 	// TODO pixel perfect mode
 
-	public class Form1 : Form
+	class Form1 : Form
 	{
 		public Form1(StartupInfo startupInfo)
 		{
@@ -43,8 +43,75 @@ namespace Windows10PhotoViewerSucksAss
 			// This seems to have only positive effects: Reduces artifacts when moving controls around (such as the splitter).
 			this.SetStyle(ControlStyles.AllPaintingInWmPaint, true);
 
-			this.ApplyDefaultSettings();
-			this.ApplyUserSettings();
+			this.Size = new Size(960, 640);
+			this.mainImageControl.BackColor = Color.FromArgb(32, 64, 96);
+			this.splitter.Width = 5;
+
+			// ==================================================================================================================================================================
+			// ==================================================================================================================================================================
+			//
+			// User settings (from the AppData settings file)
+			//
+
+			this.Setting_BackColor = this.serializableUserSettings.AddReturn(
+				new EncodingSetting2<Settings, int, Color>(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb(), (s, v) => s.Color = v, s => s.Color).Applicable(x => { if (!x.IsEmpty) this.mainImageControl.BackColor = x; }).Gettable(() => this.mainImageControl.BackColor)
+				).Bind(Settings.Instance);
+			this.serializableUserSettings.Add(
+				new Setting2<Settings, int>((s, v) => s.WindowWidth = v, s => s.WindowWidth).Applicable(x => { if (x != 0) this.mainImageControl.Width = x; })
+				);
+			this.serializableUserSettings.Add(
+				new Setting2<Settings, int>((s, v) => s.WindowHeight = v, s => s.WindowHeight).Applicable(x => { if (x != 0) this.mainImageControl.Height = x; })
+				);
+			this.Setting_SortCaseSensitive = this.serializableUserSettings.AddReturn(
+				new Setting2<Settings, bool>((s, v) => s.SortCaseSensitive = v, s => s.SortCaseSensitive).Applicable(x => this.SetSortCaseSensitive(x))
+				).Bind(Settings.Instance);
+			this.Setting_ApplicationFont = this.serializableUserSettings.AddReturn(
+				new EncodingSetting2<Settings, FontDescriptor, Font>(x => x?.ToFont(), x => FontDescriptor.FromFont(x), (s, v) => s.ApplicationFont = v, s => s.ApplicationFont).Applicable(x => this.SetApplicationFont(x)).Gettable(() => this.Font)
+				).Bind(Settings.Instance);
+			this.serializableUserSettings.Add(
+				new Setting2<Settings, int>((s, v) => s.OverviewControlWidth = v, s => s.OverviewControlWidth).Applicable(x => { if (x >= 0) this.overviewControl.Width = x; })
+				);
+			this.Setting_SplitterWidth = this.serializableUserSettings.AddReturn(
+				new Setting2<Settings, int>((s, v) => s.SplitterWidth = v, s => s.SplitterWidth).Applicable(x => { if (x >= 0) this.splitter.ChangeWidth(x); }).Gettable(() => this.splitter.Width)
+				).Bind(Settings.Instance);
+			this.Setting_MouseWheelMode = this.serializableUserSettings.AddReturn(
+				new EnumSetting2<Settings, MouseWheelMode>((s, v) => s.MouseWheelMode = v, s => s.MouseWheelMode).Applicable(x => this.MouseWheelMode = x).Gettable(() => this.MouseWheelMode)
+				).Bind(Settings.Instance);
+			this.Setting_UseCurrentImageAsWindowIcon = this.serializableUserSettings.AddReturn(
+				new Setting2<Settings, bool>((s, v) => s.UseCurrentImageAsWindowIcon = v, s => s.UseCurrentImageAsWindowIcon).Applicable(x => this.SetUseCurrentImageAsWindowIcon(x))
+				).Bind(Settings.Instance);
+			this.Setting_FileListBackColor = this.serializableUserSettings.AddReturn(
+				new EncodingSetting2<Settings, int, Color>(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb(), (s, v) => s.FileListBackColor = v, s => s.FileListBackColor).Applicable(x => { if (!x.IsEmpty) this.overviewControl.BackColor = x; }).Gettable(() => this.overviewControl.BackColor)
+				).Bind(Settings.Instance);
+			this.Setting_FileListForeColor = this.serializableUserSettings.AddReturn(
+				new EncodingSetting2<Settings, int, Color>(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb(), (s, v) => s.FileListForeColor = v, s => s.FileListForeColor).Applicable(x => { if (!x.IsEmpty) this.overviewControl.ForeColor = x; }).Gettable(() => this.overviewControl.ForeColor)
+				).Bind(Settings.Instance);
+			this.Setting_FileListForeColorError = this.serializableUserSettings.AddReturn(
+				new EncodingSetting2<Settings, int, Color>(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb(), (s, v) => s.FileListForeColorError = v, s => s.FileListForeColorError).Applicable(x => { if (!x.IsEmpty) this.overviewControl.ForeColorError = x; }).Gettable(() => this.overviewControl.ForeColorError)
+				).Bind(Settings.Instance);
+
+			foreach (var setting in this.serializableUserSettings)
+			{
+				try
+				{
+					setting.ApplyStored(Settings.Instance);
+				}
+				catch (Exception ex)
+				{
+					Debug.WriteLine(ex);
+				}
+			}
+
+			foreach (var setting in this.serializableUserSettings)
+			{
+				setting.ValueSet += (sender, e) => Settings.QueueSave();
+			}
+
+			// ==================================================================================================================================================================
+			// ==================================================================================================================================================================
+			//
+			// GUI initialization
+			//
 
 			this.optionsButton.Text = "Options...";
 			this.optionsButton.Width = this.overviewControl.Width;
@@ -124,6 +191,8 @@ namespace Windows10PhotoViewerSucksAss
 
 		public StartupInfo StartupInfo { get; }
 
+		private readonly List<IApplicableSetting2<Settings>> serializableUserSettings = new List<IApplicableSetting2<Settings>>();
+
 		private readonly SynchronizationContext synchronizationContext;
 		private readonly ContextMenu fileListContextMenu = new ContextMenu();
 		private readonly MenuItem mi_file_name;
@@ -139,65 +208,6 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			Settings.WaitSaveCompleted();
 			base.OnClosing(e);
-		}
-
-		private void ApplyDefaultSettings()
-		{
-			this.Size = new Size(960, 640);
-			this.mainImageControl.BackColor = Color.FromArgb(32, 64, 96);
-			this.splitter.Width = 5;
-		}
-
-		private void ApplyUserSettings()
-		{
-			try
-			{
-				if (Settings.Instance.Color != 0)
-				{
-					this.mainImageControl.BackColor = Color.FromArgb(Settings.Instance.Color);
-				}
-				if (Settings.Instance.FileListBackColor != 0)
-				{
-					this.overviewControl.BackColor = Color.FromArgb(Settings.Instance.FileListBackColor);
-				}
-				if (Settings.Instance.FileListForeColor != 0)
-				{
-					this.overviewControl.ForeColor = Color.FromArgb(Settings.Instance.FileListForeColor);
-				}
-				if (Settings.Instance.FileListForeColorError != 0)
-				{
-					this.overviewControl.ForeColorError = Color.FromArgb(Settings.Instance.FileListForeColorError);
-				}
-				if (Settings.Instance.WindowWidth != 0)
-				{
-					this.Width = Settings.Instance.WindowWidth;
-				}
-				if (Settings.Instance.WindowHeight != 0)
-				{
-					this.Height = Settings.Instance.WindowHeight;
-				}
-				if (Settings.Instance.ApplicationFont != null)
-				{
-					var font = Settings.Instance.ApplicationFont.ToFont();
-					this.Font = font;
-				}
-				if (Settings.Instance.OverviewControlWidth >= 0)
-				{
-					this.overviewControl.Width = Settings.Instance.OverviewControlWidth;
-				}
-				if (Settings.Instance.SplitterWidth >= 0)
-				{
-					this.splitter.Width = Settings.Instance.SplitterWidth;
-				}
-				if (Enum.TryParse(Settings.Instance.MouseWheelMode, out MouseWheelMode mouseWheelMode))
-				{
-					this.MouseWheelMode = mouseWheelMode;
-				}
-			}
-			catch (Exception ex)
-			{
-				Debug.WriteLine(ex);
-			}
 		}
 
 		/// <summary>
@@ -299,114 +309,43 @@ namespace Windows10PhotoViewerSucksAss
 			form.Show();
 		}
 
-		public bool Setting_SortCaseSensitive
+
+		public IBoundSetting2<Color> Setting_BackColor { get; }
+		public IBoundSetting2<bool> Setting_SortCaseSensitive { get; }
+		public IBoundSetting2<Font> Setting_ApplicationFont { get; }
+		public IBoundSetting2<int> Setting_SplitterWidth { get; }
+		public IBoundSetting2<MouseWheelMode> Setting_MouseWheelMode { get; }
+		public IBoundSetting2<bool> Setting_UseCurrentImageAsWindowIcon { get; }
+		public IBoundSetting2<Color> Setting_FileListBackColor { get; }
+		public IBoundSetting2<Color> Setting_FileListForeColor { get; }
+		public IBoundSetting2<Color> Setting_FileListForeColorError { get; }
+
+		private void SetSortCaseSensitive(bool value)
 		{
-			get { return Settings.Instance.SortCaseSensitive; }
-			set
-			{
-				Settings.Instance.SortCaseSensitive = value;
-				this.TryGetFile(this.currentDisplayIndex, out var file);
-				this.UpdateCurrentFileList(scrollSelectedItemIntoView: false, file?.FullPath);
-			}
+			this.TryGetFile(this.currentDisplayIndex, out var file);
+			this.UpdateCurrentFileList(scrollSelectedItemIntoView: false, file?.FullPath);
 		}
 
-		public Color Setting_BackColor
+		private void SetApplicationFont(Font value)
 		{
-			get { return this.mainImageControl.BackColor; }
-			set
+			this.Font = value;
+			if (this.currentSettingsForm != null)
 			{
-				this.mainImageControl.BackColor = value;
-				Settings.Instance.Color = value.ToArgb();
-				Settings.QueueSave();
+				this.currentSettingsForm.Font = value;
 			}
+			this.SetOptionsButtonHeight();
 		}
 
-		public Color Setting_FileListBackColor
+		private void SetUseCurrentImageAsWindowIcon(bool value)
 		{
-			get { return this.overviewControl.BackColor; }
-			set
+			// TODO might need to set field
+			if (value)
 			{
-				this.overviewControl.BackColor = value;
-				Settings.Instance.FileListBackColor = value.ToArgb();
-				Settings.QueueSave();
+				this.UpdateWindowIcon();
 			}
-		}
-
-		public Color Setting_FileListForeColor
-		{
-			get { return this.overviewControl.ForeColor; }
-			set
+			else
 			{
-				this.overviewControl.ForeColor = value;
-				Settings.Instance.FileListForeColor = value.ToArgb();
-				Settings.QueueSave();
-			}
-		}
-
-		public Color Setting_FileListForeColorError
-		{
-			get { return this.overviewControl.ForeColorError; }
-			set
-			{
-				this.overviewControl.ForeColorError = value;
-				Settings.Instance.FileListForeColorError = value.ToArgb();
-				Settings.QueueSave();
-			}
-		}
-
-		public Font Setting_Font
-		{
-			get { return this.Font; }
-			set
-			{
-				this.Font = value;
-				if (this.currentSettingsForm != null)
-				{
-					this.currentSettingsForm.Font = value;
-				}
-				this.SetOptionsButtonHeight();
-				Settings.Instance.ApplicationFont = new FontDescriptor(value);
-				Settings.QueueSave();
-			}
-		}
-
-		public int Setting_SplitterWidth
-		{
-			get { return this.splitter.Width; }
-			set
-			{
-				this.splitter.ChangeWidth(value);
-				Settings.Instance.SplitterWidth = value;
-				Settings.QueueSave();
-			}
-		}
-
-		public MouseWheelMode Setting_MouseWheelMode
-		{
-			get { return this.MouseWheelMode; }
-			set
-			{
-				this.MouseWheelMode = value;
-				Settings.Instance.MouseWheelMode = value.ToString();
-				Settings.QueueSave();
-			}
-		}
-
-		public bool Setting_UseCurrentImageAsWindowIcon
-		{
-			get { return Settings.Instance.UseCurrentImageAsWindowIcon; }
-			set
-			{
-				Settings.Instance.UseCurrentImageAsWindowIcon = value;
-				Settings.QueueSave();
-				if (value)
-				{
-					this.UpdateWindowIcon();
-				}
-				else
-				{
-					this.Icon = Properties.Resources.generic_picture;
-				}
+				this.Icon = Properties.Resources.generic_picture;
 			}
 		}
 

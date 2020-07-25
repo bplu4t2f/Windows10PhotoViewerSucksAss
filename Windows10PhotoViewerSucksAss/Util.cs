@@ -13,6 +13,13 @@ namespace Windows10PhotoViewerSucksAss
 {
 	static class Util
 	{
+		public static TItem AddReturn<TListItem, TItem>(this List<TListItem> list, TItem item)
+			where TItem : TListItem
+		{
+			list.Add(item);
+			return item;
+		}
+
 		public static Image LoadImageFromFile(string file)
 		{
 			// Must do it this way, with Image.FromFile, or with the Bitmap(string) constructor, the file stays locked.
