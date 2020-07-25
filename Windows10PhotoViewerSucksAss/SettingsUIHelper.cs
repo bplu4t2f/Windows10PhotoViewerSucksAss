@@ -16,23 +16,18 @@ namespace Windows10PhotoViewerSucksAss
 	{
 		public List<ISetting<TSettings>> Settings { get; } = new List<ISetting<TSettings>>();
 
-		public void CheckBox(CheckBox checkBox, Func<TSettings, bool> getter, Action<TSettings, bool> setter) =>
-			this.Settings.Add(new GenericSetting<TSettings, bool>(new CheckBoxSetting(checkBox), getter, setter));
-
-		public void Color(Button button, Func<TSettings, Color> getter, Action<TSettings, Color> setter) =>
-			this.Settings.Add(new GenericSetting<TSettings, Color>(new ColorSetting(button), getter, setter));
-
-		public void Font(Button button, Label label, Func<TSettings, Font> getter, Action<TSettings, Font> setter) =>
-			this.Settings.Add(new GenericSetting<TSettings, Font>(new FontSetting(button, label), getter, setter));
-
-		public void IntSlider(TrackBar trackBar, Label label, Func<TSettings, int> getter, Action<TSettings, int> setter) =>
-			this.Settings.Add(new GenericSetting<TSettings, int>(new IntSliderSetting(trackBar, label), getter, setter));
-
-		public ComboBoxSetting<T> ComboBox<T>(ComboBox comboBox, Func<TSettings, T> getter, Action<TSettings, T> setter)
+		public THandler Add<THandler, TValue>(THandler handler, Func<TSettings, TValue> getter, Action<TSettings, TValue> setter)
+			where THandler : ISettingHandler<TValue>
 		{
-			var tmp = new ComboBoxSetting<T>(comboBox);
-			this.Settings.Add(new GenericSetting<TSettings, T>(tmp, getter, setter));
-			return tmp;
+			this.Settings.Add(new GenericSetting<TSettings, TValue>(handler, new Setting2<TSettings, TValue>(getter, setter)));
+			return handler;
+		}
+
+		public THandler Add<THandler, TValue>(THandler handler, Func<TSettings, IGetSet<TValue>> getBound)
+			where THandler : ISettingHandler<TValue>
+		{
+			this.Settings.Add(new GenericSetting<TSettings, TValue>(handler, new Setting2_GetSet<TSettings, TValue>(getBound)));
+			return handler;
 		}
 	}
 
@@ -51,18 +46,73 @@ namespace Windows10PhotoViewerSucksAss
 	}
 
 
-	class GenericSetting<TSettings, TValue> : ISetting<TSettings>
+	/// <summary>
+	/// The settings GUI uses this to read current setting values and write changed setting values.
+	/// </summary>
+	/// <typeparam name="T">Type of the individual setting that is being changed.</typeparam>
+	interface IGetSet<T>
 	{
-		public GenericSetting(ISettingHandler<TValue> handler, Func<TSettings, TValue> getter, Action<TSettings, TValue> setter)
+		T GetEffective();
+		void Set(T value);
+	}
+
+
+	/// <summary>
+	/// Like <see cref="IGetSet{T}"/>, but gets and sets from/to a specific instance.
+	/// </summary>
+	interface ISetting2<TSettings, T>
+	{
+		T Get(TSettings from);
+		void Set(TSettings to, T value);
+	}
+
+
+	/// <summary>
+	/// Implementation of <see cref="ISetting2{TSettings, T}"/> with 2 delegates.
+	/// </summary>
+	sealed class Setting2<TSettings, TValue> : ISetting2<TSettings, TValue>
+	{
+		public Setting2(Func<TSettings, TValue> getter, Action<TSettings, TValue> setter)
 		{
-			this.handler = handler ?? throw new ArgumentNullException(nameof(handler));
 			this.getter = getter ?? throw new ArgumentNullException(nameof(getter));
 			this.setter = setter ?? throw new ArgumentNullException(nameof(setter));
-			this.handler.SomethingChanged += this.HandleSomethingChanged;
 		}
-		private readonly ISettingHandler<TValue> handler;
+
 		private readonly Func<TSettings, TValue> getter;
 		private readonly Action<TSettings, TValue> setter;
+
+		public TValue Get(TSettings from) => this.getter(from);
+		public void Set(TSettings to, TValue value) => this.setter(to, value);
+	}
+
+	/// <summary>
+	/// Implementation of <see cref="ISetting2{TSettings, T}"/> with one <see cref="IGetSet{T}"/>.
+	/// </summary>
+	sealed class Setting2_GetSet<TSettings, TValue> : ISetting2<TSettings, TValue>
+	{
+		public Setting2_GetSet(Func<TSettings, IGetSet<TValue>> getBound)
+		{
+			this.getBound = getBound ?? throw new ArgumentNullException(nameof(getBound));
+		}
+
+		private readonly Func<TSettings, IGetSet<TValue>> getBound;
+
+		public TValue Get(TSettings from) => this.getBound(from).GetEffective();
+		public void Set(TSettings to, TValue value) => this.getBound(to).Set(value);
+	}
+
+
+	class GenericSetting<TSettings, TValue> : ISetting<TSettings>
+	{
+		public GenericSetting(ISettingHandler<TValue> handler, ISetting2<TSettings, TValue> setting)
+		{
+			this.setting = setting ?? throw new ArgumentNullException(nameof(setting));
+			this.handler = handler ?? throw new ArgumentNullException(nameof(handler));
+			this.handler.SomethingChanged += this.HandleSomethingChanged;
+		}
+
+		private readonly ISetting2<TSettings, TValue> setting;
+		private readonly ISettingHandler<TValue> handler;
 
 		public bool HasChanged { get; private set; }
 		
@@ -76,7 +126,7 @@ namespace Windows10PhotoViewerSucksAss
 
 		public void LoadFrom(TSettings source)
 		{
-			this.lastLoadedValue = this.getter(source);
+			this.lastLoadedValue = this.setting.Get(source);
 			this.Revert();
 		}
 
@@ -86,7 +136,7 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				return false;
 			}
-			this.setter(destination, value);
+			this.setting.Set(destination, value);
 			return true;
 		}
 

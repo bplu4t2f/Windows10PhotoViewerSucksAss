@@ -19,15 +19,16 @@ namespace Windows10PhotoViewerSucksAss
 
 			this.Icon = Properties.Resources.generic_picture;
 
-			this.settingHelper.CheckBox(this.checkBoxSortCaseSensitive, x => x.Setting_SortCaseSensitive.GetEffective(), (x, v) => x.Setting_SortCaseSensitive.Set(v));
-			this.settingHelper.Color(this.buttonBackgroundColor, x => x.Setting_BackColor.GetEffective(), (x, v) => x.Setting_BackColor.Set(v));
-			this.settingHelper.Color(this.buttonFileListBackColor, x => x.Setting_FileListBackColor.GetEffective(), (x, v) => x.Setting_FileListBackColor.Set(v));
-			this.settingHelper.Color(this.buttonFileListForeColor, x => x.Setting_FileListForeColor.GetEffective(), (x, v) => x.Setting_FileListForeColor.Set(v));
-			this.settingHelper.Color(this.buttonFileListForeColorError, x => x.Setting_FileListForeColorError.GetEffective(), (x, v) => x.Setting_FileListForeColorError.Set(v));
-			this.settingHelper.Font(this.buttonChangeFont, this.labelCurrentFont, x => x.Setting_ApplicationFont.GetEffective(), (x, v) => x.Setting_ApplicationFont.Set(v));
-			this.settingHelper.IntSlider(this.trackBarSplitterWidth, this.labelSplitterWidth, x => x.Setting_SplitterWidth.GetEffective(), (x, v) => x.Setting_SplitterWidth.Set(v));
-			var comboBox_mouseWheelMode = this.settingHelper.ComboBox(this.comboBoxMouseWheelMode, x => x.Setting_MouseWheelMode.GetEffective(), (x, v) => x.Setting_MouseWheelMode.Set(v));
-			this.settingHelper.CheckBox(this.checkBoxUseCurrentImageAsWindowIcon, x => x.Setting_UseCurrentImageAsWindowIcon.GetEffective(), (x, v) => x.Setting_UseCurrentImageAsWindowIcon.Set(v));
+			this.settingHelper.Add(new CheckBoxSetting(this.checkBoxSortCaseSensitive), x => x.Setting_SortCaseSensitive);
+			this.settingHelper.Add(new ColorSetting(this.buttonBackgroundColor), x => x.Setting_BackColor);
+			this.settingHelper.Add(new ColorSetting(this.buttonFileListBackColor), x => x.Setting_FileListBackColor);
+			this.settingHelper.Add(new ColorSetting(this.buttonFileListForeColor), x => x.Setting_FileListForeColor);
+			this.settingHelper.Add(new ColorSetting(this.buttonFileListForeColorError), x => x.Setting_FileListForeColorError);
+			this.settingHelper.Add(new FontSetting(this.buttonChangeFont, this.labelCurrentFont), x => x.Setting_ApplicationFont);
+			this.settingHelper.Add(new IntSliderSetting(this.trackBarSplitterWidth, this.labelSplitterWidth), x => x.Setting_SplitterWidth);
+			var comboBox_mouseWheelMode = 
+				this.settingHelper.Add(new ComboBoxSetting<MouseWheelMode>(this.comboBoxMouseWheelMode), x => x.Setting_MouseWheelMode);
+			this.settingHelper.Add(new CheckBoxSetting(this.checkBoxUseCurrentImageAsWindowIcon), x => x.Setting_UseCurrentImageAsWindowIcon);
 
 			comboBox_mouseWheelMode.AddValue(MouseWheelMode.NextPrevious, "Next/Previous File");
 			comboBox_mouseWheelMode.AddValue(MouseWheelMode.ZoomAndScroll, "Zoom Image");
