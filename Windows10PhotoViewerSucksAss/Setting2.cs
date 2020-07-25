@@ -7,19 +7,19 @@ using System.Threading.Tasks;
 namespace Windows10PhotoViewerSucksAss
 {
 	/// <summary>
-	/// Implements <see cref="IGetSet{T}"/> with <see cref="ApplicableGettableSetting2{TSettings, T}"/> by binding it to a specific settings object.
+	/// Implements <see cref="IGetSet{T}"/> with <see cref="ApplicableSetting_DifferentGetter2{TSettings, T}"/> by binding it to a specific settings object.
 	/// <para>Useful to interoperate with <see cref="GenericSetting{TSettings, TValue}"/>.</para>
 	/// </summary>
-	sealed class BoundSettingDifferentEffective<TSettings, T> : IGetSet<T>
+	sealed class BoundSetting_DifferentGetter<TSettings, T> : IGetSet<T>
 	{
-		public BoundSettingDifferentEffective(TSettings settings, ApplicableGettableSetting2<TSettings, T> setting)
+		public BoundSetting_DifferentGetter(TSettings settings, ApplicableSetting_DifferentGetter2<TSettings, T> setting)
 		{
 			this.Settings = settings;
 			this.Setting = setting ?? throw new ArgumentNullException(nameof(setting));
 		}
 
 		public TSettings Settings { get; }
-		public ApplicableGettableSetting2<TSettings, T> Setting { get; }
+		public ApplicableSetting_DifferentGetter2<TSettings, T> Setting { get; }
 
 		public T GetEffective() => this.Setting.GetEffective();
 		public void Set(T value) => this.Setting.Set(this.Settings, value);
@@ -62,9 +62,9 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			return new BoundSetting<TSettings, T>(settings, setting);
 		}
-		public static BoundSettingDifferentEffective<TSettings, T> Bind<TSettings, T>(this ApplicableGettableSetting2<TSettings, T> setting, TSettings settings)
+		public static BoundSetting_DifferentGetter<TSettings, T> Bind<TSettings, T>(this ApplicableSetting_DifferentGetter2<TSettings, T> setting, TSettings settings)
 		{
-			return new BoundSettingDifferentEffective<TSettings, T>(settings, setting);
+			return new BoundSetting_DifferentGetter<TSettings, T>(settings, setting);
 		}
 	}
 
@@ -93,9 +93,9 @@ namespace Windows10PhotoViewerSucksAss
 	/// <para>Example (where this appropriate): Window size and other application object properties.</para>
 	/// <para>Counter-example (where this not appropriate): User-defined flags that are not stored anywhere except in the <typeparamref name="TSettings"/> object.</para>
 	/// </summary>
-	sealed class ApplicableGettableSetting2<TSettings, T> : IApplicableSetting2<TSettings>
+	sealed class ApplicableSetting_DifferentGetter2<TSettings, T> : IApplicableSetting2<TSettings>
 	{
-		public ApplicableGettableSetting2(ApplicableSetting2<TSettings, T> applicable, Func<T> getEffective)
+		public ApplicableSetting_DifferentGetter2(ApplicableSetting2<TSettings, T> applicable, Func<T> getEffective)
 		{
 			this.applicable = applicable ?? throw new ArgumentNullException(nameof(applicable));
 			this.getEffective = getEffective ?? throw new ArgumentNullException(nameof(getEffective));
@@ -137,6 +137,7 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			this.setting.Set(to, value);
 			this.ValueSet?.Invoke(this, EventArgs.Empty);
+			this.apply?.Invoke(value);
 		}
 		public void ApplyStored(TSettings from)
 		{
@@ -153,9 +154,27 @@ namespace Windows10PhotoViewerSucksAss
 			return new ApplicableSetting2<TSettings, T>(setting, apply);
 		}
 
-		public static ApplicableGettableSetting2<TSettings, T> Gettable<TSettings, T>(this ApplicableSetting2<TSettings, T> applicable, Func<T> getEffective)
+		public static ApplicableSetting_DifferentGetter2<TSettings, T> DifferentGetter<TSettings, T>(this ApplicableSetting2<TSettings, T> applicable, Func<T> getEffective)
 		{
-			return new ApplicableGettableSetting2<TSettings, T>(applicable, getEffective);
+			return new ApplicableSetting_DifferentGetter2<TSettings, T>(applicable, getEffective);
+		}
+
+		/// <summary>
+		/// Doesn't actually add anything to the list. The list is just used for type inference.
+		/// <para>Use this method instead of allocating <see cref="Setting2{TSettings, TValue}"/> instances directly.</para>
+		/// </summary>
+		public static Setting2<TSettings, TValue> Setting<TSettings, TValue>(this List<IApplicableSetting2<TSettings>> list, Func<TSettings, TValue> getter, Action<TSettings, TValue> setter)
+		{
+			return new Setting2<TSettings, TValue>(getter, setter);
+		}
+
+		/// <summary>
+		/// Doesn't actually add anything to the list. The list is just used for type inference.
+		/// <para>Use this method instead of allocating <see cref="Setting2_GetSet{TSettings, TValue}"/> instances directly.</para>
+		/// </summary>
+		public static Setting2_GetSet<TSettings, TValue> Setting<TSettings, TValue>(this List<IApplicableSetting2<TSettings>> list, Func<TSettings, IGetSet<TValue>> getBound)
+		{
+			return new Setting2_GetSet<TSettings, TValue>(getBound);
 		}
 	}
 
@@ -190,21 +209,31 @@ namespace Windows10PhotoViewerSucksAss
 		}
 	}
 
+	static class EnumSetting2
+	{
+		public static EnumSetting2<TSettings, T> Enum<TSettings, T>(this ISetting2<TSettings, string> inner)
+			where T : struct, Enum
+		{
+			return new EnumSetting2<TSettings, T>(inner);
+		}
+	}
+
 	sealed class EncodingSetting2<TSettings, TSer, TApp> : ISetting2<TSettings, TApp>
 	{
 		public EncodingSetting2(
+			ISetting2<TSettings, TSer> inner,
 			Func<TSer, TApp> decode,
-			Func<TApp, TSer> encode,
-			ISetting2<TSettings, TSer> inner)
+			Func<TApp, TSer> encode
+			)
 		{
+			this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
 			this.decode = decode ?? throw new ArgumentNullException(nameof(decode));
 			this.encode = encode ?? throw new ArgumentNullException(nameof(encode));
-			this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
 		}
 
+		private readonly ISetting2<TSettings, TSer> inner;
 		private readonly Func<TSer, TApp> decode;
 		private readonly Func<TApp, TSer> encode;
-		private readonly ISetting2<TSettings, TSer> inner;
 
 		public void Set(TSettings to, TApp value)
 		{
@@ -217,6 +246,14 @@ namespace Windows10PhotoViewerSucksAss
 			var ser = this.inner.Get(from);
 			var app = this.decode(ser);
 			return app;
+		}
+	}
+
+	static class EncodingSetting2
+	{
+		public static EncodingSetting2<TSettings, TSer, TApp> Encoding<TSettings, TSer, TApp>(this ISetting2<TSettings, TSer> inner, Func<TSer, TApp> decode, Func<TApp, TSer> encode)
+		{
+			return new EncodingSetting2<TSettings, TSer, TApp>(inner, decode, encode);
 		}
 	}
 }
