@@ -68,6 +68,7 @@ namespace Windows10PhotoViewerSucksAss
 				Form.Icon = Properties.Resources.generic_picture;
 				Form.StartPosition = FormStartPosition.Manual;
 				Form.Size = new Size(900, 650);
+				Form.Text = "File Association Report";
 				Util.CenterControl(Owner, Form);
 				var TextBox = new TextBox();
 				TextBox.Text = Message;
