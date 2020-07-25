@@ -17,7 +17,6 @@ namespace Windows10PhotoViewerSucksAss
 	// TODO f1 help menu overlay
 	// TODO "shell" menu
 	// TODO "save user settings" check box
-	// TODO option to save user settings with application exe
 	// TODO show save error upon switching save mode, if applicable
 	// TODO reset user settings button
 	// TODO other media files (animated gif isn't that bad actually)

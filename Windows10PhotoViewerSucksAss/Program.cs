@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -23,6 +24,14 @@ namespace Windows10PhotoViewerSucksAss
 			var executablePath = Application.ExecutablePath;
 			string BootstrapFilePath = executablePath == null ? null : executablePath + ".xml";
 			BootstrapData BootstrapData = BootstrapFilePath == null ? null : Bootstrapping.Load(BootstrapFilePath);
+			if (BootstrapData?.AppDataFolderName != null)
+			{
+				if (executablePath != null)
+				{
+					string ExeDir = Path.GetDirectoryName(executablePath);
+					BootstrapData.AppDataFolderName = BootstrapData.AppDataFolderName.Replace("%%EXE_DIR%%", ExeDir);
+				}
+			}
 
 			// Load user settings
 			string AppDataFolderName = BootstrapData?.AppDataFolderName ?? GetFallbackAppDataFolderName(executablePath);
