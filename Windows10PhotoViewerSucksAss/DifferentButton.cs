@@ -12,7 +12,7 @@ namespace Windows10PhotoViewerSucksAss
 	{
 		public DifferentButton()
 		{
-			this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+			this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.CacheText | ControlStyles.UserMouse | ControlStyles.Opaque, true);
 			this.SetStyle(ControlStyles.StandardDoubleClick | ControlStyles.Selectable | ControlStyles.StandardClick, false);
 			this.Size = new Size(75, 23);
 		}
@@ -86,10 +86,6 @@ namespace Windows10PhotoViewerSucksAss
 
 		protected override void OnPaint(PaintEventArgs e)
 		{
-			base.OnPaint(e);
-
-			e.Graphics.Clear(Color.Red);
-
 			e.Graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
 
 			Brush back;
@@ -115,7 +111,10 @@ namespace Windows10PhotoViewerSucksAss
 
 			var rect = new Rectangle(0, 0, this.Width, this.Height);
 			e.Graphics.FillRectangle(back, rect);
-			TextRenderer.DrawText(e.Graphics, this.Text, this.Font, rect, fore, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+			if (!string.IsNullOrWhiteSpace(this.Text))
+			{
+				TextRenderer.DrawText(e.Graphics, this.Text, this.Font, rect, fore, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+			}
 		}
 	}
 }
