@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Drawing.Drawing2D;
 using System.Diagnostics;
+using System.Drawing.Imaging;
 
 namespace Windows10PhotoViewerSucksAss
 {
@@ -16,6 +17,7 @@ namespace Windows10PhotoViewerSucksAss
 		public MainImageControl()
 		{
 			this.SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
+			this.animationTimer.Tick += this.HandleAnimationTimerTick;
 		}
 
 		private Image _image;
@@ -145,6 +147,57 @@ namespace Windows10PhotoViewerSucksAss
 			this.Invalidate();
 		}
 
+		private struct AnimationInfo
+		{
+			public AnimationInfo(Image image, bool animated = false, int frameCount = 0, int[] frameDelayValues_10ms = null)
+			{
+				this.Image = image;
+				this.Animated = animated;
+				this.FrameCount = frameCount;
+				this.FrameDelayValues_10ms = frameDelayValues_10ms;
+			}
+
+			public Image Image { get; }
+			public bool Animated { get; }
+			public int FrameCount { get; }
+			public int[] FrameDelayValues_10ms { get; }
+		}
+
+		private static unsafe AnimationInfo GetAnimationinfo(Image image)
+		{
+			const int PropertyTagFrameDelay = 0x5100;
+
+			if (!image.FrameDimensionsList.Any(x => x.Equals(FrameDimension.Time.Guid)))
+			{
+				// No time dimension -> not animated.
+				return new AnimationInfo(image);
+			}
+			int frameCount = image.GetFrameCount(FrameDimension.Time);
+			var propertyItem = image.GetPropertyItem(PropertyTagFrameDelay);
+			if (propertyItem.Value.Length != frameCount * 4)
+			{
+				Debug.WriteLine($"Bogus property item length {propertyItem.Value.Length} · frame count {frameCount}");
+				return new AnimationInfo(image);
+			}
+
+			int[] frameDelayValues_10ms = new int[frameCount];
+			fixed (byte* src = propertyItem.Value)
+			{
+				int* intsrc = (int*)src;
+				for (int i = 0; i < frameCount; ++i)
+				{
+					frameDelayValues_10ms[i] = intsrc[i];
+				}
+			}
+
+			return new AnimationInfo(image, true, frameCount, frameDelayValues_10ms);
+		}
+
+		private AnimationInfo lastAnimationInfo;
+		private int currentAnimationFrame;
+		private System.Windows.Forms.Timer animationTimer = new System.Windows.Forms.Timer();
+		private bool timeBeginPeriodCalled;
+
 		protected override void OnPaint(PaintEventArgs e)
 		{
 			base.OnPaint(e);
@@ -156,6 +209,38 @@ namespace Windows10PhotoViewerSucksAss
 			if (image == null)
 			{
 				return;
+			}
+
+			if (image != this.lastAnimationInfo.Image)
+			{
+				this.lastAnimationInfo = GetAnimationinfo(image);
+				this.currentAnimationFrame = 0;
+				if (this.lastAnimationInfo.FrameCount > 1)
+				{
+					int frameDelay_10ms = this.lastAnimationInfo.FrameDelayValues_10ms[0];
+					this.animationTimer.Stop();
+					this.animationTimer.Interval = frameDelay_10ms * 10;
+					this.animationTimer.Start();
+					if (!this.timeBeginPeriodCalled)
+					{
+						TimeBeginPeriod.timeBeginPeriod(1);
+						this.timeBeginPeriodCalled = true;
+					}
+				}
+				else
+				{
+					this.animationTimer.Stop();
+					if (this.timeBeginPeriodCalled)
+					{
+						TimeBeginPeriod.timeEndPeriod(1);
+						this.timeBeginPeriodCalled = false;
+					}
+				}
+			}
+
+			if (this.lastAnimationInfo.Animated)
+			{
+				image.SelectActiveFrame(FrameDimension.Time, this.currentAnimationFrame);
 			}
 
 			g.Transform = this.transform;
@@ -170,6 +255,53 @@ namespace Windows10PhotoViewerSucksAss
 				g.TranslateTransform(this.actionLastIterationPosition.X, this.actionLastIterationPosition.Y);
 				DrawCross(g, Pens.Black, 5);
 			}
+		}
+
+		private void HandleAnimationTimerTick(object sender, EventArgs e)
+		{
+			if (this.lastAnimationInfo.FrameCount <= 1)
+			{
+				Debug.WriteLine("Stray timer tick event.");
+				return;
+			}
+
+			int oldFrameDelay_10ms = 0;
+			if (this.currentAnimationFrame < this.lastAnimationInfo.FrameDelayValues_10ms.Length)
+			{
+				oldFrameDelay_10ms = this.lastAnimationInfo.FrameDelayValues_10ms[this.currentAnimationFrame];
+			}
+			else
+			{
+				Debug.WriteLine($"Buggy animation state: current {this.currentAnimationFrame} - frame count {this.lastAnimationInfo.FrameCount}");
+			}
+			this.currentAnimationFrame += 1;
+			if (this.currentAnimationFrame >= this.lastAnimationInfo.FrameCount)
+			{
+				this.currentAnimationFrame = 0;
+			}
+
+			int currentFrameDelay_10ms = 1;
+			if (this.currentAnimationFrame < this.lastAnimationInfo.FrameDelayValues_10ms.Length)
+			{
+				currentFrameDelay_10ms = this.lastAnimationInfo.FrameDelayValues_10ms[this.currentAnimationFrame];
+			}
+			else
+			{
+				Debug.WriteLine($"Buggy animation state: current {this.currentAnimationFrame} - frame count {this.lastAnimationInfo.FrameCount} - fallback to {currentFrameDelay_10ms}");
+			}
+
+			if (oldFrameDelay_10ms != currentFrameDelay_10ms)
+			{
+				// NOTE: In order to do this correctly, whenever we change the timer, we would have to clear any pending callbacks.
+				//       If the timer is set to very fast, and a second callback is already underway while we're still here, then that callback would otherwise get
+				//       executed even though we didn't want it.
+				//       This also applies to the initial timer set call (if the timer was already running).
+				//       I can't really find a way to get this working with absolute certainty without OS level support. So I'll just have to assume that the timer
+				//       already handles that correctly.
+				this.animationTimer.Interval = currentFrameDelay_10ms * 10;
+			}
+
+			this.Invalidate();
 		}
 
 		private static void DrawCross(Graphics g, Pen pen, int size)
