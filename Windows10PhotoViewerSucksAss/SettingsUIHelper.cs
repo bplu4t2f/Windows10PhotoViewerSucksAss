@@ -19,14 +19,14 @@ namespace Windows10PhotoViewerSucksAss
 		public THandler Add<THandler, TValue>(THandler handler, Func<TSettings, TValue> getter, Action<TSettings, TValue> setter)
 			where THandler : ISettingHandler<TValue>
 		{
-			this.Settings.Add(new GenericSetting<TSettings, TValue>(handler, new Setting2<TSettings, TValue>(handler.DebugName, getter, setter)));
+			this.Settings.Add(new GenericSetting<TSettings, TValue>(handler, new GetSet<TSettings, TValue>(handler.DebugName, getter, setter)));
 			return handler;
 		}
 
-		public THandler Add<THandler, TValue>(THandler handler, Func<TSettings, IGetSet<TValue>> getBound)
+		public THandler Add<THandler, TValue>(THandler handler, IGetSet<TSettings, TValue> setting)
 			where THandler : ISettingHandler<TValue>
 		{
-			this.Settings.Add(new GenericSetting<TSettings, TValue>(handler, new Setting2_GetSet<TSettings, TValue>(handler.DebugName, getBound)));
+			this.Settings.Add(new GenericSetting<TSettings, TValue>(handler, setting));
 			return handler;
 		}
 	}
@@ -54,19 +54,7 @@ namespace Windows10PhotoViewerSucksAss
 	/// <summary>
 	/// The settings GUI uses this to read current setting values and write changed setting values.
 	/// </summary>
-	/// <typeparam name="T">Type of the individual setting that is being changed.</typeparam>
-	interface IGetSet<T>
-	{
-		string DebugName { get; }
-		T GetEffective();
-		void Set(T value);
-	}
-
-
-	/// <summary>
-	/// Like <see cref="IGetSet{T}"/>, but gets and sets from/to a specific instance.
-	/// </summary>
-	interface ISetting2<TSettings, T>
+	interface IGetSet<TSettings, T>
 	{
 		string DebugName { get; }
 		T Get(TSettings from);
@@ -75,11 +63,11 @@ namespace Windows10PhotoViewerSucksAss
 
 
 	/// <summary>
-	/// Implementation of <see cref="ISetting2{TSettings, T}"/> with 2 delegates.
+	/// Implementation of <see cref="IGetSet{TSettings, T}"/> with 2 delegates.
 	/// </summary>
-	sealed class Setting2<TSettings, TValue> : ISetting2<TSettings, TValue>
+	sealed class GetSet<TSettings, TValue> : IGetSet<TSettings, TValue>
 	{
-		public Setting2(string debugName, Func<TSettings, TValue> getter, Action<TSettings, TValue> setter)
+		public GetSet(string debugName, Func<TSettings, TValue> getter, Action<TSettings, TValue> setter)
 		{
 			this.DebugName = debugName;
 			this.getter = getter ?? throw new ArgumentNullException(nameof(getter));
@@ -95,35 +83,90 @@ namespace Windows10PhotoViewerSucksAss
 	}
 
 	/// <summary>
-	/// Implementation of <see cref="ISetting2{TSettings, T}"/> with one <see cref="IGetSet{T}"/>.
+	/// Augments <see cref="IGetSet{TSettings, T}"/> with a different way to provide the current effective value of a setting.
+	/// This is relevant when the application has its own idea of what the current effective value of a setting is, that may be different from what <see cref="IGetSet{TSettings, T}.Get"/> returns.
+	/// <para>Example (where this appropriate): Window size and other application object properties.</para>
+	/// <para>Counter-example (where this not appropriate): User-defined flags that are not stored anywhere except in the <typeparamref name="TSettings"/> object.</para>
 	/// </summary>
-	sealed class Setting2_GetSet<TSettings, TValue> : ISetting2<TSettings, TValue>
+	sealed class GetSet_DifferentGetter<TSettings, TValue> : IGetSet<TSettings, TValue>
 	{
-		public Setting2_GetSet(string debugName, Func<TSettings, IGetSet<TValue>> getBound)
+		public GetSet_DifferentGetter(IGetSet<TSettings, TValue> inner, Func<TSettings, TValue> getter)
 		{
-			this.DebugName = debugName;
-			this.getBound = getBound ?? throw new ArgumentNullException(nameof(getBound));
+			this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+			this.getter = getter ?? throw new ArgumentNullException(nameof(getter));
 		}
 
-		public string DebugName { get; }
-		private readonly Func<TSettings, IGetSet<TValue>> getBound;
+		public string DebugName => this.inner.DebugName;
+		private readonly IGetSet<TSettings, TValue> inner;
+		private readonly Func<TSettings, TValue> getter;
 
-		public TValue Get(TSettings from) => this.getBound(from).GetEffective();
-		public void Set(TSettings to, TValue value) => this.getBound(to).Set(value);
+		public TValue Get(TSettings from) => this.getter(from);
+		public void Set(TSettings to, TValue value) => this.inner.Set(to, value);
 	}
 
+	static class GetSet_DifferentGetter
+	{
+		public static GetSet_DifferentGetter<TSettings, TValue> DifferentGetter<TSettings, TValue>(this IGetSet<TSettings, TValue> getset, Func<TSettings, TValue> newGetter)
+		{
+			return new GetSet_DifferentGetter<TSettings, TValue>(getset, newGetter);
+		}
+	}
+
+	sealed class GetSetW<TSettingsNew, TSettingsOld, TValue> : IGetSet<TSettingsNew, TValue>
+	{
+		public GetSetW(Func<TSettingsNew, TSettingsOld> selector, IGetSet<TSettingsOld, TValue> inner)
+		{
+			this.selector = selector ?? throw new ArgumentNullException(nameof(selector));
+			this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+		}
+
+		public string DebugName => this.inner.DebugName;
+
+		private readonly Func<TSettingsNew, TSettingsOld> selector;
+		private readonly IGetSet<TSettingsOld, TValue> inner;
+
+		public TValue Get(TSettingsNew from) => this.inner.Get(this.selector(from));
+		public void Set(TSettingsNew to, TValue value) => this.inner.Set(this.selector(to), value);
+	}
+
+	/// <summary>
+	/// This is a (probably insane) helper class for allocating <see cref="GetSetW{TSettingsNew, TSettingsOld, TValue}"/> instances with an extension method on <see cref="IGetSet{TSettings, T}"/>.
+	/// </summary>
+	static class GetSetW
+	{
+		public static LiftHelper<TSettingsOld, TValue> Lift<TSettingsOld, TValue>(this IGetSet<TSettingsOld, TValue> getset)
+		{
+			return new LiftHelper<TSettingsOld, TValue>(getset);
+		}
+
+		public struct LiftHelper<TSettingsOld, TValue>
+		{
+			public LiftHelper(IGetSet<TSettingsOld, TValue> getset)
+			{
+				this.getset = getset;
+			}
+
+			private readonly IGetSet<TSettingsOld, TValue> getset;
+
+			public GetSetW<TSettingsNew, TSettingsOld, TValue> Wrap<TSettingsNew>(Func<TSettingsNew, TSettingsOld> selector)
+			{
+				if (this.getset == null) return null;
+				return new GetSetW<TSettingsNew, TSettingsOld, TValue>(selector, this.getset);
+			}
+		}
+	}
 
 	class GenericSetting<TSettings, TValue> : ISetting<TSettings>
 	{
-		public GenericSetting(ISettingHandler<TValue> handler, ISetting2<TSettings, TValue> setting)
+		public GenericSetting(ISettingHandler<TValue> handler, IGetSet<TSettings, TValue> getset)
 		{
-			this.setting = setting ?? throw new ArgumentNullException(nameof(setting));
+			this.getset = getset ?? throw new ArgumentNullException(nameof(getset));
 			this.handler = handler ?? throw new ArgumentNullException(nameof(handler));
 			this.handler.SomethingChanged += this.HandleSomethingChanged;
 		}
 
-		public string DebugName => this.setting.DebugName;
-		private readonly ISetting2<TSettings, TValue> setting;
+		public string DebugName => this.getset.DebugName;
+		private readonly IGetSet<TSettings, TValue> getset;
 		private readonly ISettingHandler<TValue> handler;
 
 		public bool HasChanged { get; private set; }
@@ -138,7 +181,7 @@ namespace Windows10PhotoViewerSucksAss
 
 		public void LoadFrom(TSettings source)
 		{
-			this.lastLoadedValue = this.setting.Get(source);
+			this.lastLoadedValue = this.getset.Get(source);
 			this.Revert();
 		}
 
@@ -148,7 +191,7 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				return false;
 			}
-			this.setting.Set(destination, value);
+			this.getset.Set(destination, value);
 			return true;
 		}
 
