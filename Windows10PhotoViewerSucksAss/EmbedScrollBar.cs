@@ -44,16 +44,24 @@ namespace CatalogExh
 			public readonly Rectangle Bounds;
 			public readonly int SmallChange;
 			public readonly int LargeChange;
-			public readonly int ViewportHeight;
-			public readonly int TotalScrollableHeight;
+			/// <summary>
+			/// How many scroll values fit on the [visible part of the] control at once.
+			/// </summary>
+			public readonly int ViewportSize;
+			/// <summary>
+			/// How many scroll values are scrollable in total.
+			/// </summary>
+			public readonly int TotalScrollableDistance;
+			public readonly bool Horizontal;
 
-			public LayoutInfo(Rectangle Bounds, int SmallChange, int LargeChange, int ViewportHeight, int TotalScrollableHeight)
+			public LayoutInfo(Rectangle Bounds, int SmallChange, int LargeChange, int ViewportSize, int TotalScrollableDistance, bool Horizontal = false)
 			{
 				this.Bounds = Bounds;
 				this.SmallChange = SmallChange;
 				this.LargeChange = LargeChange;
-				this.ViewportHeight = ViewportHeight;
-				this.TotalScrollableHeight = TotalScrollableHeight;
+				this.ViewportSize = ViewportSize;
+				this.TotalScrollableDistance = TotalScrollableDistance;
+				this.Horizontal = Horizontal;
 			}
 		}
 
@@ -71,21 +79,22 @@ namespace CatalogExh
 		/// It doesn't matter whether it's in screen coordinates or control coordinates as long as both <paramref name="Bounds"/> and <paramref name="Position"/>
 		/// are in the same reference frame.
 		/// </summary>
-		private static ScrollBarElement GetElementAtPosition(Rectangle Bounds, ref ControlMetrics Metrics, Point Position)
+		private static ScrollBarElement GetElementAtPosition(Rectangle Bounds, bool Horizontal, ref ControlMetrics Metrics, Point Position)
 		{
 			if (!Bounds.Contains(Position)) return ScrollBarElement.None;
-			int y = Position.Y - Bounds.Top;
+			int y = Horizontal ? Position.X - Bounds.Left : Position.Y - Bounds.Top;
 			if (y < 0) return ScrollBarElement.None;
 			if (y < Metrics.TrackStart) return ScrollBarElement.TopButton;
 			if (y < Metrics.ThumbStart) return ScrollBarElement.TrackAboveThumb;
 			if (y < Metrics.ThumbStart + Metrics.ThumbSize) return ScrollBarElement.Thumb;
 			if (y < Metrics.BottomButtonStart) return ScrollBarElement.TrackBelowThumb;
-			if (y < Bounds.Height) return ScrollBarElement.BottomButton;
+			if (y < (Horizontal ? Bounds.Width : Bounds.Height)) return ScrollBarElement.BottomButton;
 			return ScrollBarElement.None;
 		}
 
 		private struct ControlMetrics
 		{
+			// The values refer to the length axis of the scroll bar. Y if vertical, X if horizontal.
 			public int TrackStart;
 			public int ThumbStart;
 			public int ThumbSize;
@@ -96,36 +105,36 @@ namespace CatalogExh
 		/// <summary>
 		/// Calculates where the things in the scroll bar are (in pixels).
 		/// </summary>
-		private static ControlMetrics GetControlMetrics(Size Size, int ViewportHeight, int TotalScrollableHeight, int ScrollValue)
+		private static ControlMetrics GetControlMetrics(int ScrollBarLength, int ScrollBarWidth, int ViewportSize, int TotalScrollableDistance, int ScrollValue)
 		{
 			var Metrics = new ControlMetrics();
-			int ButtonHeight = Size.Width;
+			int ButtonHeight = ScrollBarWidth;
 			Metrics.TrackStart = ButtonHeight;
-			Metrics.BottomButtonStart = Size.Height - ButtonHeight;
+			Metrics.BottomButtonStart = ScrollBarLength - ButtonHeight;
 
 			float ThumbRatio;
-			if (ViewportHeight == 0)
+			if (ViewportSize == 0)
 			{
 				ThumbRatio = 0;
 			}
 			else
 			{
-				ThumbRatio = (float)ViewportHeight / (TotalScrollableHeight + ViewportHeight);
+				ThumbRatio = (float)ViewportSize / (TotalScrollableDistance + ViewportSize);
 			}
 
-			int MinimumThumbSize = Size.Width;
+			int MinimumThumbSize = ScrollBarWidth;
 
 			int TrackSize = Math.Max(0, Metrics.BottomButtonStart - Metrics.TrackStart);
-			Metrics.ThumbSize = Math.Min(Math.Max(MinimumThumbSize, (int)(TrackSize * ThumbRatio)), TrackSize); // Size of thumb in pixels, proportional to ViewportHeight / TotalScrollableHeight
+			Metrics.ThumbSize = Math.Min(Math.Max(MinimumThumbSize, (int)(TrackSize * ThumbRatio)), TrackSize); // Size of thumb in pixels, proportional to ViewportSize / TotalScrollableDistance
 			Metrics.TrackSpaceAvailableForThumbMovement = TrackSize - Metrics.ThumbSize;
 			int ThumbPosRelativeToTrackStart;
-			if (TotalScrollableHeight == 0)
+			if (TotalScrollableDistance == 0)
 			{
 				ThumbPosRelativeToTrackStart = 0;
 			}
 			else
 			{
-				ThumbPosRelativeToTrackStart = (int)((float)ScrollValue / TotalScrollableHeight * Metrics.TrackSpaceAvailableForThumbMovement);
+				ThumbPosRelativeToTrackStart = (int)((float)ScrollValue / TotalScrollableDistance * Metrics.TrackSpaceAvailableForThumbMovement);
 			}
 			Metrics.ThumbStart = ThumbPosRelativeToTrackStart + Metrics.TrackStart;
 
@@ -134,12 +143,23 @@ namespace CatalogExh
 
 		private ControlMetrics GetControlMetrics()
 		{
-			return GetControlMetrics(this.LastLayoutInfo.Bounds.Size, this.LastLayoutInfo.ViewportHeight, this.LastLayoutInfo.TotalScrollableHeight, this.ScrollValue);
+			int Length, Width;
+			if (this.LastLayoutInfo.Horizontal)
+			{
+				Length = this.LastLayoutInfo.Bounds.Width;
+				Width = this.LastLayoutInfo.Bounds.Height;
+			}
+			else
+			{
+				Length = this.LastLayoutInfo.Bounds.Height;
+				Width = this.LastLayoutInfo.Bounds.Width;
+			}
+			return GetControlMetrics(Length, Width, this.LastLayoutInfo.ViewportSize, this.LastLayoutInfo.TotalScrollableDistance, this.ScrollValue);
 		}
 
-		private bool SetScrollValue(int TotalScrollableHeight, int Value)
+		private bool SetScrollValue(int TotalScrollableDistance, int Value)
 		{
-			var NewValue = Math.Min(Math.Max(Value, 0), TotalScrollableHeight);
+			var NewValue = Math.Min(Math.Max(Value, 0), TotalScrollableDistance);
 			if (NewValue != this.ScrollValue)
 			{
 				this.ScrollValue = NewValue;
@@ -226,7 +246,7 @@ namespace CatalogExh
 
 		private ScrollBarElement UpdateHoveredItem(ref ControlMetrics Metrics, bool InvalidateIfChanged = true)
 		{
-			var CurrentPosition = this.LastMousePosition_ClientCoordinates == null ? ScrollBarElement.None : GetElementAtPosition(this.LastLayoutInfo.Bounds, ref Metrics, this.LastMousePosition_ClientCoordinates.Value);
+			var CurrentPosition = this.LastMousePosition_ClientCoordinates == null ? ScrollBarElement.None : GetElementAtPosition(this.LastLayoutInfo.Bounds, this.LastLayoutInfo.Horizontal, ref Metrics, this.LastMousePosition_ClientCoordinates.Value);
 			this.SetHoveredItem(CurrentPosition, InvalidateIfChanged);
 			return CurrentPosition;
 		}
@@ -261,28 +281,28 @@ namespace CatalogExh
 				switch (CurrentClickPosition)
 				{
 					case ScrollBarElement.TopButton:
-						this.SetScrollValue(this.LastLayoutInfo.TotalScrollableHeight, this.ScrollValue - this.LastLayoutInfo.SmallChange);
+						this.SetScrollValue(this.LastLayoutInfo.TotalScrollableDistance, this.ScrollValue - this.LastLayoutInfo.SmallChange);
 						this.RequestStartTimer(RepeatPreDelay);
 						break;
 
 					case ScrollBarElement.TrackAboveThumb:
-						this.SetScrollValue(this.LastLayoutInfo.TotalScrollableHeight, this.ScrollValue - this.LastLayoutInfo.LargeChange);
+						this.SetScrollValue(this.LastLayoutInfo.TotalScrollableDistance, this.ScrollValue - this.LastLayoutInfo.LargeChange);
 						this.RequestStartTimer(RepeatPreDelay);
 						break;
 
 					case ScrollBarElement.TrackBelowThumb:
-						this.SetScrollValue(this.LastLayoutInfo.TotalScrollableHeight, this.ScrollValue + this.LastLayoutInfo.LargeChange);
+						this.SetScrollValue(this.LastLayoutInfo.TotalScrollableDistance, this.ScrollValue + this.LastLayoutInfo.LargeChange);
 						this.RequestStartTimer(RepeatPreDelay);
 						break;
 
 					case ScrollBarElement.BottomButton:
-						this.SetScrollValue(this.LastLayoutInfo.TotalScrollableHeight, this.ScrollValue + this.LastLayoutInfo.SmallChange);
+						this.SetScrollValue(this.LastLayoutInfo.TotalScrollableDistance, this.ScrollValue + this.LastLayoutInfo.SmallChange);
 						this.RequestStartTimer(RepeatPreDelay);
 						break;
 
 					case ScrollBarElement.Thumb:
 						this.ThumbDragStartScrollValue = this.ScrollValue;
-						this.ThumbDragStart = e.Y;
+						this.ThumbDragStart = this.LastLayoutInfo.Horizontal ? e.X : e.Y;
 						break;
 				}
 			}
@@ -296,14 +316,15 @@ namespace CatalogExh
 						// "Scroll here" feature
 						// Calculate target scroll position -- mouse position becomes center of thumb.
 						// y = 0: Topmost thumb position (center of thumb when it's in top position)
-						int y = e.Y - this.LastLayoutInfo.Bounds.Top - Metrics.TrackStart - Metrics.ThumbSize / 2;
-						float Ratio = this.LastLayoutInfo.TotalScrollableHeight == 0 ? 0 : (float)y / Metrics.TrackSpaceAvailableForThumbMovement; // NOTE: Can be out of range, that's checked by SetScrollValue.
-						this.SetScrollValue(this.LastLayoutInfo.TotalScrollableHeight, (int)(Ratio * this.LastLayoutInfo.TotalScrollableHeight));
+						int ClickPositionPixelWithinBounds = this.LastLayoutInfo.Horizontal ? e.X - this.LastLayoutInfo.Bounds.Left : e.Y - this.LastLayoutInfo.Bounds.Top;
+						int y = ClickPositionPixelWithinBounds - Metrics.TrackStart - Metrics.ThumbSize / 2;
+						float Ratio = this.LastLayoutInfo.TotalScrollableDistance == 0 ? 0 : (float)y / Metrics.TrackSpaceAvailableForThumbMovement; // NOTE: Can be out of range, that's checked by SetScrollValue.
+						this.SetScrollValue(this.LastLayoutInfo.TotalScrollableDistance, (int)(Ratio * this.LastLayoutInfo.TotalScrollableDistance));
 						// Do the same thing a left click on the thumb would have done:
 						this.SetCapturedItem(ScrollBarElement.Thumb);
 						this.SetActiveItem(true);
 						this.ThumbDragStartScrollValue = this.ScrollValue;
-						this.ThumbDragStart = e.Y;
+						this.ThumbDragStart = this.LastLayoutInfo.Horizontal ? e.X : e.Y;
 						break;
 				}
 			}
@@ -333,10 +354,10 @@ namespace CatalogExh
 
 			if (this.CapturedItem == ScrollBarElement.Thumb && this.IsCapturedItemActive)
 			{
-				int DragDelta = e.Y - this.ThumbDragStart;
+				int DragDelta = (this.LastLayoutInfo.Horizontal ? e.X : e.Y) - this.ThumbDragStart;
 
-				int ScrollDelta = this.LastLayoutInfo.TotalScrollableHeight == 0 ? 0 : (int)((float)DragDelta / Metrics.TrackSpaceAvailableForThumbMovement * this.LastLayoutInfo.TotalScrollableHeight);
-				this.SetScrollValue(this.LastLayoutInfo.TotalScrollableHeight, this.ThumbDragStartScrollValue + ScrollDelta);
+				int ScrollDelta = this.LastLayoutInfo.TotalScrollableDistance == 0 ? 0 : (int)((float)DragDelta / Metrics.TrackSpaceAvailableForThumbMovement * this.LastLayoutInfo.TotalScrollableDistance);
+				this.SetScrollValue(this.LastLayoutInfo.TotalScrollableDistance, this.ThumbDragStartScrollValue + ScrollDelta);
 				// We don't have to update the hovered item if this changes technically because there is no visual difference, however, that is a special case only
 				// because the thumb's hover effect is a little different and thumb dragging is the only thing that would make a difference here.
 				// So we're still updating for brevity.
@@ -382,7 +403,7 @@ namespace CatalogExh
 				// NOTE: Positive Delta -> Scroll up -> Decrease ScrollValue
 				float Notches = e.Delta / SystemInformation.MouseWheelScrollDelta;
 				float ScrollAmount = -Notches * SystemInformation.MouseWheelScrollLines * LineHeight;
-				if (this.SetScrollValue(this.LastLayoutInfo.TotalScrollableHeight, this.ScrollValue + (int)ScrollAmount) && this.LastMousePosition_ClientCoordinates != null)
+				if (this.SetScrollValue(this.LastLayoutInfo.TotalScrollableDistance, this.ScrollValue + (int)ScrollAmount) && this.LastMousePosition_ClientCoordinates != null)
 				{
 					var Metrics = this.GetControlMetrics();
 					this.UpdateHoveredItem(ref Metrics);
@@ -402,22 +423,22 @@ namespace CatalogExh
 			switch (this.CapturedItem)
 			{
 				case ScrollBarElement.TopButton:
-					this.SetScrollValue(this.LastLayoutInfo.TotalScrollableHeight, this.ScrollValue - this.LastLayoutInfo.SmallChange);
+					this.SetScrollValue(this.LastLayoutInfo.TotalScrollableDistance, this.ScrollValue - this.LastLayoutInfo.SmallChange);
 					this.RequestStartTimer(RepeatPeriod);
 					break;
 
 				case ScrollBarElement.TrackAboveThumb:
-					this.SetScrollValue(this.LastLayoutInfo.TotalScrollableHeight, this.ScrollValue - this.LastLayoutInfo.LargeChange);
+					this.SetScrollValue(this.LastLayoutInfo.TotalScrollableDistance, this.ScrollValue - this.LastLayoutInfo.LargeChange);
 					this.RequestStartTimer(RepeatPeriod);
 					break;
 
 				case ScrollBarElement.TrackBelowThumb:
-					this.SetScrollValue(this.LastLayoutInfo.TotalScrollableHeight, this.ScrollValue + this.LastLayoutInfo.LargeChange);
+					this.SetScrollValue(this.LastLayoutInfo.TotalScrollableDistance, this.ScrollValue + this.LastLayoutInfo.LargeChange);
 					this.RequestStartTimer(RepeatPeriod);
 					break;
 
 				case ScrollBarElement.BottomButton:
-					this.SetScrollValue(this.LastLayoutInfo.TotalScrollableHeight, this.ScrollValue + this.LastLayoutInfo.SmallChange);
+					this.SetScrollValue(this.LastLayoutInfo.TotalScrollableDistance, this.ScrollValue + this.LastLayoutInfo.SmallChange);
 					this.RequestStartTimer(RepeatPeriod);
 					break;
 			}
@@ -532,13 +553,27 @@ namespace CatalogExh
 			// Track (above thumb)
 			{
 				Brush Brush = GetTrackBrush(this.GetItemHotness(HoveredItem, ScrollBarElement.TrackAboveThumb));
-				g.FillRectangle(Brush, 0, Metrics.TrackStart, LayoutInfo.Bounds.Width, Metrics.ThumbStart - Metrics.TrackStart);
+				if (LayoutInfo.Horizontal)
+				{
+					g.FillRectangle(Brush, Metrics.TrackStart, 0, Metrics.ThumbStart - Metrics.TrackStart, LayoutInfo.Bounds.Height);
+				}
+				else
+				{
+					g.FillRectangle(Brush, 0, Metrics.TrackStart, LayoutInfo.Bounds.Width, Metrics.ThumbStart - Metrics.TrackStart);
+				}
 			}
 
 			// Track (below thumb)
 			{
 				Brush Brush = GetTrackBrush(this.GetItemHotness(HoveredItem, ScrollBarElement.TrackBelowThumb));
-				g.FillRectangle(Brush, 0, Metrics.ThumbStart + Metrics.ThumbSize, LayoutInfo.Bounds.Width, Metrics.BottomButtonStart - (Metrics.ThumbStart + Metrics.ThumbSize));
+				if (LayoutInfo.Horizontal)
+				{
+					g.FillRectangle(Brush, Metrics.ThumbStart + Metrics.ThumbSize, 0, Metrics.BottomButtonStart - (Metrics.ThumbStart + Metrics.ThumbSize), LayoutInfo.Bounds.Height);
+				}
+				else
+				{
+					g.FillRectangle(Brush, 0, Metrics.ThumbStart + Metrics.ThumbSize, LayoutInfo.Bounds.Width, Metrics.BottomButtonStart - (Metrics.ThumbStart + Metrics.ThumbSize));
+				}
 			}
 
 			// Thumb
@@ -556,31 +591,57 @@ namespace CatalogExh
 						Brush = SystemBrushes.ControlDark;
 						break;
 				}
-				g.FillRectangle(Brush, 0, Metrics.ThumbStart, LayoutInfo.Bounds.Width, Metrics.ThumbSize);
+				if (LayoutInfo.Horizontal)
+				{
+					g.FillRectangle(Brush, Metrics.ThumbStart, 0, Metrics.ThumbSize, LayoutInfo.Bounds.Height);
+				}
+				else
+				{
+					g.FillRectangle(Brush, 0, Metrics.ThumbStart, LayoutInfo.Bounds.Width, Metrics.ThumbSize);
+				}
 			}
 
-			float TriangleScale = LayoutInfo.Bounds.Width / 4.0f;
+			float TriangleScale = (LayoutInfo.Horizontal ? LayoutInfo.Bounds.Height : LayoutInfo.Bounds.Width) / 4.0f;
 
 			// Top Button
 			{
 				Brush BackgroundBrush = GetArrowButtonBackgroundBrush(ArrowButtonStyle, this.GetItemHotness(HoveredItem, ScrollBarElement.TopButton), out Brush TriangleBrush);
-				g.FillRectangle(BackgroundBrush, 0, 0, LayoutInfo.Bounds.Width, Metrics.TrackStart);
+				Rectangle Rect;
+				if (LayoutInfo.Horizontal)
+				{
+					Rect = new Rectangle(0, 0, Metrics.TrackStart, LayoutInfo.Bounds.Height);
+				}
+				else
+				{
+					Rect = new Rectangle(0, 0, LayoutInfo.Bounds.Width, Metrics.TrackStart - 0); // "0" stands for top button start
+				}
+				g.FillRectangle(BackgroundBrush, Rect);
 				if (ArrowButtonStyle != ScrollBarArrowButtonStyle.FlatBorderless)
 				{
-					g.DrawRectangle(SystemPens.ControlText, 0.5f, 0 + 0.5f, LayoutInfo.Bounds.Width - 1.0f, Metrics.TrackStart - 0 - 1.0f); // "0" stands for top button start
+					g.DrawRectangle(SystemPens.ControlText, Rect.X + 0.5f, Rect.Y + 0.5f, Rect.Width - 1.0f, Rect.Height - 1.0f);
 				}
-				this.DrawTriangle(g, new PointF(LayoutInfo.Bounds.Width / 2.0f, 0 + (Metrics.TrackStart - 0) / 2.0f), TriangleScale, TriangleBrush);
+				this.DrawTriangle(g, new PointF(Rect.Width / 2.0f + Rect.X, Rect.Height / 2.0f + Rect.Y), TriangleScale, TriangleBrush, LayoutInfo.Horizontal);
+
 			}
 
 			// Bottom Button
 			{
 				Brush BackgroundBrush = GetArrowButtonBackgroundBrush(ArrowButtonStyle, this.GetItemHotness(HoveredItem, ScrollBarElement.BottomButton), out Brush TriangleBrush);
-				g.FillRectangle(BackgroundBrush, 0, Metrics.BottomButtonStart, LayoutInfo.Bounds.Width, LayoutInfo.Bounds.Height - Metrics.BottomButtonStart);
+				Rectangle Rect;
+				if (LayoutInfo.Horizontal)
+				{
+					Rect = new Rectangle(Metrics.BottomButtonStart, 0, LayoutInfo.Bounds.Width - Metrics.BottomButtonStart, LayoutInfo.Bounds.Height);
+				}
+				else
+				{
+					Rect = new Rectangle(0, Metrics.BottomButtonStart, LayoutInfo.Bounds.Width, LayoutInfo.Bounds.Height - Metrics.BottomButtonStart);
+				}
+				g.FillRectangle(BackgroundBrush, Rect);
 				if (ArrowButtonStyle != ScrollBarArrowButtonStyle.FlatBorderless)
 				{
-					g.DrawRectangle(SystemPens.ControlText, 0.5f, Metrics.BottomButtonStart + 0.5f, LayoutInfo.Bounds.Width - 1.0f, LayoutInfo.Bounds.Height - Metrics.BottomButtonStart - 1.0f);
+					g.DrawRectangle(SystemPens.ControlText, Rect.X + 0.5f, Rect.Y + 0.5f, Rect.Width - 1.0f, Rect.Height - 1.0f);
 				}
-				this.DrawTriangle(g, new PointF(LayoutInfo.Bounds.Width / 2.0f, Metrics.BottomButtonStart + (LayoutInfo.Bounds.Height - Metrics.BottomButtonStart) / 2.0f), -TriangleScale, TriangleBrush);
+				this.DrawTriangle(g, new PointF(Rect.Width / 2.0f + Rect.X, Rect.Height / 2.0f + Rect.Y), -TriangleScale, TriangleBrush, LayoutInfo.Horizontal);
 			}
 
 			// Restore all state
@@ -595,12 +656,16 @@ namespace CatalogExh
 		/// <summary>
 		/// Pointing upward. Use scale and transform matrix to relocate.
 		/// </summary>
-		private void DrawTriangle(Graphics g, PointF Origin, float Scale, Brush Brush)
+		private void DrawTriangle(Graphics g, PointF Origin, float Scale, Brush Brush, bool Horizontal)
 		{
 			var Transform = g.Transform;
 
 			g.TranslateTransform(Origin.X, Origin.Y);
 			g.ScaleTransform(Scale, Scale);
+			if (Horizontal)
+			{
+				g.RotateTransform(-90.0f);
+			}
 			g.TranslateTransform(0, 0.4f);
 
 			this.DrawTriangleHelper[0] = new PointF(-1.0f, 0);
