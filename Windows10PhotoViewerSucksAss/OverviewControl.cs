@@ -144,8 +144,8 @@ namespace Windows10PhotoViewerSucksAss
 				Bounds: new Rectangle(this.Width - scrollBarWidth, 0, scrollBarWidth, this.Height),
 				SmallChange: 1,
 				LargeChange: 10,
-				ViewportHeight: numFilesThatFitOnScreen,
-				TotalScrollableHeight: this.availableFiles.Count
+				ViewportSize: numFilesThatFitOnScreen,
+				TotalScrollableDistance: this.availableFiles.Count
 				);
 			this.scrollBar.Paint(g, ref scrollBarLayoutInfo, CatalogExh.EmbedScrollBar.ScrollBarArrowButtonStyle.FlatBorderless);
 		}
