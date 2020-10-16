@@ -217,7 +217,7 @@ namespace Windows10PhotoViewerSucksAss
 				this.currentAnimationFrame = 0;
 				if (this.lastAnimationInfo.FrameCount > 1)
 				{
-					int frameDelay_10ms = this.lastAnimationInfo.FrameDelayValues_10ms[0];
+					int frameDelay_10ms = this.GetFrameDelayValueSafe(0);
 					this.animationTimer.Stop();
 					this.animationTimer.Interval = frameDelay_10ms * 10;
 					this.animationTimer.Start();
@@ -265,15 +265,6 @@ namespace Windows10PhotoViewerSucksAss
 				return;
 			}
 
-			int oldFrameDelay_10ms = 0;
-			if (this.currentAnimationFrame < this.lastAnimationInfo.FrameDelayValues_10ms.Length)
-			{
-				oldFrameDelay_10ms = this.lastAnimationInfo.FrameDelayValues_10ms[this.currentAnimationFrame];
-			}
-			else
-			{
-				Debug.WriteLine($"Buggy animation state: current {this.currentAnimationFrame} - frame count {this.lastAnimationInfo.FrameCount}");
-			}
 			this.currentAnimationFrame += 1;
 			if (this.currentAnimationFrame >= this.lastAnimationInfo.FrameCount)
 			{
@@ -283,25 +274,35 @@ namespace Windows10PhotoViewerSucksAss
 			int currentFrameDelay_10ms = 1;
 			if (this.currentAnimationFrame < this.lastAnimationInfo.FrameDelayValues_10ms.Length)
 			{
-				currentFrameDelay_10ms = this.lastAnimationInfo.FrameDelayValues_10ms[this.currentAnimationFrame];
+				currentFrameDelay_10ms = this.GetFrameDelayValueSafe(this.currentAnimationFrame);
 			}
 			else
 			{
 				Debug.WriteLine($"Buggy animation state: current {this.currentAnimationFrame} - frame count {this.lastAnimationInfo.FrameCount} - fallback to {currentFrameDelay_10ms}");
 			}
 
-			if (oldFrameDelay_10ms != currentFrameDelay_10ms)
-			{
-				// NOTE: In order to do this correctly, whenever we change the timer, we would have to clear any pending callbacks.
-				//       If the timer is set to very fast, and a second callback is already underway while we're still here, then that callback would otherwise get
-				//       executed even though we didn't want it.
-				//       This also applies to the initial timer set call (if the timer was already running).
-				//       I can't really find a way to get this working with absolute certainty without OS level support. So I'll just have to assume that the timer
-				//       already handles that correctly.
-				this.animationTimer.Interval = currentFrameDelay_10ms * 10;
-			}
+			// NOTE: In order to do this correctly, whenever we change the timer, we would have to clear any pending callbacks.
+			//       If the timer is set to very fast, and a second callback is already underway while we're still here, then that callback would otherwise get
+			//       executed even though we didn't want it.
+			//       This also applies to the initial timer set call (if the timer was already running).
+			//       I can't really find a way to get this working with absolute certainty without OS level support. So I'll just have to assume that the timer
+			//       already handles that correctly.
+			// NOTE: The setter of Interval only does something if the value actually changes.
+			this.animationTimer.Interval = currentFrameDelay_10ms * 10;
 
 			this.Invalidate();
+		}
+
+		private int GetFrameDelayValueSafe(int frame)
+		{
+			// Apparently there are gifs where the animation frame delay value is zero.
+			// In that case a commonly appcompat behavior seems to be to implicitly set it to 100 ms (which is value 10).
+			int value = this.lastAnimationInfo.FrameDelayValues_10ms[frame];
+			if (value < 1)
+			{
+				value = 10;
+			}
+			return value;
 		}
 
 		private static void DrawCross(Graphics g, Pen pen, int size)
