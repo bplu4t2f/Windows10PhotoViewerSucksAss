@@ -16,7 +16,7 @@ namespace Windows10PhotoViewerSucksAss
 	{
 		public MainImageControl()
 		{
-			this.SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
+			this.SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.Opaque, true);
 			this.animationTimer.Tick += this.HandleAnimationTimerTick;
 		}
 
@@ -195,15 +195,13 @@ namespace Windows10PhotoViewerSucksAss
 
 		private AnimationInfo lastAnimationInfo;
 		private int currentAnimationFrame;
-		private System.Windows.Forms.Timer animationTimer = new System.Windows.Forms.Timer();
+		private readonly System.Windows.Forms.Timer animationTimer = new System.Windows.Forms.Timer();
 		private bool timeBeginPeriodCalled;
 
 		protected override void OnPaint(PaintEventArgs e)
 		{
-			base.OnPaint(e);
-
 			var g = e.Graphics;
-			g.SmoothingMode = SmoothingMode.HighQuality;
+			g.Clear(this.BackColor);
 
 			var image = this.Image;
 			if (image == null)
@@ -243,7 +241,22 @@ namespace Windows10PhotoViewerSucksAss
 				image.SelectActiveFrame(FrameDimension.Time, this.currentAnimationFrame);
 			}
 
-			g.Transform = this.transform;
+			var transform = this.transform;
+			// If we're zoomed in somewhat, disable interpolation because it looks worse.
+			// This is only correct because we don't rotate, mirror, or shear.
+			if (transform.Elements[0] > 2.8f)
+			{
+				g.InterpolationMode = InterpolationMode.NearestNeighbor;
+			}
+			else
+			{
+				g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+			}
+			g.SmoothingMode = SmoothingMode.None;
+			g.PixelOffsetMode = PixelOffsetMode.Half;
+
+			g.Transform = transform;
+
 			g.TranslateTransform(this.Width / 2, this.Height / 2, MatrixOrder.Append);
 			g.DrawImage(image, 0, 0, image.Width, image.Height);
 			if (this.zooming || this.panning)
@@ -255,6 +268,8 @@ namespace Windows10PhotoViewerSucksAss
 				g.TranslateTransform(this.actionLastIterationPosition.X, this.actionLastIterationPosition.Y);
 				DrawCross(g, Pens.Black, 5);
 			}
+
+			base.OnPaint(e);
 		}
 
 		private void HandleAnimationTimerTick(object sender, EventArgs e)
