@@ -17,35 +17,80 @@ namespace Windows10PhotoViewerSucksAss
 	{
 		public static void Initialize(string appDataFolderName)
 		{
-			Debug.Assert(_manager == null);
-			_manager = new SettingsManager(appDataFolderName);
+			Settings.AppDataFolderName = appDataFolderName;
+		}
+
+		private static string AppDataFolderName;
+		private static readonly SettingsSaveManager _manager = new SettingsSaveManager();
+
+		private static string GetFullSettingsFilePath()
+		{
+			string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+			return Path.Combine(appData, AppDataFolderName, "settings.xml");
 		}
 
 		public static void Load()
 		{
-			Instance = GetManager().Load(Deserialize);
+			Instance = LoadInternal() ?? new Settings();
+		}
+
+		private static Settings LoadInternal()
+		{
+			try
+			{
+				var path = GetFullSettingsFilePath();
+				using (var fileStream = FileIO.Open(out int error, path, FileAccess.Read, FileShare.Read, FileMode.Open))
+				{
+					if (fileStream == null)
+					{
+						// File not found etc -- we don't actually care about the exact error.
+						return null;
+					}
+
+					var result = Deserialize(fileStream);
+					return result;
+				}
+			}
+			catch (Exception ex)
+			{
+				// We don't actually care.
+				Debug.WriteLine(ex);
+				return null;
+			}
 		}
 
 		public static void QueueSave()
 		{
 			var tmp = Instance;
 			Debug.Assert(tmp != null);
-			GetManager().QueueSave(tmp, Serialize);
+			QueueSaveInternal(tmp);
+		}
+
+		private static void QueueSaveInternal(Settings value)
+		{
+			byte[] bytes;
+			using (var stream = new MemoryStream())
+			{
+				Serialize(stream, value);
+				bytes = stream.ToArray();
+			}
+			
+			string saveDestination = GetFullSettingsFilePath();
+
+			_manager.QueueSave(() =>
+			{
+				var dir = Path.GetDirectoryName(saveDestination);
+				Directory.CreateDirectory(dir);
+				File.WriteAllBytes(saveDestination, bytes);
+			});
 		}
 
 		public static void WaitSaveCompleted()
 		{
-			GetManager().WaitSaveCompleted();
+			_manager.WaitSaveCompleted();
 		}
 
-		private static SettingsManager GetManager()
-		{
-			var tmp = _manager;
-			Debug.Assert(tmp != null);
-			return tmp;
-		}
-
-		private static SettingsManager _manager;
+		
 		public static Settings Instance { get; private set; }
 
 		//    _   _                          _   _   _                 

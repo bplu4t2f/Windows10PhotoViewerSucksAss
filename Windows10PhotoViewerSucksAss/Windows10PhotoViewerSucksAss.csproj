@@ -87,7 +87,7 @@
     <Compile Include="SettingsForm.Designer.cs">
       <DependentUpon>SettingsForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="SettingsManager.cs" />
+    <Compile Include="SettingsSaveManager.cs" />
     <Compile Include="SettingsUIHelper.cs" />
     <Compile Include="SplitterControl.cs">
       <SubType>Component</SubType>
