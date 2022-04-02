@@ -15,11 +15,12 @@ namespace Windows10PhotoViewerSucksAss
 	{
 		public OverviewControl()
 		{
-			this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.ResizeRedraw, true);
+			this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.ResizeRedraw | ControlStyles.Opaque, true);
 			this.SetStyle(ControlStyles.StandardClick | ControlStyles.StandardDoubleClick, false);
 			this.scrollBar.InvalidateCallback = this.Invalidate;
-			this.Size = new Size(225, 150);
 		}
+
+		protected override Size DefaultSize => new Size(225, 150);
 
 		private readonly CatalogExh.EmbedScrollBar scrollBar = new CatalogExh.EmbedScrollBar();
 		private IList<OverviewFileListEntry> availableFiles;
@@ -114,8 +115,8 @@ namespace Windows10PhotoViewerSucksAss
 
 		protected override void OnPaint(PaintEventArgs e)
 		{
-			base.OnPaint(e);
 			var g = e.Graphics;
+			g.Clear(this.BackColor);
 
 			if (this.availableFiles == null)
 			{
@@ -148,6 +149,8 @@ namespace Windows10PhotoViewerSucksAss
 				TotalScrollableDistance: this.availableFiles.Count
 				);
 			this.scrollBar.Paint(g, ref scrollBarLayoutInfo, CatalogExh.EmbedScrollBar.ScrollBarArrowButtonStyle.FlatBorderless);
+
+			base.OnPaint(e);
 		}
 
 		private Color GetFileStatusColor(LastFileStatus status)
