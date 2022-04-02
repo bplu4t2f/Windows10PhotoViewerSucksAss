@@ -45,7 +45,6 @@ namespace Windows10PhotoViewerSucksAss
 			// This seems to have only positive effects: Reduces artifacts when moving controls around (such as the splitter).
 			this.SetStyle(ControlStyles.AllPaintingInWmPaint, true);
 
-			this.Size = new Size(960, 640);
 			this.mainImageControl.BackColor = Color.FromArgb(32, 64, 96);
 			this.splitter.Width = 5;
 			this.SetApplicationFont(SystemFonts.MenuFont); // MenuFont is normally Segoe UI 9, which, in this application, looks way better than Microsoft Sans Serif 8 (which, contrary to what MSDN says, is the default application font).
@@ -155,6 +154,8 @@ namespace Windows10PhotoViewerSucksAss
 			this.imageCacheWorker.StartWorkerThread();
 		}
 
+		protected override Size DefaultSize => new Size(960, 640);
+
 		public StartupInfo StartupInfo { get; }
 
 		private readonly SynchronizationContext synchronizationContext;
@@ -179,7 +180,7 @@ namespace Windows10PhotoViewerSucksAss
 		static Form1()
 		{
 			Setting_BackColor = applicableSettings.AddReturn(MakeSetting(
-				Setting("ImageBackColor", s => s.Color, (s, v) => s.Color = v),
+				Setting("ImageBackColor", s => s.ImageBackColor, (s, v) => s.ImageBackColor = v),
 				(x, v) => { if (!v.IsEmpty) x.mainImageControl.BackColor = v; },
 				x => x.mainImageControl.BackColor
 				));
@@ -1259,7 +1260,8 @@ namespace Windows10PhotoViewerSucksAss
 	{
 		Unknown,
 		OK,
-		Error
+		Error,
+		NotAnImageFile
 	}
 
 

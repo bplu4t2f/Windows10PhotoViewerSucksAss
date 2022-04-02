@@ -40,7 +40,7 @@ namespace Windows10PhotoViewerSucksAss
 			try
 			{
 				var path = GetFullSettingsFilePath();
-				using (var fileStream = FileIO.Open(out int error, path, FileAccess.Read, FileShare.Read, FileMode.Open))
+				using (var fileStream = FileIO.OpenRead(out int error, path))
 				{
 					if (fileStream == null)
 					{
@@ -101,7 +101,7 @@ namespace Windows10PhotoViewerSucksAss
 		//    \___/|___/\___|_|    |___/\___|\__|\__|_|_| |_|\__, |___/
 		//                                                   |___/     
 
-		public Color Color { get; set; }
+		public Color ImageBackColor { get; set; }
 		public int WindowWidth { get; set; }
 		public int WindowHeight { get; set; }
 		public bool SortCaseSensitive { get; set; }
@@ -126,7 +126,8 @@ namespace Windows10PhotoViewerSucksAss
 
 				// Root node is Settings.
 				var settings = new Settings();
-				{ if (TryGetElementValueColor_MaybeInt32Fallback(root, "Color", out var tmp)) settings.Color = tmp; }
+				{ if (TryGetElementValueColor_MaybeInt32Fallback(root, "Color", out var tmp)) settings.ImageBackColor = tmp; } // Legacy property name
+				{ if (TryGetElementValueColor_MaybeInt32Fallback(root, "ImageBackColor", out var tmp)) settings.ImageBackColor = tmp; }
 				{ if (TryGetElementValueInt32(root, "WindowWidth", out var tmp)) settings.WindowWidth = tmp; }
 				{ if (TryGetElementValueInt32(root, "WindowHeight", out var tmp)) settings.WindowHeight = tmp; }
 				{ if (TryGetElementValueBool(root, "SortCaseSensitive", out var tmp)) settings.SortCaseSensitive = tmp; }
@@ -177,7 +178,7 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			if (settings == null) return SetNil(target);
 
-			AddElementValueColor(target, "Color", settings.Color);
+			AddElementValueColor(target, "ImageBackColor", settings.ImageBackColor);
 			AddElementValueInt32(target, "WindowWidth", settings.WindowWidth);
 			AddElementValueInt32(target, "WindowHeight", settings.WindowHeight);
 			AddElementValueBool(target, "SortCaseSensitive", settings.SortCaseSensitive);

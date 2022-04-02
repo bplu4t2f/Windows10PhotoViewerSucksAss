@@ -147,6 +147,11 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				return SetNil(childNode);
 			}
+			else if (valueString == String.Empty)
+			{
+				childNode.IsEmpty = true;
+				return childNode;
+			}
 			else
 			{
 				var textNode = parent.OwnerDocument.CreateTextNode(valueString);

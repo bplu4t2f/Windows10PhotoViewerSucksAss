@@ -20,7 +20,7 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			try
 			{
-				using (var stream = FileIO.Open(out int error, FilePath, FileAccess.Read, FileShare.Read, FileMode.Open))
+				using (var stream = FileIO.OpenRead(out int error, FilePath))
 				{
 					if (stream == null) return null;
 					var doc = new XmlDocument();

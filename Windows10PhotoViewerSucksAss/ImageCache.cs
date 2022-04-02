@@ -259,12 +259,29 @@ namespace Windows10PhotoViewerSucksAss
 			Debug.Assert(key != null);
 			try
 			{
-				var image = Util.LoadImageFromFile(key.FullPath);
-				key.LastFileStatus = LastFileStatus.OK;
+				var image = Util.LoadImageFromFile(key.FullPath, out bool notAnImageFile);
+				if (image != null)
+				{
+					key.LastFileStatus = LastFileStatus.OK;
+				}
+				else
+				{
+					if (notAnImageFile)
+					{
+						key.LastFileStatus = LastFileStatus.NotAnImageFile;
+					}
+					else
+					{
+						key.LastFileStatus = LastFileStatus.Error;
+					}
+				}
 				container.SetImage(image);
 			}
 			catch (Exception ex)
 			{
+				// This happens if we already determined that the image file should be valid,
+				// and the file is also OK, but GDI+ failed to load the actual image.
+				// Or there was a read error after initially opening the file.
 				Debug.WriteLine(ex.ToString());
 				key.LastFileStatus = LastFileStatus.Error;
 				container.SetImage(null);

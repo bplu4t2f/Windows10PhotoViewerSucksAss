@@ -20,18 +20,9 @@ namespace Windows10PhotoViewerSucksAss
 			return item;
 		}
 
-		public static Image LoadImageFromFile(string file)
+		public static Image LoadImageFromFile(string file, out bool notAnImageFile)
 		{
-			// Must do it this way, with Image.FromFile, or with the Bitmap(string) constructor, the file stays locked.
-			// Bitmap(Stream) says we must leave the stream open.
-			var memoryStream = new MemoryStream();
-#warning TODO use a better file stream
-			using (FileStream fileStream = File.OpenRead(file))
-			{
-				fileStream.CopyTo(memoryStream);
-			}
-			Image tmpImage = Image.FromStream(memoryStream);
-			return tmpImage;
+			return ImageLoader.LoadFromFile(file, out int fileError, out notAnImageFile);
 		}
 
 		public static void ClipboardCutFileList(string[] files)

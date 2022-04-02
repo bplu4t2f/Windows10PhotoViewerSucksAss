@@ -116,33 +116,36 @@ namespace Windows10PhotoViewerSucksAss
 		protected override void OnPaint(PaintEventArgs e)
 		{
 			var g = e.Graphics;
-			g.Clear(this.BackColor);
+			var backColor = this.BackColor;
+			g.Clear(backColor);
 
 			if (this.availableFiles == null)
 			{
 				return;
 			}
 
+			var size = this.Size;
+
 			var scrollBarWidth = SystemInformation.VerticalScrollBarWidth;
 
-			TextFormatFlags flags = TextFormatFlags.EndEllipsis;
+			TextFormatFlags flags = TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix;
 			int lineHeight = this.GetLineHeight();
 			int imageIndex = this.scrollBar.ScrollValue;
-			for (int y = 0; y < this.Height && imageIndex < this.availableFiles.Count; ++imageIndex)
+			for (int y = 0; y < size.Height && imageIndex < this.availableFiles.Count; ++imageIndex)
 			{
 				OverviewFileListEntry file = this.availableFiles[imageIndex];
 				Font font = imageIndex == this.selectedIndex ? this.GetSelectionFont() : this.Font;
-				Rectangle textRect = new Rectangle(0, y, this.Width - scrollBarWidth, lineHeight);
+				Rectangle textRect = new Rectangle(0, y, size.Width - scrollBarWidth, lineHeight);
 				Color textColor = this.GetFileStatusColor(file.fileListEntry.LastFileStatus);
-				TextRenderer.DrawText(g, file.fileName, font, textRect, textColor, this.BackColor, flags);
+				TextRenderer.DrawText(g, file.fileName, font, textRect, textColor, backColor, flags);
 				y += lineHeight;
 			}
 
 
-			int numFilesThatFitOnScreen = (this.Height + lineHeight - 1) / lineHeight;
+			int numFilesThatFitOnScreen = (size.Height + lineHeight - 1) / lineHeight;
 
 			var scrollBarLayoutInfo = new EmbedScrollBar.LayoutInfo(
-				Bounds: new Rectangle(this.Width - scrollBarWidth, 0, scrollBarWidth, this.Height),
+				Bounds: new Rectangle(size.Width - scrollBarWidth, 0, scrollBarWidth, size.Height),
 				SmallChange: 1,
 				LargeChange: 10,
 				ViewportSize: numFilesThatFitOnScreen,
@@ -160,11 +163,21 @@ namespace Windows10PhotoViewerSucksAss
 				case LastFileStatus.Unknown:
 				case LastFileStatus.OK:
 					return this.ForeColor;
+				case LastFileStatus.NotAnImageFile:
+					{
+						// Use regular fore color but with 33% alpha.
+						// Since old school GDI rendering cannot alpha, we'll blend manually with the back color.
+						var b = this.BackColor;
+						var f = this.ForeColor;
+						return Color.FromArgb(BlendColor33(b.R, f.R), BlendColor33(b.G, f.G), BlendColor33(b.B, f.B));
+					}
 				case LastFileStatus.Error:
 				default:
 					return this.ForeColorError;
 			}
 		}
+
+		private static int BlendColor33(int a, int b) => Math.Min(Math.Max(a + (b - a) / 3, 0), 255);
 
 		protected override void OnMouseDown(MouseEventArgs e)
 		{

@@ -36,9 +36,14 @@ namespace Windows10PhotoViewerSucksAss
 			return new FileStream(handle, FileAccess.ReadWrite);
 		}
 
+		public static FileStream OpenRead(out int error, string filename)
+		{
+			return Open(out error, filename, FileAccess.Read, FileShare.Read, FileMode.Open);
+		}
+
 		public static int ReadEntireFile(out byte[] data, string filename)
 		{
-			using (var fileStream = Open(out int error, filename, FileAccess.Read, FileShare.Read, FileMode.Open))
+			using (var fileStream = OpenRead(out int error, filename))
 			{
 				if (fileStream == null)
 				{

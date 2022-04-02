@@ -64,6 +64,7 @@
     <Compile Include="GetSet.cs" />
     <Compile Include="IconStuff.cs" />
     <Compile Include="ImageCache.cs" />
+    <Compile Include="ImageLoader.cs" />
     <Compile Include="MainImageControl.cs">
       <SubType>Component</SubType>
     </Compile>
