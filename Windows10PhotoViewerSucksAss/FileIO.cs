@@ -24,36 +24,37 @@ namespace Windows10PhotoViewerSucksAss
 		/// <summary>
 		/// Exception-free file opening because fuck exceptions.
 		/// </summary>
-		public static int Open(out FileStream fileStream, string filename, FileAccess fileAccess = FileAccess.ReadWrite, FileShare fileShare = FileShare.None, FileMode creationDisposition = FileMode.OpenOrCreate)
+		public static FileStream Open(out int error, string filename, FileAccess fileAccess = FileAccess.ReadWrite, FileShare fileShare = FileShare.None, FileMode creationDisposition = FileMode.OpenOrCreate)
 		{
 			var handle = CreateFile(filename, fileAccess, fileShare, IntPtr.Zero, creationDisposition, FileAttributes.Normal, IntPtr.Zero);
 			if (handle.IsInvalid)
 			{
-				int error = Marshal.GetLastWin32Error();
-				fileStream = null;
-				return error;
+				error = Marshal.GetLastWin32Error();
+				return null;
 			}
-			fileStream = new FileStream(handle, FileAccess.ReadWrite);
-			return 0;
+			error = 0;
+			return new FileStream(handle, FileAccess.ReadWrite);
 		}
 
 		public static int ReadEntireFile(out byte[] data, string filename)
 		{
-			int error = Open(out var fileStream, filename, FileAccess.Read, FileShare.Read, FileMode.Open);
-			if (error != 0)
+			using (var fileStream = Open(out int error, filename, FileAccess.Read, FileShare.Read, FileMode.Open))
 			{
-				data = null;
-				return error;
-			}
-			try
-			{
-				data = new byte[fileStream.Length];
-				fileStream.Read(data, 0, data.Length);
-				return 0;
-			}
-			finally
-			{
-				fileStream.Dispose();
+				if (fileStream == null)
+				{
+					data = null;
+					return error;
+				}
+				try
+				{
+					data = new byte[fileStream.Length];
+					fileStream.Read(data, 0, data.Length);
+					return 0;
+				}
+				finally
+				{
+					fileStream.Dispose();
+				}
 			}
 		}
 
