@@ -13,51 +13,60 @@ using System.Xml.Serialization;
 
 namespace Windows10PhotoViewerSucksAss
 {
-	class SettingsManager<T>
-		where T : new()
+	// TODO simplify further - the only concern of this class should be to ensure that only one save operation is going on at the same time.
+
+	class SettingsManager
 	{
-		public SettingsManager(string appDataFolderName)
+		public SettingsManager(string subfolderName)
 		{
-			string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-			this.SettingsFilePath = Path.Combine(appData, $@"{appDataFolderName}\settings.xml");
+			this.SubfolderName = subfolderName ?? throw new ArgumentNullException(nameof(subfolderName));
 		}
 
-		private readonly object sync = new object();
-		public string SettingsFilePath { get; }
+		public string SubfolderName { get; }
 
-		public T Load()
+		private readonly object sync = new object();
+
+		public string GetFullSettingsFilePath()
+		{
+			string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+			return Path.Combine(appData, this.SubfolderName, "settings.xml");
+		}
+
+		public T Load<T>(Func<Stream, T> deserializer)
 		{
 			try
 			{
-				using (var fileStream = FileIO.Open(out int error, this.SettingsFilePath, FileAccess.Read, FileShare.Read, FileMode.Open))
+				var path = GetFullSettingsFilePath();
+				using (var fileStream = FileIO.Open(out int error, path, FileAccess.Read, FileShare.Read, FileMode.Open))
 				{
 					if (fileStream == null)
 					{
 						// File not found etc -- we don't actually care about the exact error.
-						return new T();
+						return default;
 					}
-					var ser = new XmlSerializer(typeof(T));
-					return (T)ser.Deserialize(fileStream);
+
+					var result = deserializer(fileStream);
+					return result;
 				}
 			}
 			catch (Exception ex)
 			{
 				// We don't actually care.
 				Debug.WriteLine(ex);
+				return default;
 			}
-			return new T();
 		}
 
 		private byte[] bytesToBeSaved;
+		private string saveDestination;
 		private object saveTaskToken;
 
-		public void QueueSave(T value)
+		public void QueueSave<T>(T value, Action<Stream, T> serializer)
 		{
-			var ser = new XmlSerializer(typeof(T));
 			byte[] bytes;
 			using (var stream = new MemoryStream())
 			{
-				ser.Serialize(stream, value);
+				serializer(stream, value);
 				bytes = stream.ToArray();
 			}
 
@@ -66,6 +75,7 @@ namespace Windows10PhotoViewerSucksAss
 			lock (this.sync)
 			{
 				this.bytesToBeSaved = bytes;
+				this.saveDestination = this.GetFullSettingsFilePath();
 				if (this.saveTaskToken == null)
 				{
 					this.saveTaskToken = new object();
@@ -98,6 +108,7 @@ namespace Windows10PhotoViewerSucksAss
 			while (true)
 			{
 				byte[] bytes;
+				string saveDestination;
 				lock (this.sync)
 				{
 					if (this.saveTaskToken != token)
@@ -112,14 +123,17 @@ namespace Windows10PhotoViewerSucksAss
 						break;
 					}
 					bytes = this.bytesToBeSaved;
+					saveDestination = this.saveDestination;
+					Debug.Assert(saveDestination != null);
 					this.bytesToBeSaved = null;
+					this.saveDestination = null;
 				}
 
 				try
 				{
-					var dir = Path.GetDirectoryName(this.SettingsFilePath);
+					var dir = Path.GetDirectoryName(saveDestination);
 					Directory.CreateDirectory(dir);
-					File.WriteAllBytes(this.SettingsFilePath, bytes);
+					File.WriteAllBytes(saveDestination, bytes);
 				}
 				catch (Exception ex)
 				{

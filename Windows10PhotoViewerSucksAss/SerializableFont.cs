@@ -19,7 +19,7 @@ namespace Windows10PhotoViewerSucksAss
 		/// <summary>
 		/// Intended for xml serialization purposes only
 		/// </summary>
-		private FontDescriptor() { }
+		public FontDescriptor() { }
 
 		public static FontDescriptor FromFont(Font f)
 		{
