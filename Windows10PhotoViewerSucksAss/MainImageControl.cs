@@ -256,7 +256,7 @@ namespace Windows10PhotoViewerSucksAss
 			g.PixelOffsetMode = PixelOffsetMode.Half;
 
 			g.TranslateTransform(this.Width / 2, this.Height / 2);
-			g.MultiplyTransform(this.transform);
+			g.MultiplyTransform(transform);
 
 			g.DrawImage(image, 0, 0, image.Width, image.Height);
 			if (this.zooming || this.panning)
