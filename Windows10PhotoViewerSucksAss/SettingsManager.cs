@@ -93,10 +93,15 @@ namespace Windows10PhotoViewerSucksAss
 
 		private void BackgroundSaveTask(object token)
 		{
-			lock (this.sync)
+			while (true)
 			{
-				while (true)
+				byte[] bytes;
+				lock (this.sync)
 				{
+					if (this.saveTaskToken != token)
+					{
+						break;
+					}
 					if (this.bytesToBeSaved == null)
 					{
 						// Terminate this task.
@@ -104,25 +109,20 @@ namespace Windows10PhotoViewerSucksAss
 						Monitor.PulseAll(this.sync);
 						break;
 					}
-					byte[] bytes = this.bytesToBeSaved;
+					bytes = this.bytesToBeSaved;
 					this.bytesToBeSaved = null;
+				}
 
-					Monitor.Exit(this.sync);
-					try
-					{
-						var dir = Path.GetDirectoryName(this.SettingsFilePath);
-						Directory.CreateDirectory(dir);
-						File.WriteAllBytes(this.SettingsFilePath, bytes);
-					}
-					catch (Exception ex)
-					{
-						// We don't actually care.
-						Debug.WriteLine(ex);
-					}
-					finally
-					{
-						Monitor.Enter(this.sync);
-					}
+				try
+				{
+					var dir = Path.GetDirectoryName(this.SettingsFilePath);
+					Directory.CreateDirectory(dir);
+					File.WriteAllBytes(this.SettingsFilePath, bytes);
+				}
+				catch (Exception ex)
+				{
+					// We don't actually care.
+					Debug.WriteLine(ex);
 				}
 			}
 		}
