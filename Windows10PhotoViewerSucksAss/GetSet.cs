@@ -44,40 +44,6 @@ namespace Windows10PhotoViewerSucksAss
 	// Need these because some settings are stored differently in the xml file than they are used in the application.
 	//
 
-	sealed class GetSet_Enum<TSettings, T> : IGetSet<TSettings, T>
-		where T : struct, Enum
-	{
-		public GetSet_Enum(IGetSet<TSettings, string> inner)
-		{
-			this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
-		}
-
-		public string DebugName => this.inner.DebugName;
-		private readonly IGetSet<TSettings, string> inner;
-
-		public void Set(TSettings to, T value)
-		{
-			string ser = value.ToString();
-			this.inner.Set(to, ser);
-		}
-
-		public T Get(TSettings from)
-		{
-			var ser = this.inner.Get(from);
-			Enum.TryParse<T>(ser, out T value);
-			return value;
-		}
-	}
-
-	static class GetSet_Enum
-	{
-		public static GetSet_Enum<TSettings, T> Enum<TSettings, T>(this IGetSet<TSettings, string> inner)
-			where T : struct, Enum
-		{
-			return new GetSet_Enum<TSettings, T>(inner);
-		}
-	}
-
 	sealed class GetSet_Encoding<TSettings, TSer, TApp> : IGetSet<TSettings, TApp>
 	{
 		public GetSet_Encoding(

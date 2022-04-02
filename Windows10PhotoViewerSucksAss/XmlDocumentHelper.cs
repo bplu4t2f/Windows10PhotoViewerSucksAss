@@ -84,6 +84,13 @@ namespace Windows10PhotoViewerSucksAss
 		public static XmlElement AddElementValueColor(XmlElement parent, string elementName, Color value)
 			=> AddElementValue(parent, elementName, value, ToString_Color);
 
+		public static bool TryGetElementValueEnum<T>(XmlElement parent, string elementName, out T value)
+			where T : struct
+			=> TryGetElementValue(parent, elementName, out value, Enum.TryParse);
+		public static XmlElement AddElementValueEnum<T>(XmlElement parent, string elementName, T value)
+			where T : struct
+			=> AddElementValue(parent, elementName, value, x => x.ToString());
+
 		//public static bool TryGetElementValueFont(XmlNode parent, string elementName, out FontDescriptor value)
 		//	=> TryGetElementValue(parent, elementName, out value, Parse_Font);
 

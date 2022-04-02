@@ -108,7 +108,7 @@ namespace Windows10PhotoViewerSucksAss
 		public FontDescriptor ApplicationFont { get; set; }
 		public int OverviewControlWidth { get; set; } = -1;
 		public int SplitterWidth { get; set; } = -1;
-		public string MouseWheelMode { get; set; }
+		public MouseWheelMode MouseWheelMode { get; set; }
 		public bool UseCurrentImageAsWindowIcon { get; set; }
 		public Color FileListBackColor { get; set; }
 		public Color FileListForeColor { get; set; }
@@ -133,7 +133,7 @@ namespace Windows10PhotoViewerSucksAss
 				{ if (TryGetElement(root, "ApplicationFont", out var tmp)) settings.ApplicationFont = DeserializeFontDescriptor(tmp); }
 				{ if (TryGetElementValueInt32(root, "OverviewControlWidth", out var tmp)) settings.OverviewControlWidth = tmp; }
 				{ if (TryGetElementValueInt32(root, "SplitterWidth", out var tmp)) settings.SplitterWidth = tmp; }
-				{ if (TryGetElementValueString(root, "MouseWheelMode", out var tmp)) settings.MouseWheelMode = tmp; }
+				{ if (TryGetElementValueEnum<MouseWheelMode>(root, "MouseWheelMode", out var tmp)) settings.MouseWheelMode = tmp; }
 				{ if (TryGetElementValueBool(root, "UseCurrentImageAsWindowIcon", out var tmp)) settings.UseCurrentImageAsWindowIcon = tmp; }
 				{ if (TryGetElementValueColor_MaybeInt32Fallback(root, "FileListBackColor", out var tmp)) settings.FileListBackColor = tmp; }
 				{ if (TryGetElementValueColor_MaybeInt32Fallback(root, "FileListForeColor", out var tmp)) settings.FileListForeColor = tmp; }
@@ -184,7 +184,7 @@ namespace Windows10PhotoViewerSucksAss
 			SerializeFontDescriptor(AddElement(target, "ApplicationFont"), settings.ApplicationFont);
 			AddElementValueInt32(target, "OverviewControlWidth", settings.OverviewControlWidth);
 			AddElementValueInt32(target, "SplitterWidth", settings.SplitterWidth);
-			AddElementValueString(target, "MouseWheelMode", settings.MouseWheelMode);
+			AddElementValueEnum(target, "MouseWheelMode", settings.MouseWheelMode);
 			AddElementValueBool(target, "UseCurrentImageAsWindowIcon", settings.UseCurrentImageAsWindowIcon);
 			AddElementValueColor(target, "FileListBackColor", settings.FileListBackColor);
 			AddElementValueColor(target, "FileListForeColor", settings.FileListForeColor);

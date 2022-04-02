@@ -210,7 +210,7 @@ namespace Windows10PhotoViewerSucksAss
 				x => x.splitter.Width
 				));
 			Setting_MouseWheelMode = applicableSettings.AddReturn(MakeSetting(
-				Setting("MouseWheelMode", s => s.MouseWheelMode, (s, v) => s.MouseWheelMode = v).Enum<Settings, MouseWheelMode>(),
+				Setting("MouseWheelMode", s => s.MouseWheelMode, (s, v) => s.MouseWheelMode = v),
 				(x, v) => x.MouseWheelMode = v,
 				x => x.MouseWheelMode
 				));
@@ -275,7 +275,8 @@ namespace Windows10PhotoViewerSucksAss
 			public ApplicableSetting(IGetSet<Settings, T> accessor, Action<Form1, T> apply, Func<Form1, T> get)
 			{
 				this.accessor = accessor ?? throw new ArgumentNullException(nameof(accessor));
-				this.apply = apply;
+				// Apply cannot be null because this is used on program startup to apply the initial setting values.
+				this.apply = apply ?? throw new ArgumentNullException(nameof(apply));
 				this.get = get;
 			}
 
@@ -304,13 +305,13 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				this.accessor.Set(Settings.Instance, value);
 				this.ValueSet?.Invoke(this, EventArgs.Empty);
-				this.apply?.Invoke(to, value);
+				this.apply(to, value);
 			}
 
 			public void ApplyStored(Form1 target)
 			{
 				T value = this.accessor.Get(Settings.Instance);
-				this.apply?.Invoke(target, value);
+				this.apply(target, value);
 			}
 		}
 
