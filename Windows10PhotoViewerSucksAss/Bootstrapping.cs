@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
 using System.Xml.Serialization;
 
 namespace Windows10PhotoViewerSucksAss
@@ -17,26 +18,19 @@ namespace Windows10PhotoViewerSucksAss
 		/// </summary>
 		public static BootstrapData Load(string FilePath)
 		{
-			if (!File.Exists(FilePath))
-			{
-				Debug.WriteLine("Bootstrap file doesn't exist.");
-				return null;
-			}
-
 			try
 			{
-				XmlSerializer Serializer = new XmlSerializer(typeof(BootstrapData));
-				using (var Stream = File.OpenRead(FilePath))
+				using (var stream = FileIO.Open(out int error, FilePath, FileAccess.Read, FileShare.Read, FileMode.Open))
 				{
-					var Data = (BootstrapData)Serializer.Deserialize(Stream);
-					Debug.WriteLine("Bootstrap data loaded successfully.");
-					return Data;
+					if (stream == null) return null;
+					var doc = new XmlDocument();
+					doc.Load(stream);
+					var root = XmlDocumentHelper.GetDocumentRootNode(doc);
+					var data = new BootstrapData();
+					XmlDocumentHelper.AutoDeserializeSimpleObject(data, root);
+					Debug.WriteLine("Bootstrap data loaded.");
+					return data;
 				}
-			}
-			catch (FileNotFoundException)
-			{
-				Debug.WriteLine("Bootstrap existed at some point but then not.");
-				return null;
 			}
 			catch (Exception ex)
 			{

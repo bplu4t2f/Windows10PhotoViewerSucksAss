@@ -148,6 +148,30 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
+		public static bool TryGetElementValueObj(XmlElement parent, string elementName, Type t, out object value)
+		{
+			var field = typeof(XmlDocumentHelper).GetFields().FirstOrDefault(x => x.FieldType.GetGenericTypeDefinition() == typeof(TryParseFunc<>) && x.FieldType.GenericTypeArguments[0] == t);
+			if (field == null) throw new Exception($"Unsupported serialization type: {t.FullName}");
+			object try_parse_func = field.GetValue(null);
+			var method = typeof(XmlDocumentHelper).GetMethod(nameof(TryGetElementValue)).MakeGenericMethod(t);
+			var args = new object[] { parent, elementName, null, try_parse_func };
+			bool success = (bool)method.Invoke(null, args);
+			value = args[2];
+			return success;
+		}
+
+		public static void AutoDeserializeSimpleObject(object target, XmlElement element)
+		{
+			var props = target.GetType().GetProperties();
+			foreach (var prop in props)
+			{
+				if (TryGetElementValueObj(element, prop.Name, prop.PropertyType, out object value))
+				{
+					prop.SetValue(target, value);
+				}
+			}
+		}
+
 		public static readonly TryParseFunc<string> Parse_String = (string text, out string value) => { value = text; return true; };
 		public static readonly ToStringFunc<string> ToString_String = value => value;
 		public static readonly TryParseFunc<int> Parse_Int32 = (string text, out int value) => Int32.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
