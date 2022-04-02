@@ -255,15 +255,15 @@ namespace Windows10PhotoViewerSucksAss
 			g.SmoothingMode = SmoothingMode.None;
 			g.PixelOffsetMode = PixelOffsetMode.Half;
 
-			g.Transform = transform;
+			g.TranslateTransform(this.Width / 2, this.Height / 2);
+			g.MultiplyTransform(this.transform);
 
-			g.TranslateTransform(this.Width / 2, this.Height / 2, MatrixOrder.Append);
 			g.DrawImage(image, 0, 0, image.Width, image.Height);
 			if (this.zooming || this.panning)
 			{
 				g.ResetTransform();
 				g.TranslateTransform(this.actionStartPosition.X, this.actionStartPosition.Y);
-				g.DrawRectangle(Pens.Black, -10, -10, 20, 20);
+				g.DrawRectangle(Pens.Black, -9.5f, -9.5f, 20.0f, 20.0f);
 				g.ResetTransform();
 				g.TranslateTransform(this.actionLastIterationPosition.X, this.actionLastIterationPosition.Y);
 				DrawCross(g, Pens.Black, 5);
@@ -322,10 +322,10 @@ namespace Windows10PhotoViewerSucksAss
 
 		private static void DrawCross(Graphics g, Pen pen, int size)
 		{
-			g.DrawLine(pen, 0, -size, 0, 0);
-			g.DrawLine(pen, 0, size, 0, 0);
-			g.DrawLine(pen, -size, 0, 0, 0);
-			g.DrawLine(pen, size, 0, 0, 0);
+			g.DrawLine(pen, 0.5f, -size + 0.5f, 0.5f, 0.5f);
+			g.DrawLine(pen, 0.5f, size + 0.5f, 0.5f, 0.5f);
+			g.DrawLine(pen, -size + 0.5f, 0.5f, 0.5f, 0.5f);
+			g.DrawLine(pen, size + 0.5f, 0.5f, 0.5f, 0.5f);
 		}
 
 		public void ZoomAtLocation(Point center, float factor)
