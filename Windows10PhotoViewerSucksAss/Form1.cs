@@ -33,7 +33,6 @@ namespace Windows10PhotoViewerSucksAss
 
 #warning TODO cancel loading if outdated
 #warning TODO display 'loading' if loading for too long
-#warning TODO do xml differently?
 
 	class Form1 : Form
 	{
