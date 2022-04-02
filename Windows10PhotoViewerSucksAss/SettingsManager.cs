@@ -29,13 +29,15 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			try
 			{
-				if (File.Exists(this.SettingsFilePath))
+				using (var fileStream = FileIO.Open(out int error, this.SettingsFilePath, FileAccess.Read, FileShare.Read, FileMode.Open))
 				{
-					var ser = new XmlSerializer(typeof(T));
-					using (var stream = File.OpenRead(this.SettingsFilePath))
+					if (fileStream == null)
 					{
-						return (T)ser.Deserialize(stream);
+						// File not found etc -- we don't actually care about the exact error.
+						return new T();
 					}
+					var ser = new XmlSerializer(typeof(T));
+					return (T)ser.Deserialize(fileStream);
 				}
 			}
 			catch (Exception ex)
