@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
@@ -100,7 +101,7 @@ namespace Windows10PhotoViewerSucksAss
 		//    \___/|___/\___|_|    |___/\___|\__|\__|_|_| |_|\__, |___/
 		//                                                   |___/     
 
-		public int Color { get; set; }
+		public Color Color { get; set; }
 		public int WindowWidth { get; set; }
 		public int WindowHeight { get; set; }
 		public bool SortCaseSensitive { get; set; }
@@ -109,9 +110,9 @@ namespace Windows10PhotoViewerSucksAss
 		public int SplitterWidth { get; set; } = -1;
 		public string MouseWheelMode { get; set; }
 		public bool UseCurrentImageAsWindowIcon { get; set; }
-		public int FileListBackColor { get; set; }
-		public int FileListForeColor { get; set; }
-		public int FileListForeColorError { get; set; }
+		public Color FileListBackColor { get; set; }
+		public Color FileListForeColor { get; set; }
+		public Color FileListForeColorError { get; set; }
 
 		public static Settings Deserialize(Stream stream)
 		{
@@ -125,7 +126,7 @@ namespace Windows10PhotoViewerSucksAss
 
 				// Root node is Settings.
 				var settings = new Settings();
-				{ if (TryGetElementValueInt32(root, "Color", out var tmp)) settings.Color = tmp; }
+				{ if (TryGetElementValueColor_MaybeInt32Fallback(root, "Color", out var tmp)) settings.Color = tmp; }
 				{ if (TryGetElementValueInt32(root, "WindowWidth", out var tmp)) settings.WindowWidth = tmp; }
 				{ if (TryGetElementValueInt32(root, "WindowHeight", out var tmp)) settings.WindowHeight = tmp; }
 				{ if (TryGetElementValueBool(root, "SortCaseSensitive", out var tmp)) settings.SortCaseSensitive = tmp; }
@@ -134,9 +135,9 @@ namespace Windows10PhotoViewerSucksAss
 				{ if (TryGetElementValueInt32(root, "SplitterWidth", out var tmp)) settings.SplitterWidth = tmp; }
 				{ if (TryGetElementValueString(root, "MouseWheelMode", out var tmp)) settings.MouseWheelMode = tmp; }
 				{ if (TryGetElementValueBool(root, "UseCurrentImageAsWindowIcon", out var tmp)) settings.UseCurrentImageAsWindowIcon = tmp; }
-				{ if (TryGetElementValueInt32(root, "FileListBackColor", out var tmp)) settings.FileListBackColor = tmp; }
-				{ if (TryGetElementValueInt32(root, "FileListForeColor", out var tmp)) settings.FileListForeColor = tmp; }
-				{ if (TryGetElementValueInt32(root, "FileListForeColorError", out var tmp)) settings.FileListForeColorError = tmp; }
+				{ if (TryGetElementValueColor_MaybeInt32Fallback(root, "FileListBackColor", out var tmp)) settings.FileListBackColor = tmp; }
+				{ if (TryGetElementValueColor_MaybeInt32Fallback(root, "FileListForeColor", out var tmp)) settings.FileListForeColor = tmp; }
+				{ if (TryGetElementValueColor_MaybeInt32Fallback(root, "FileListForeColorError", out var tmp)) settings.FileListForeColorError = tmp; }
 
 				return settings;
 			}
@@ -176,7 +177,7 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			if (settings == null) return SetNil(target);
 
-			AddElementValueInt32(target, "Color", settings.Color);
+			AddElementValueColor(target, "Color", settings.Color);
 			AddElementValueInt32(target, "WindowWidth", settings.WindowWidth);
 			AddElementValueInt32(target, "WindowHeight", settings.WindowHeight);
 			AddElementValueBool(target, "SortCaseSensitive", settings.SortCaseSensitive);
@@ -185,10 +186,9 @@ namespace Windows10PhotoViewerSucksAss
 			AddElementValueInt32(target, "SplitterWidth", settings.SplitterWidth);
 			AddElementValueString(target, "MouseWheelMode", settings.MouseWheelMode);
 			AddElementValueBool(target, "UseCurrentImageAsWindowIcon", settings.UseCurrentImageAsWindowIcon);
-			AddElementValueInt32(target, "FileListBackColor", settings.FileListBackColor);
-			AddElementValueInt32(target, "FileListForeColor", settings.FileListForeColor);
-			var test = AddElementValueInt32(target, "FileListForeColorError", settings.FileListForeColorError);
-			SetNil(test);
+			AddElementValueColor(target, "FileListBackColor", settings.FileListBackColor);
+			AddElementValueColor(target, "FileListForeColor", settings.FileListForeColor);
+			AddElementValueColor(target, "FileListForeColorError", settings.FileListForeColorError);
 
 			return target;
 		}
@@ -202,6 +202,20 @@ namespace Windows10PhotoViewerSucksAss
 			AddElementValueInt32(target, "Style", fontDescriptor.Style);
 
 			return target;
+		}
+
+		private static bool TryGetElementValueColor_MaybeInt32Fallback(XmlElement parent, string elementName, out Color color)
+		{
+			if (TryGetElementValueColor(parent, elementName, out color))
+			{
+				return true;
+			}
+			if (TryGetElementValueInt32(parent, elementName, out int argb))
+			{
+				color = Color.FromArgb(argb);
+				return true;
+			}
+			return false;
 		}
 	}
 }

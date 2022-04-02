@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
 
@@ -76,6 +78,11 @@ namespace Windows10PhotoViewerSucksAss
 			=> TryGetElementValue(parent, elementName, out value, Parse_Float);
 		public static XmlElement AddElementValueFloat(XmlElement parent, string elementName, float value)
 			=> AddElementValue(parent, elementName, value, ToString_Float);
+		
+		public static bool TryGetElementValueColor(XmlElement parent, string elementName, out Color value)
+			=> TryGetElementValue(parent, elementName, out value, Parse_Color);
+		public static XmlElement AddElementValueColor(XmlElement parent, string elementName, Color value)
+			=> AddElementValue(parent, elementName, value, ToString_Color);
 
 		//public static bool TryGetElementValueFont(XmlNode parent, string elementName, out FontDescriptor value)
 		//	=> TryGetElementValue(parent, elementName, out value, Parse_Font);
@@ -149,8 +156,93 @@ namespace Windows10PhotoViewerSucksAss
 		public static readonly ToStringFunc<bool> ToString_Bool = value => value.ToString(CultureInfo.InvariantCulture);
 		public static readonly TryParseFunc<float> Parse_Float = (string text, out float value) => Single.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
 		public static readonly ToStringFunc<float> ToString_Float = value => value.ToString(CultureInfo.InvariantCulture);
-		//public static readonly TryParseFunc<Color> Parse_Font = TryParseFont;
+		public static readonly TryParseFunc<Color> Parse_Color = TryParseColor;
+		public static readonly ToStringFunc<Color> ToString_Color = FormatColor;
 		//public static readonly TryParseFunc<FontDescriptor> Parse_Font = TryParseFont;
+
+		private static string FormatColor(Color color)
+		{
+			if (color.IsEmpty)
+			{
+				return String.Empty;
+			}
+			string s = String.Format(CultureInfo.InvariantCulture, "R={0},G={1},B={2}", color.R, color.G, color.B);
+			if (color.A != 255)
+			{
+				s += String.Format(CultureInfo.InvariantCulture, ",A={0}", color.A);
+			}
+			return s;
+		}
+
+		private static bool TryParseColor(string text, out Color result)
+		{
+			if (text == null)
+			{
+				result = default;
+				return false;
+			}
+			if (String.IsNullOrWhiteSpace(text))
+			{
+				result = Color.Empty;
+				return true;
+			}
+			var parts = text.Split(',');
+			int? r = null, g = null, b = null, a = null;
+			for (int i = 0; i < parts.Length; ++i)
+			{
+				if (!TryParseColorPart(parts[i], ref r, ref g, ref b, ref a))
+				{
+					result = default;
+					return false;
+				}
+			}
+			if (r == null || g == null || b == null)
+			{
+				result = default;
+				return false;
+			}
+			if (a == null)
+			{
+				a = 255;
+			}
+			result = Color.FromArgb(a.Value, r.Value, g.Value, b.Value);
+			return true;
+		}
+
+		private static bool TryParseColorPart(string part, ref int? r, ref int? g, ref int? b, ref int? a)
+		{
+			var parts = part.Split('=');
+			if (parts.Length != 2) return false;
+			var colorString = parts[0].Trim();
+			if (colorString.Length != 1) return false;
+			if (!Byte.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte number)) return false;
+			switch (colorString[0])
+			{
+				case 'R':
+				case 'r':
+					if (r != null) return false;
+					r = number;
+					break;
+				case 'G':
+				case 'g':
+					if (g != null) return false;
+					g = number;
+					break;
+				case 'B':
+				case 'b':
+					if (b != null) return false;
+					b = number;
+					break;
+				case 'A':
+				case 'a':
+					if (a != null) return false;
+					a = number;
+					break;
+				default:
+					return false;
+			}
+			return true;
+		}
 	}
 
 	delegate bool TryParseFunc<T>(string text, out T value);

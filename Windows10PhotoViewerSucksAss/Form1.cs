@@ -31,6 +31,10 @@ namespace Windows10PhotoViewerSucksAss
 	// TODO maybe it's time to do something about unifying keyboard commands and menu item commands :/
 	// TODO pixel perfect mode
 
+#warning TODO cancel loading if outdated
+#warning TODO display 'loading' if loading for too long
+#warning TODO do xml differently?
+
 	class Form1 : Form
 	{
 		public Form1(StartupInfo startupInfo)
@@ -178,7 +182,7 @@ namespace Windows10PhotoViewerSucksAss
 			List<IApplicableSetting2<Settings>> d = null;
 
 			Setting_BackColor = applicableSettings.AddReturn(
-				d.Setting("ImageBackColor", s => s.Color, (s, v) => s.Color = v).Encoding(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb())
+				d.Setting("ImageBackColor", s => s.Color, (s, v) => s.Color = v)
 				.Lift().Wrap<Form1>(x => Settings.Instance).Applicable((x, v) => { if (!v.IsEmpty) x.mainImageControl.BackColor = v; })
 				).DifferentGetter(x => x.mainImageControl.BackColor);
 			applicableSettings.Add(
@@ -214,15 +218,15 @@ namespace Windows10PhotoViewerSucksAss
 				.Lift().Wrap<Form1>(x => Settings.Instance).Applicable((x, v) => x.SetUseCurrentImageAsWindowIcon(v))
 				);
 			Setting_FileListBackColor = applicableSettings.AddReturn(
-				d.Setting("FileListBackColor", s => s.FileListBackColor, (s, v) => s.FileListBackColor = v).Encoding(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb())
+				d.Setting("FileListBackColor", s => s.FileListBackColor, (s, v) => s.FileListBackColor = v)
 				.Lift().Wrap<Form1>(x => Settings.Instance).Applicable((x, v) => { if (!v.IsEmpty) x.overviewControl.BackColor = v; })
 				).DifferentGetter(x => x.overviewControl.BackColor);
 			Setting_FileListForeColor = applicableSettings.AddReturn(
-				d.Setting("FileListForeColor", s => s.FileListForeColor, (s, v) => s.FileListForeColor = v).Encoding(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb())
+				d.Setting("FileListForeColor", s => s.FileListForeColor, (s, v) => s.FileListForeColor = v)
 				.Lift().Wrap<Form1>(x => Settings.Instance).Applicable((x, v) => { if (!v.IsEmpty) x.overviewControl.ForeColor = v; })
 				).DifferentGetter(x => x.overviewControl.ForeColor);
 			Setting_FileListForeColorError = applicableSettings.AddReturn(
-				d.Setting("FileListForeColorError", s => s.FileListForeColorError, (s, v) => s.FileListForeColorError = v).Encoding(x => x != 0 ? Color.FromArgb(x) : Color.Empty, x => x.IsEmpty ? 0 : x.ToArgb())
+				d.Setting("FileListForeColorError", s => s.FileListForeColorError, (s, v) => s.FileListForeColorError = v)
 				.Lift().Wrap<Form1>(x => Settings.Instance).Applicable((x, v) => { if (!v.IsEmpty) x.overviewControl.ForeColorError = v; })
 				).DifferentGetter(x => x.overviewControl.ForeColorError);
 		}
