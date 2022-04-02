@@ -114,7 +114,7 @@ namespace Windows10PhotoViewerSucksAss
 			e.Graphics.FillRectangle(back, rect);
 			if (!string.IsNullOrWhiteSpace(this.Text))
 			{
-				TextRenderer.DrawText(e.Graphics, this.Text, this.Font, rect, fore, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+				TextRenderer.DrawText(e.Graphics, this.Text, this.Font, rect, fore, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
 			}
 		}
 	}
