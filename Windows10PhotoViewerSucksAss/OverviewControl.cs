@@ -151,7 +151,10 @@ namespace Windows10PhotoViewerSucksAss
 				ViewportSize: numFilesThatFitOnScreen,
 				TotalScrollableDistance: Math.Max(0, this.availableFiles.Count - 1)
 				);
-			this.scrollBar.Paint(g, ref scrollBarLayoutInfo, EmbedScrollBar.ScrollBarArrowButtonStyle.FlatBorderless);
+			using (var paintbox = new EmbedScrollBarPaintbox(backColor, this.ForeColor))
+			{
+				this.scrollBar.Paint(g, ref scrollBarLayoutInfo, paintbox);
+			}
 
 			base.OnPaint(e);
 		}

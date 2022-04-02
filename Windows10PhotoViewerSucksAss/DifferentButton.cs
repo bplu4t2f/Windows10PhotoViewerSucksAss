@@ -89,33 +89,60 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			e.Graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
 
-			Brush back;
+			Color back;
 			Color fore;
 			if (this.mouseDown == MouseButtons.Left && this.mouseInside)
 			{
 				// Super hot
-				back = SystemBrushes.ControlText;
-				fore = SystemColors.ButtonHighlight;
+				var b = this.BackColor;
+				var f = this.ForeColor;
+				if (b.GetBrightness() > f.GetBrightness())
+				{
+					// Back color is lighter than fore color ("light mode")
+					// In this case, blend back color towards white, and fore color towards black.
+					back = BlendColors(this.BackColor, Color.White, 0.5f);
+					fore = BlendColors(this.ForeColor, Color.Black, 0.7f);
+				}
+				else
+				{
+					// Back color is darker than fore color ("dark mode")
+					// Swap colors
+					back = this.ForeColor;
+					fore = this.BackColor;
+				}
 			}
 			else if (this.mouseDown != MouseButtons.None || this.mouseInside)
 			{
 				// Luke warm
-				back = SystemBrushes.ButtonHighlight;
-				fore = SystemColors.ControlText;
+				back = BlendColors(this.BackColor, this.ForeColor, 0.4f);
+				fore = BlendColors(this.ForeColor, this.BackColor, -0.2f);
 			}
 			else
 			{
 				// Cold
-				back = SystemBrushes.ControlDark;
-				fore = SystemColors.ControlText;
+				back = BlendColors(this.BackColor, this.ForeColor, 0.25f);
+				fore = this.ForeColor;
 			}
 
-			var rect = new Rectangle(0, 0, this.Width, this.Height);
-			e.Graphics.FillRectangle(back, rect);
-			if (!string.IsNullOrWhiteSpace(this.Text))
+			using (var backBrush = new SolidBrush(back))
 			{
-				TextRenderer.DrawText(e.Graphics, this.Text, this.Font, rect, fore, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
+				var rect = new Rectangle(0, 0, this.Width, this.Height);
+				e.Graphics.FillRectangle(backBrush, rect);
+				if (!string.IsNullOrWhiteSpace(this.Text))
+				{
+					TextRenderer.DrawText(e.Graphics, this.Text, this.Font, rect, fore, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
+				}
 			}
+		}
+
+		private static Color BlendColors(Color from, Color to, float ratio)
+		{
+			return Color.FromArgb(BlendOne(from.R, to.R, ratio), BlendOne(from.G, to.G, ratio), BlendOne(from.B, to.B, ratio));
+		}
+
+		private static int BlendOne(int a, int b, float ratio)
+		{
+			return Math.Min(Math.Max((int)Math.Round(a + (b - a) * ratio), 0), 255);
 		}
 	}
 }

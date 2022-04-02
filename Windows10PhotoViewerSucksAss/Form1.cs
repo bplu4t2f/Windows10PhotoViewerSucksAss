@@ -45,7 +45,12 @@ namespace Windows10PhotoViewerSucksAss
 			// This seems to have only positive effects: Reduces artifacts when moving controls around (such as the splitter).
 			this.SetStyle(ControlStyles.AllPaintingInWmPaint, true);
 
+			// Design defaults
 			this.mainImageControl.BackColor = Color.FromArgb(32, 64, 96);
+			this.overviewControl.BackColor = Color.FromArgb(24, 29, 46);
+			this.overviewControl.ForeColor = Color.FromArgb(214, 203, 188);
+			this.optionsButton.BackColor = this.overviewControl.BackColor;
+			this.optionsButton.ForeColor = this.overviewControl.ForeColor;
 			this.splitter.Width = 5;
 			this.SetApplicationFont(SystemFonts.MenuFont); // MenuFont is normally Segoe UI 9, which, in this application, looks way better than Microsoft Sans Serif 8 (which, contrary to what MSDN says, is the default application font).
 
@@ -221,12 +226,12 @@ namespace Windows10PhotoViewerSucksAss
 				));
 			Setting_FileListBackColor = applicableSettings.AddReturn(MakeSetting(
 				Setting("FileListBackColor", s => s.FileListBackColor, (s, v) => s.FileListBackColor = v),
-				(x, v) => { if (!v.IsEmpty) x.overviewControl.BackColor = v; },
+				(x, v) => { if (!v.IsEmpty) { x.overviewControl.BackColor = v; x.optionsButton.BackColor = v; } },
 				x => x.overviewControl.BackColor
 				));
 			Setting_FileListForeColor = applicableSettings.AddReturn(MakeSetting(
 				Setting("FileListForeColor", s => s.FileListForeColor, (s, v) => s.FileListForeColor = v),
-				(x, v) => { if (!v.IsEmpty) x.overviewControl.ForeColor = v; },
+				(x, v) => { if (!v.IsEmpty) { x.overviewControl.ForeColor = v; x.optionsButton.ForeColor = v; } },
 				x => x.overviewControl.ForeColor
 				));
 			Setting_FileListForeColorError = applicableSettings.AddReturn(MakeSetting(

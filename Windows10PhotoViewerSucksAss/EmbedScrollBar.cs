@@ -478,30 +478,30 @@ namespace Windows10PhotoViewerSucksAss
 			return Hotness.Inactive;
 		}
 
-		private static Brush GetTrackBrush(Hotness Hotness)
+		private static Brush GetTrackBrush(EmbedScrollBarPaintbox paintbox, Hotness Hotness)
 		{
 			switch (Hotness)
 			{
 				default:
-					return SystemBrushes.ScrollBar;
+					return paintbox.Track;
 				case Hotness.VeryHot:
-					return SystemBrushes.ButtonHighlight;
+					return paintbox.TrackHot;
 			}
 		}
 
-		private static Brush GetArrowButtonBackgroundBrush(ScrollBarArrowButtonStyle Style, Hotness Hotness, out Brush TriangleBrush)
+		private static Brush GetArrowButtonBackgroundBrush(EmbedScrollBarPaintbox paintbox, Hotness Hotness, out Brush TriangleBrush)
 		{
 			switch (Hotness)
 			{
 				case Hotness.VeryHot:
-					TriangleBrush = SystemBrushes.ButtonHighlight;
-					return SystemBrushes.ControlText;
+					TriangleBrush = paintbox.VeryHotFore;
+					return paintbox.VeryHotBack;
 				case Hotness.Warm:
-					TriangleBrush = SystemBrushes.ControlText;
-					return SystemBrushes.ButtonHighlight;
+					TriangleBrush = paintbox.Fore;
+					return paintbox.ThumbWarm;
 				default:
-					TriangleBrush = SystemBrushes.ControlText;
-					return Style == ScrollBarArrowButtonStyle.FlatBorderless ? SystemBrushes.ScrollBar : SystemBrushes.ButtonFace;
+					TriangleBrush = paintbox.Fore;
+					return paintbox.ArrowButtonStyle == ScrollBarArrowButtonStyle.FlatBorderless ? paintbox.Track : paintbox.ThumbWarm;
 			}
 		}
 
@@ -532,7 +532,7 @@ namespace Windows10PhotoViewerSucksAss
 		/// <summary>
 		/// Call this in <see cref="Control.OnPaint"/> with the most recent known values.
 		/// </summary>
-		public void Paint(Graphics g, ref LayoutInfo LayoutInfo, ScrollBarArrowButtonStyle ArrowButtonStyle)
+		public void Paint(Graphics g, ref LayoutInfo LayoutInfo, EmbedScrollBarPaintbox paintbox)
 		{
 			this.LastLayoutInfo = LayoutInfo;
 
@@ -552,7 +552,7 @@ namespace Windows10PhotoViewerSucksAss
 
 			// Track (above thumb)
 			{
-				Brush Brush = GetTrackBrush(this.GetItemHotness(HoveredItem, ScrollBarElement.TrackAboveThumb));
+				Brush Brush = GetTrackBrush(paintbox, this.GetItemHotness(HoveredItem, ScrollBarElement.TrackAboveThumb));
 				if (LayoutInfo.Horizontal)
 				{
 					g.FillRectangle(Brush, Metrics.TrackStart, 0, Metrics.ThumbStart - Metrics.TrackStart, LayoutInfo.Bounds.Height);
@@ -565,7 +565,7 @@ namespace Windows10PhotoViewerSucksAss
 
 			// Track (below thumb)
 			{
-				Brush Brush = GetTrackBrush(this.GetItemHotness(HoveredItem, ScrollBarElement.TrackBelowThumb));
+				Brush Brush = GetTrackBrush(paintbox, this.GetItemHotness(HoveredItem, ScrollBarElement.TrackBelowThumb));
 				if (LayoutInfo.Horizontal)
 				{
 					g.FillRectangle(Brush, Metrics.ThumbStart + Metrics.ThumbSize, 0, Metrics.BottomButtonStart - (Metrics.ThumbStart + Metrics.ThumbSize), LayoutInfo.Bounds.Height);
@@ -582,13 +582,13 @@ namespace Windows10PhotoViewerSucksAss
 				switch (this.GetItemHotness(HoveredItem, ScrollBarElement.Thumb, CanBeHotWithoutHover: true))
 				{
 					case Hotness.VeryHot:
-						Brush = SystemBrushes.ButtonHighlight;
+						Brush = paintbox.VeryHotBack;
 						break;
 					case Hotness.Warm:
-						Brush = SystemBrushes.ControlDarkDark;
+						Brush = paintbox.ThumbWarm;
 						break;
 					default:
-						Brush = SystemBrushes.ControlDark;
+						Brush = paintbox.ThumbIdle;
 						break;
 				}
 				if (LayoutInfo.Horizontal)
@@ -605,7 +605,7 @@ namespace Windows10PhotoViewerSucksAss
 
 			// Top Button
 			{
-				Brush BackgroundBrush = GetArrowButtonBackgroundBrush(ArrowButtonStyle, this.GetItemHotness(HoveredItem, ScrollBarElement.TopButton), out Brush TriangleBrush);
+				Brush BackgroundBrush = GetArrowButtonBackgroundBrush(paintbox, this.GetItemHotness(HoveredItem, ScrollBarElement.TopButton), out Brush TriangleBrush);
 				Rectangle Rect;
 				if (LayoutInfo.Horizontal)
 				{
@@ -616,7 +616,7 @@ namespace Windows10PhotoViewerSucksAss
 					Rect = new Rectangle(0, 0, LayoutInfo.Bounds.Width, Metrics.TrackStart - 0); // "0" stands for top button start
 				}
 				g.FillRectangle(BackgroundBrush, Rect);
-				if (ArrowButtonStyle != ScrollBarArrowButtonStyle.FlatBorderless)
+				if (paintbox.ArrowButtonStyle != ScrollBarArrowButtonStyle.FlatBorderless)
 				{
 					g.DrawRectangle(SystemPens.ControlText, Rect.X + 0.5f, Rect.Y + 0.5f, Rect.Width - 1.0f, Rect.Height - 1.0f);
 				}
@@ -626,7 +626,7 @@ namespace Windows10PhotoViewerSucksAss
 
 			// Bottom Button
 			{
-				Brush BackgroundBrush = GetArrowButtonBackgroundBrush(ArrowButtonStyle, this.GetItemHotness(HoveredItem, ScrollBarElement.BottomButton), out Brush TriangleBrush);
+				Brush BackgroundBrush = GetArrowButtonBackgroundBrush(paintbox, this.GetItemHotness(HoveredItem, ScrollBarElement.BottomButton), out Brush TriangleBrush);
 				Rectangle Rect;
 				if (LayoutInfo.Horizontal)
 				{
@@ -637,7 +637,7 @@ namespace Windows10PhotoViewerSucksAss
 					Rect = new Rectangle(0, Metrics.BottomButtonStart, LayoutInfo.Bounds.Width, LayoutInfo.Bounds.Height - Metrics.BottomButtonStart);
 				}
 				g.FillRectangle(BackgroundBrush, Rect);
-				if (ArrowButtonStyle != ScrollBarArrowButtonStyle.FlatBorderless)
+				if (paintbox.ArrowButtonStyle != ScrollBarArrowButtonStyle.FlatBorderless)
 				{
 					g.DrawRectangle(SystemPens.ControlText, Rect.X + 0.5f, Rect.Y + 0.5f, Rect.Width - 1.0f, Rect.Height - 1.0f);
 				}
@@ -674,6 +674,80 @@ namespace Windows10PhotoViewerSucksAss
 			g.FillPolygon(Brush, this.DrawTriangleHelper);
 
 			g.Transform = Transform;
+		}
+	}
+
+	class EmbedScrollBarPaintbox : IDisposable
+	{
+		public EmbedScrollBarPaintbox(Color backColor, Color foreColor, EmbedScrollBar.ScrollBarArrowButtonStyle arrowButtonStyle = EmbedScrollBar.ScrollBarArrowButtonStyle.FlatBorderless)
+		{
+			this.BackColor = backColor;
+			this.ForeColor = foreColor;
+			this.ArrowButtonStyle = arrowButtonStyle;
+			this._track = new Lazy<Brush>(() => new SolidBrush(BlendColors(this.BackColor, this.ForeColor, 0.1f)));
+			this._thumbIdle = new Lazy<Brush>(() => new SolidBrush(BlendColors(this.BackColor, this.ForeColor, 0.25f)));
+			this._thumbWarm = new Lazy<Brush>(() => new SolidBrush(BlendColors(this.BackColor, this.ForeColor, 0.4f)));
+			this._trackHot = new Lazy<Brush>(() => new SolidBrush(BlendColors(this.BackColor, this.ForeColor, 0.6f)));
+			this._fore = new Lazy<Brush>(() => new SolidBrush(BlendColors(this.BackColor, this.ForeColor, 1.0f)));
+			if (this.BackColor.GetBrightness() > this.ForeColor.GetBrightness())
+			{
+				// Back color is lighter than fore color ("light mode")
+				// In this case, blend back color towards white, and fore color towards black.
+				this._veryHotBack = new Lazy<Brush>(() => new SolidBrush(BlendColors(this.BackColor, Color.White, 0.5f)));
+				this._veryHotFore = new Lazy<Brush>(() => new SolidBrush(BlendColors(this.ForeColor, Color.Black, 0.7f)));
+			}
+			else
+			{
+				// Back color is darker than fore color ("dark mode")
+				// Swap colors
+				this._veryHotBack = new Lazy<Brush>(() => new SolidBrush(this.ForeColor));
+				this._veryHotFore = new Lazy<Brush>(() => new SolidBrush(this.BackColor));
+			}
+		}
+
+		public Color BackColor { get; }
+		public Color ForeColor { get; }
+		public EmbedScrollBar.ScrollBarArrowButtonStyle ArrowButtonStyle { get; }
+
+		private readonly Lazy<Brush> _track = new Lazy<Brush>();
+		private readonly Lazy<Brush> _thumbIdle = new Lazy<Brush>();
+		private readonly Lazy<Brush> _thumbWarm = new Lazy<Brush>();
+		private readonly Lazy<Brush> _trackHot = new Lazy<Brush>();
+		private readonly Lazy<Brush> _fore = new Lazy<Brush>();
+		private readonly Lazy<Brush> _veryHotBack = new Lazy<Brush>();
+		private readonly Lazy<Brush> _veryHotFore = new Lazy<Brush>();
+		public Brush Track => this._track.Value;
+		public Brush ThumbIdle => this._thumbIdle.Value;
+		public Brush ThumbWarm => this._thumbWarm.Value;
+		public Brush TrackHot => this._trackHot.Value;
+		public Brush Fore => this._fore.Value;
+		public Brush VeryHotBack => this._veryHotBack.Value;
+		public Brush VeryHotFore => this._veryHotFore.Value;
+
+		public void Dispose()
+		{
+			DisposeLazyBrush(this._track);
+			DisposeLazyBrush(this._thumbIdle);
+			DisposeLazyBrush(this._thumbWarm);
+			DisposeLazyBrush(this._trackHot);
+			DisposeLazyBrush(this._fore);
+			DisposeLazyBrush(this._veryHotBack);
+			DisposeLazyBrush(this._veryHotFore);
+		}
+
+		private static void DisposeLazyBrush(Lazy<Brush> lazy)
+		{
+			if (lazy.IsValueCreated) lazy.Value.Dispose();
+		}
+
+		private static Color BlendColors(Color from, Color to, float ratio)
+		{
+			return Color.FromArgb(BlendOne(from.R, to.R, ratio), BlendOne(from.G, to.G, ratio), BlendOne(from.B, to.B, ratio));
+		}
+
+		private static int BlendOne(int a, int b, float ratio)
+		{
+			return Math.Min(Math.Max((int)Math.Round(a + (b - a) * ratio), 0), 255);
 		}
 	}
 }
