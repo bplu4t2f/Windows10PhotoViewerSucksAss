@@ -61,6 +61,7 @@
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="GetSet.cs" />
     <Compile Include="IconStuff.cs" />
     <Compile Include="ImageCache.cs" />
     <Compile Include="MainImageControl.cs">
@@ -79,7 +80,6 @@
       <DependentUpon>RenameForm.cs</DependentUpon>
     </Compile>
     <Compile Include="SerializableFont.cs" />
-    <Compile Include="Setting2.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="SettingsForm.cs">
       <SubType>Form</SubType>

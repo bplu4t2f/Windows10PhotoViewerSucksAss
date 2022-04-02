@@ -178,56 +178,140 @@ namespace Windows10PhotoViewerSucksAss
 
 		static Form1()
 		{
-			List<IApplicableSetting2<Settings>> d = null;
+			Setting_BackColor = applicableSettings.AddReturn(MakeSetting(
+				Setting("ImageBackColor", s => s.Color, (s, v) => s.Color = v),
+				(x, v) => { if (!v.IsEmpty) x.mainImageControl.BackColor = v; },
+				x => x.mainImageControl.BackColor
+				));
+			applicableSettings.Add(MakeSetting(
+				Setting("WindowWidth", s => s.WindowWidth, (s, v) => s.WindowWidth = v),
+				(x, v) => { if (v != 0) x.Width = v; }
+				));
+			applicableSettings.Add(MakeSetting(
+				Setting("WindowHeight", s => s.WindowHeight, (s, v) => s.WindowHeight = v),
+				(x, v) => { if (v != 0) x.Height = v; }
+				));
+			Setting_SortCaseSensitive = applicableSettings.AddReturn(MakeSetting(
+				Setting("SortCaseSensitive", s => s.SortCaseSensitive, (s, v) => s.SortCaseSensitive = v),
+				(x, v) => x.SetSortCaseSensitive(v)
+				));
+			Setting_ApplicationFont = applicableSettings.AddReturn(MakeSetting(
+				Setting("ApplicationFont", s => s.ApplicationFont, (s, v) => s.ApplicationFont = v).Encoding(x => x?.ToFont(), x => FontDescriptor.FromFont(x)),
+				(x, v) => { if (v != null) x.SetApplicationFont(v); },
+				x => x.Font
+				));
+			applicableSettings.Add(MakeSetting(
+				Setting("OverviewControlWidth", s => s.OverviewControlWidth, (s, v) => s.OverviewControlWidth = v),
+				(x, v) => { if (v >= 0) x.overviewControl.Width = v; }
+				));
+			Setting_SplitterWidth = applicableSettings.AddReturn(MakeSetting(
+				Setting("SplitterWidth", s => s.SplitterWidth, (s, v) => s.SplitterWidth = v),
+				(x, v) => { if (v >= 0) x.splitter.ChangeWidth(v); },
+				x => x.splitter.Width
+				));
+			Setting_MouseWheelMode = applicableSettings.AddReturn(MakeSetting(
+				Setting("MouseWheelMode", s => s.MouseWheelMode, (s, v) => s.MouseWheelMode = v).Enum<Settings, MouseWheelMode>(),
+				(x, v) => x.MouseWheelMode = v,
+				x => x.MouseWheelMode
+				));
+			Setting_UseCurrentImageAsWindowIcon = applicableSettings.AddReturn(MakeSetting(
+				Setting("UseCurrentImageAsWindowIcon", s => s.UseCurrentImageAsWindowIcon, (s, v) => s.UseCurrentImageAsWindowIcon = v),
+				(x, v) => x.SetUseCurrentImageAsWindowIcon(v)
+				));
+			Setting_FileListBackColor = applicableSettings.AddReturn(MakeSetting(
+				Setting("FileListBackColor", s => s.FileListBackColor, (s, v) => s.FileListBackColor = v),
+				(x, v) => { if (!v.IsEmpty) x.overviewControl.BackColor = v; },
+				x => x.overviewControl.BackColor
+				));
+			Setting_FileListForeColor = applicableSettings.AddReturn(MakeSetting(
+				Setting("FileListForeColor", s => s.FileListForeColor, (s, v) => s.FileListForeColor = v),
+				(x, v) => { if (!v.IsEmpty) x.overviewControl.ForeColor = v; },
+				x => x.overviewControl.ForeColor
+				));
+			Setting_FileListForeColorError = applicableSettings.AddReturn(MakeSetting(
+				Setting("FileListForeColorError", s => s.FileListForeColorError, (s, v) => s.FileListForeColorError = v),
+				(x, v) => { if (!v.IsEmpty) x.overviewControl.ForeColorError = v; },
+				x => x.overviewControl.ForeColorError
+				));
+		}
 
-			Setting_BackColor = applicableSettings.AddReturn(
-				d.Setting("ImageBackColor", s => s.Color, (s, v) => s.Color = v)
-				.Lift().Wrap<Form1>(x => Settings.Instance).Applicable((x, v) => { if (!v.IsEmpty) x.mainImageControl.BackColor = v; })
-				).DifferentGetter(x => x.mainImageControl.BackColor);
-			applicableSettings.Add(
-				d.Setting("WindowWidth", s => s.WindowWidth, (s, v) => s.WindowWidth = v)
-				.Lift().Wrap<Form1>(x => Settings.Instance).Applicable((x, v) => { if (v != 0) x.Width = v; })
-				);
-			applicableSettings.Add(
-				d.Setting("WindowHeight", s => s.WindowHeight, (s, v) => s.WindowHeight = v)
-				.Lift().Wrap<Form1>(x => Settings.Instance).Applicable((x, v) => { if (v != 0) x.Height = v; })
-				);
-			Setting_SortCaseSensitive = applicableSettings.AddReturn(
-				d.Setting("SortCaseSensitive", s => s.SortCaseSensitive, (s, v) => s.SortCaseSensitive = v)
-				.Lift().Wrap<Form1>(x => Settings.Instance).Applicable((x, v) => x.SetSortCaseSensitive(v))
-				);
-			Setting_ApplicationFont = applicableSettings.AddReturn(
-				d.Setting("ApplicationFont", s => s.ApplicationFont, (s, v) => s.ApplicationFont = v).Encoding(x => x?.ToFont(), x => FontDescriptor.FromFont(x))
-				.Lift().Wrap<Form1>(x => Settings.Instance).Applicable((x, v) => { if (v != null) x.SetApplicationFont(v); })
-				).DifferentGetter(x => x.Font);
-			applicableSettings.Add(
-				d.Setting("OverviewControlWidth", s => s.OverviewControlWidth, (s, v) => s.OverviewControlWidth = v)
-				.Lift().Wrap<Form1>(x => Settings.Instance).Applicable((x, v) => { if (v >= 0) x.overviewControl.Width = v; })
-				);
-			Setting_SplitterWidth = applicableSettings.AddReturn(
-				d.Setting("SplitterWidth", s => s.SplitterWidth, (s, v) => s.SplitterWidth = v)
-				.Lift().Wrap<Form1>(x => Settings.Instance).Applicable((x, v) => { if (v >= 0) x.splitter.ChangeWidth(v); })
-				).DifferentGetter(x => x.splitter.Width);
-			Setting_MouseWheelMode = applicableSettings.AddReturn(
-				d.Setting("MouseWheelMode", s => s.MouseWheelMode, (s, v) => s.MouseWheelMode = v).Enum<Settings, MouseWheelMode>()
-				.Lift().Wrap<Form1>(x => Settings.Instance).Applicable((x, v) => x.MouseWheelMode = v)
-				).DifferentGetter(x => x.MouseWheelMode);
-			Setting_UseCurrentImageAsWindowIcon = applicableSettings.AddReturn(
-				d.Setting("UseCurrentImageAsWindowIcon", s => s.UseCurrentImageAsWindowIcon, (s, v) => s.UseCurrentImageAsWindowIcon = v)
-				.Lift().Wrap<Form1>(x => Settings.Instance).Applicable((x, v) => x.SetUseCurrentImageAsWindowIcon(v))
-				);
-			Setting_FileListBackColor = applicableSettings.AddReturn(
-				d.Setting("FileListBackColor", s => s.FileListBackColor, (s, v) => s.FileListBackColor = v)
-				.Lift().Wrap<Form1>(x => Settings.Instance).Applicable((x, v) => { if (!v.IsEmpty) x.overviewControl.BackColor = v; })
-				).DifferentGetter(x => x.overviewControl.BackColor);
-			Setting_FileListForeColor = applicableSettings.AddReturn(
-				d.Setting("FileListForeColor", s => s.FileListForeColor, (s, v) => s.FileListForeColor = v)
-				.Lift().Wrap<Form1>(x => Settings.Instance).Applicable((x, v) => { if (!v.IsEmpty) x.overviewControl.ForeColor = v; })
-				).DifferentGetter(x => x.overviewControl.ForeColor);
-			Setting_FileListForeColorError = applicableSettings.AddReturn(
-				d.Setting("FileListForeColorError", s => s.FileListForeColorError, (s, v) => s.FileListForeColorError = v)
-				.Lift().Wrap<Form1>(x => Settings.Instance).Applicable((x, v) => { if (!v.IsEmpty) x.overviewControl.ForeColorError = v; })
-				).DifferentGetter(x => x.overviewControl.ForeColorError);
+		private static GetSet<Settings, TValue> Setting<TValue>(string debugName, Func<Settings, TValue> getter, Action<Settings, TValue> setter)
+		{
+			return new GetSet<Settings, TValue>(debugName, getter, setter);
+		}
+
+		private static IApplicableSetting2<Form1, T> MakeSetting<T>(IGetSet<Settings, T> accessor, Action<Form1, T> apply, Func<Form1, T> get = null)
+		{
+			return new ApplicableSetting<T>(accessor, apply, get);
+		}
+
+		// ====================================================================================================================================================================
+		// ====================================================================================================================================================================
+		//
+		// IApplicableSetting2<TSettings>
+		// Used to encapsulate an individual setting that can be changed at runtime and is stored in the user settings file.
+		//
+
+		interface IApplicableSetting2<TSettings>
+		{
+			string DebugName { get; }
+			/// <summary>
+			/// Used on program startup to apply values from the stored object.
+			/// </summary>
+			void ApplyStored(TSettings from);
+
+			/// <summary>
+			/// Used to notify the application that a setting was changed in the settings dialog. The application uses this event to save the settings to disk.
+			/// </summary>
+			event EventHandler ValueSet;
+		}
+
+		interface IApplicableSetting2<TSettings, T> : IApplicableSetting2<TSettings>, IGetSet<TSettings, T>
+		{
+		}
+
+		private sealed class ApplicableSetting<T> : IApplicableSetting2<Form1, T>
+		{
+			public ApplicableSetting(IGetSet<Settings, T> accessor, Action<Form1, T> apply, Func<Form1, T> get)
+			{
+				this.accessor = accessor ?? throw new ArgumentNullException(nameof(accessor));
+				this.apply = apply;
+				this.get = get;
+			}
+
+			private readonly IGetSet<Settings, T> accessor;
+			private readonly Action<Form1, T> apply;
+			private readonly Func<Form1, T> get;
+
+			public string DebugName => this.accessor.DebugName;
+
+			public event EventHandler ValueSet;
+
+			public T Get(Form1 from)
+			{
+				if (this.get != null)
+				{
+					// This setting will be gotten directly from the Form instance.
+					return this.get(from);
+				}
+				else
+				{
+					return this.accessor.Get(Settings.Instance);
+				}
+			}
+
+			public void Set(Form1 to, T value)
+			{
+				this.accessor.Set(Settings.Instance, value);
+				this.ValueSet?.Invoke(this, EventArgs.Empty);
+				this.apply?.Invoke(to, value);
+			}
+
+			public void ApplyStored(Form1 target)
+			{
+				T value = this.accessor.Get(Settings.Instance);
+				this.apply?.Invoke(target, value);
+			}
 		}
 
 		private static readonly List<IApplicableSetting2<Form1>> applicableSettings = new List<IApplicableSetting2<Form1>>();
