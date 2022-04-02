@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 
-namespace CatalogExh
+namespace Windows10PhotoViewerSucksAss
 {
 	/// <summary>
 	/// Scroll bar that is intended to be embedded in another custom-drawn <see cref="Control"/> without technically being an additional control. Saves window handle

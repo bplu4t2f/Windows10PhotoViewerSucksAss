@@ -14,8 +14,9 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.CacheText | ControlStyles.UserMouse | ControlStyles.Opaque, true);
 			this.SetStyle(ControlStyles.StandardDoubleClick | ControlStyles.Selectable | ControlStyles.StandardClick, false);
-			this.Size = new Size(75, 23);
 		}
+
+		protected override Size DefaultSize => new Size(75, 23);
 
 		private MouseButtons mouseDown;
 		private bool mouseInside;

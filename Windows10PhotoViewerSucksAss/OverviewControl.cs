@@ -22,7 +22,7 @@ namespace Windows10PhotoViewerSucksAss
 
 		protected override Size DefaultSize => new Size(225, 150);
 
-		private readonly CatalogExh.EmbedScrollBar scrollBar = new CatalogExh.EmbedScrollBar();
+		private readonly EmbedScrollBar scrollBar = new EmbedScrollBar();
 		private IList<OverviewFileListEntry> availableFiles;
 		private int selectedIndex = -1;
 
@@ -141,14 +141,14 @@ namespace Windows10PhotoViewerSucksAss
 
 			int numFilesThatFitOnScreen = (this.Height + lineHeight - 1) / lineHeight;
 
-			var scrollBarLayoutInfo = new CatalogExh.EmbedScrollBar.LayoutInfo(
+			var scrollBarLayoutInfo = new EmbedScrollBar.LayoutInfo(
 				Bounds: new Rectangle(this.Width - scrollBarWidth, 0, scrollBarWidth, this.Height),
 				SmallChange: 1,
 				LargeChange: 10,
 				ViewportSize: numFilesThatFitOnScreen,
 				TotalScrollableDistance: this.availableFiles.Count
 				);
-			this.scrollBar.Paint(g, ref scrollBarLayoutInfo, CatalogExh.EmbedScrollBar.ScrollBarArrowButtonStyle.FlatBorderless);
+			this.scrollBar.Paint(g, ref scrollBarLayoutInfo, EmbedScrollBar.ScrollBarArrowButtonStyle.FlatBorderless);
 
 			base.OnPaint(e);
 		}
