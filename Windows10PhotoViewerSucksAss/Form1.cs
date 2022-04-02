@@ -328,9 +328,11 @@ namespace Windows10PhotoViewerSucksAss
 			}
 			else
 			{
-				int effectiveIndex = Math.Min(Math.Max(index, 0), this.currentFileList.Count - 1);
-				this.currentDisplayIndex = effectiveIndex;
-				this.DisplayCurrent(scrollSelectedItemIntoView: false);
+				if (index >= 0 && index < this.currentFileList.Count)
+				{
+					this.currentDisplayIndex = index;
+					this.DisplayCurrent(scrollSelectedItemIntoView: false);
+				}
 			}
 		}
 
