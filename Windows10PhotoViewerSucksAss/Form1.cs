@@ -148,6 +148,11 @@ namespace Windows10PhotoViewerSucksAss
 			mi_rename_file.Click += this.HandleMenuRenameFile;
 			var mi_delete_file = this.fileListContextMenu.MenuItems.Add("Move to Recycle Bin\tDel");
 			mi_delete_file.Click += this.HandleMenuDeleteFile;
+			this.fileListContextMenu.MenuItems.Add("-"); // separator
+			var mi_stash = this.fileListContextMenu.MenuItems.Add("Stash...\tF8");
+			mi_stash.Click += this.HandleMenuStash;
+			var mi_restore_from_stash = this.fileListContextMenu.MenuItems.Add("Restore from stash...\tF9");
+			mi_restore_from_stash.Click += this.HandleMenuRestoreFromStash;
 
 			this.synchronizationContext = SynchronizationContext.Current;
 
@@ -619,6 +624,16 @@ namespace Windows10PhotoViewerSucksAss
 			else if (keyData == Keys.F2)
 			{
 				this.RenameFile(this.currentDisplayIndex);
+				return true;
+			}
+			else if (keyData == Keys.F8)
+			{
+				this.ShowStashOptionsDialog();
+				return true;
+			}
+			else if (keyData == Keys.F9)
+			{
+				this.ShowRestoreFromStashDialog();
 				return true;
 			}
 			else
@@ -1260,6 +1275,77 @@ namespace Windows10PhotoViewerSucksAss
 		private void RefreshOverview()
 		{
 			this.overviewControl.Invalidate();
+		}
+
+		private void HandleMenuStash(object sender, EventArgs e)
+		{
+			this.ShowStashOptionsDialog();
+		}
+
+		private void ShowStashOptionsDialog()
+		{
+			var sw = Stopwatch.StartNew();
+			var stashInfoList = StashHelper.Stash();
+			Debug.WriteLine($"Stashing took {sw.ElapsedMilliseconds} ms");
+			using (var form = new StashOptionsForm(stashInfoList, "Select the windows which should be saved in the stash file."))
+			{
+				form.Font = this.Font;
+				if (form.ShowDialog() != DialogResult.OK) return;
+				stashInfoList = form.SelectedItems;
+				Debug.Assert(stashInfoList != null);
+			}
+
+			using (var dialog = new SaveFileDialog())
+			{
+				dialog.Title = "Save windows to stash file";
+				dialog.Filter = "Image Viewer Stash|*.stash|All files|*.*";
+				if (dialog.ShowDialog() == DialogResult.OK)
+				{
+					var fileName = dialog.FileName;
+					StashHelper.SaveStash(fileName, stashInfoList);
+				}
+			}
+		}
+
+		private void HandleMenuRestoreFromStash(object sender, EventArgs e)
+		{
+			this.ShowRestoreFromStashDialog();
+		}
+
+		private void ShowRestoreFromStashDialog()
+		{
+			List<StashInfo> stash;
+			using (var dialog = new OpenFileDialog())
+			{
+				dialog.Title = "Restore windows from stash file";
+				dialog.Filter = "Image Viewer Stash|*.stash|All files|*.*";
+				if (dialog.ShowDialog() != DialogResult.OK)
+				{
+					return;
+				}
+				string fileName = dialog.FileName;
+				stash = StashHelper.LoadStash(fileName);
+			}
+
+			if (stash == null)
+			{
+				MessageBox.Show("The stash file cannot be loaded because it doesn't seem to be a valid image stash file.");
+				return;
+			}
+
+			using (var form = new StashOptionsForm(stash, "Select the windows which should be restored from the stash file."))
+			{
+				form.Font = this.Font;
+				if (form.ShowDialog() != DialogResult.OK) return;
+				stash = form.SelectedItems;
+				Debug.Assert(stash != null);
+			}
+
+			if (!StashHelper.RestoreStash(stash, out var failedItems))
+			{
+				Debug.Assert(failedItems != null);
+				MessageBox.Show("For one reason or another, it was not possible to restore the following items from the stash:" + Environment.NewLine + String.Join(Environment.NewLine, failedItems));
+			}
 		}
 	}
 

@@ -26,6 +26,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DocumentationFile>bin\Debug\Windows10PhotoViewerSucksAss.xml</DocumentationFile>
     <NoWarn>1591</NoWarn>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -37,6 +38,7 @@
     <WarningLevel>4</WarningLevel>
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>generic_picture.ico</ApplicationIcon>
@@ -95,6 +97,12 @@
     </Compile>
     <Compile Include="StartupInfo.cs" />
     <Compile Include="StashHelper.cs" />
+    <Compile Include="StashOptionsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="StashOptionsForm.Designer.cs">
+      <DependentUpon>StashOptionsForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="TimeBeginPeriod.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="XmlDocumentHelper.cs" />
@@ -113,6 +121,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="SettingsForm.resx">
       <DependentUpon>SettingsForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="StashOptionsForm.resx">
+      <DependentUpon>StashOptionsForm.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

@@ -18,11 +18,15 @@ namespace Windows10PhotoViewerSucksAss
 
 	static class StashHelper
 	{
-		public static unsafe void Stash(string targetFilePath)
+		public static unsafe List<StashInfo> Stash()
 		{
-			var list = new List<IntPtr>();
-			var handle = GCHandle.Alloc(list);
-			EnumWindows(EnumProc, GCHandle.ToIntPtr(handle));
+			var topLevelWindows = new List<IntPtr>();
+			var handle = GCHandle.Alloc(topLevelWindows);
+			{
+				var sw = Stopwatch.StartNew();
+				EnumWindows(EnumProc, GCHandle.ToIntPtr(handle));
+				Debug.WriteLine($"EnumWindows: {sw.ElapsedMilliseconds} ms");
+			}
 			handle.Free();
 
 			// We're in Win32 land here, not .NET land.
@@ -36,7 +40,7 @@ namespace Windows10PhotoViewerSucksAss
 			var infoList = new List<StashInfo>();
 
 			var currentProcessExecutableName = Path.GetFileName(Process.GetCurrentProcess().MainModule.FileName);
-			foreach (var hWnd in list)
+			foreach (var hWnd in topLevelWindows)
 			{
 				// Get the process it belongs to, check that it matches the current process' executable name.
 				if (0 != GetWindowThreadProcessId(hWnd, out uint processId))
@@ -49,8 +53,9 @@ namespace Windows10PhotoViewerSucksAss
 							candidate = Path.GetFileName(process.MainModule.FileName);
 						}
 					}
-					catch
+					catch (Exception ex)
 					{
+						Debug.WriteLine(ex.ToString());
 						continue;
 					}
 					if (candidate == currentProcessExecutableName)
@@ -80,7 +85,7 @@ namespace Windows10PhotoViewerSucksAss
 				}
 			}
 
-			SaveStash(targetFilePath, infoList);
+			return infoList;
 		}
 
 		private static bool EnumProc(IntPtr hWnd, IntPtr lParam)
@@ -93,7 +98,7 @@ namespace Windows10PhotoViewerSucksAss
 			return true;
 		}
 
-		private static void SaveStash(string fileName, List<StashInfo> stash)
+		public static void SaveStash(string fileName, List<StashInfo> stash)
 		{
 			var doc = new XmlDocument();
 			var root = CreateDocumentRootElementAndSetupNamespaces(doc, "Stash");
@@ -102,13 +107,12 @@ namespace Windows10PhotoViewerSucksAss
 			{
 				var element = AddElement(root, "StashInfo");
 				AddElementValueString(element, "Path", item.Path);
-				var el_placement = AddElement(element, "Placement");
+				var el_placement = AddElement(element, "WindowPlacement");
 				AddElementValueUInt32(el_placement, "flags", item.Placement.flags);
 				AddElementValueUInt32(el_placement, "showCmd", item.Placement.showCmd);
 				AddElementValuePOINT(el_placement, "ptMinPosition", item.Placement.ptMinPosition);
 				AddElementValuePOINT(el_placement, "ptMaxPosition", item.Placement.ptMaxPosition);
 				AddElementValueRECT(el_placement, "rcNormalPosition", item.Placement.rcNormalPosition);
-				AddElementValueRECT(el_placement, "rcDevice", item.Placement.rcDevice);
 			}
 
 			using (var stream = File.Create(fileName))
@@ -118,20 +122,13 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
-		public static bool RestoreStash(string fileName, out List<string> failedItems)
+		public static bool RestoreStash(List<StashInfo> stash, out List<string> failedItems)
 		{
 			failedItems = null;
-
-			var stash = LoadStash(fileName);
-			if (stash == null)
-			{
-				return false;
-			}
 
 			if (!stash.Any()) return true;
 
 			var processFileName = Assembly.GetEntryAssembly().Location;
-
 
 			foreach (var item in stash)
 			{
@@ -140,13 +137,12 @@ namespace Windows10PhotoViewerSucksAss
 					if (failedItems == null) failedItems = new List<string>();
 					failedItems.Add(item.Path);
 				}
-				break;
 			}
 
 			return failedItems == null;
 		}
 
-		private static unsafe List<StashInfo> LoadStash(string fileName)
+		public static unsafe List<StashInfo> LoadStash(string fileName)
 		{
 			var doc = new XmlDocument();
 			using (var stream = FileIO.OpenRead(out int error, fileName))
@@ -170,15 +166,14 @@ namespace Windows10PhotoViewerSucksAss
 
 				if (!TryGetElementValueString(element, "Path", out string path)) return null;
 				var placement = new WINDOWPLACEMENT();
-				placement.length = (uint)sizeof(WINDOWPLACEMENT);
-				if (TryGetElement(element, "Placement", out var el_placement))
+				// NOTE: length is not set here. It is set when we actually call the API.
+				if (TryGetElement(element, "WindowPlacement", out var el_placement))
 				{
 					{ if (TryGetElementValueUInt32(el_placement, "flags", out var tmp)) placement.flags = tmp; }
 					{ if (TryGetElementValueUInt32(el_placement, "showCmd", out var tmp)) placement.showCmd = tmp; }
 					{ if (TryGetElementValuePOINT(el_placement, "ptMinPosition", out var tmp)) placement.ptMinPosition = tmp; }
 					{ if (TryGetElementValuePOINT(el_placement, "ptMaxPosition", out var tmp)) placement.ptMaxPosition = tmp; }
 					{ if (TryGetElementValueRECT(el_placement, "rcNormalPosition", out var tmp)) placement.rcNormalPosition = tmp; }
-					{ if (TryGetElementValueRECT(el_placement, "rcDevice", out var tmp)) placement.rcDevice = tmp; }
 				}
 
 				stash.Add(new StashInfo() { Path = path, Placement = placement });
@@ -208,10 +203,10 @@ namespace Windows10PhotoViewerSucksAss
 				args += " " + Program.GUID_StartupParams;
 				args += " " + WrapStartupParamsHandleValue(hMapping);
 
-				System.Windows.Forms.MessageBox.Show("Sending args: " + args);
-
 				try
 				{
+					// TODO do the thing where we call CreateProcess directly with the inherited handles
+					// https://devblogs.microsoft.com/oldnewthing/20111216-00/?p=8873
 					var psi = new ProcessStartInfo(processFileName, args);
 					// Some donkey decided that UseShellExecute should be the default.
 					// Even though CreateProcess is definitely the more sane way to do literally anything.
@@ -241,21 +236,18 @@ namespace Windows10PhotoViewerSucksAss
 		/// </summary>
 		public static unsafe bool RestoreStashInfoFromMemory(IntPtr targetWindow, string startupParamsHandleValue)
 		{
-			STARTUP_PARAMS* startup_params = UnwrapAndGetStartupParams(startupParamsHandleValue);
-			if (startup_params == null) return false;
-			SetWindowPlacement(targetWindow, ref startup_params->Placement);
-			return true;
-		}
-
-		private sealed class StashInfo
-		{
-			public string Path { get; set; }
-			public WINDOWPLACEMENT Placement { get; set; }
-
-			public override string ToString()
+			STARTUP_PARAMS* startup_params = UnwrapAndGetStartupParams(startupParamsHandleValue, out IntPtr hMapping);
+			if (startup_params != null)
 			{
-				return $"{Path} -- {Placement}";
+				var placement = startup_params->Placement;
+				placement.length = (uint)sizeof(WINDOWPLACEMENT);
+				if (!SetWindowPlacement(targetWindow, ref placement))
+				{
+					Debug.WriteLine(new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error()).Message);
+				}
 			}
+			FreeStartupParams(startup_params, hMapping);
+			return startup_params != null;
 		}
 
 		private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
@@ -272,7 +264,7 @@ namespace Windows10PhotoViewerSucksAss
 		private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 		[DllImport("user32.dll")]
 		private static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT rect);
-		[DllImport("user32.dll")]
+		[DllImport("user32.dll", SetLastError = true)]
 		private static extern bool SetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT rect);
 		[DllImport("kernel32.dll")]
 		private static extern IntPtr CreateFileMapping(IntPtr hFile, ref SECURITY_ATTRIBUTES lpFileMappingAttributes, uint flProtect, uint dwMaximumSizeHigh, uint dwMaximumSizeLow, IntPtr lpName);
@@ -323,14 +315,15 @@ namespace Windows10PhotoViewerSucksAss
 		/// Returns null on failure.
 		/// <para>To be called by a spawned child process when restoring its state using a handle value argument.</para>
 		/// </summary>
-		private static unsafe STARTUP_PARAMS* UnwrapAndGetStartupParams(string handleValue)
+		private static unsafe STARTUP_PARAMS* UnwrapAndGetStartupParams(string handleValue, out IntPtr hMapping)
 		{
 			if (!UInt64.TryParse(handleValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out ulong value))
 			{
+				hMapping = IntPtr.Zero;
 				return null;
 			}
 
-			IntPtr hMapping = (IntPtr)value;
+			hMapping = (IntPtr)value;
 			STARTUP_PARAMS* psp = (STARTUP_PARAMS*)MapViewOfFile(hMapping, FILE_MAP_READ, 0, 0, UIntPtr.Zero);
 			if (psp != null)
 			{
@@ -388,7 +381,7 @@ namespace Windows10PhotoViewerSucksAss
 			public uint Type;
 		}
 
-		private struct WINDOWPLACEMENT
+		public struct WINDOWPLACEMENT
 		{
 			public uint length;
 			public uint flags;
@@ -396,15 +389,20 @@ namespace Windows10PhotoViewerSucksAss
 			public POINT ptMinPosition;
 			public POINT ptMaxPosition;
 			public RECT rcNormalPosition;
-			public RECT rcDevice;
 
 			public override string ToString()
 			{
-				return $"0x{flags:X} -- {rcNormalPosition}";
+				var sb = new StringBuilder();
+				foreach (var field in this.GetType().GetFields())
+				{
+					sb.AppendLine(field.Name + " = " + field.GetValue(this).ToString());
+				}
+				return sb.ToString();
+				//return $"0x{flags:X} {showCmd} -- {rcNormalPosition}";
 			}
 		}
 
-		private struct POINT
+		public struct POINT
 		{
 			public int x;
 			public int y;
@@ -414,7 +412,7 @@ namespace Windows10PhotoViewerSucksAss
 			}
 		}
 
-		private struct RECT
+		public struct RECT
 		{
 			public int l;
 			public int t;
@@ -546,6 +544,17 @@ namespace Windows10PhotoViewerSucksAss
 		private static string FormatRECT(RECT rect)
 		{
 			return String.Format(CultureInfo.InvariantCulture, "{0},{1},{2},{3}", rect.l, rect.t, rect.r, rect.b);
+		}
+	}
+
+	sealed class StashInfo
+	{
+		public string Path { get; set; }
+		public StashHelper.WINDOWPLACEMENT Placement { get; set; }
+
+		public override string ToString()
+		{
+			return $"{Path} -- {Placement}";
 		}
 	}
 }
