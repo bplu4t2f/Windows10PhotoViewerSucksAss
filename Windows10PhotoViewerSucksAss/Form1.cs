@@ -1302,11 +1302,9 @@ namespace Windows10PhotoViewerSucksAss
 				{
 					dialog.Title = "Save windows to stash file";
 					dialog.Filter = "Image Viewer Stash|*.stash|All files|*.*";
-					if (dialog.ShowDialog() == DialogResult.OK)
-					{
-						var fileName = dialog.FileName;
-						StashHelper.SaveStash(fileName, stashInfoList);
-					}
+					if (dialog.ShowDialog() != DialogResult.OK) return;
+					var fileName = dialog.FileName;
+					StashHelper.SaveStash(fileName, stashInfoList);
 				}
 			}
 			catch (Exception ex)
