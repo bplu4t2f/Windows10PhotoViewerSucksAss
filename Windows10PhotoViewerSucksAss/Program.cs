@@ -11,6 +11,12 @@ namespace Windows10PhotoViewerSucksAss
 	static class Program
 	{
 		/// <summary>
+		/// This is for interop with other processes using <see cref="StashHelper"/>.
+		/// <para>If this argument is present, then the next argument will be a handle value to a file mapping object that contains the STARTUP_PARAMS.</para>
+		/// </summary>
+		public static string GUID_StartupParams => "{4B2F7527-4FF2-4444-81F3-4A51C533B10E}";
+
+		/// <summary>
 		/// The main entry point for the application.
 		/// </summary>
 		[STAThread]
@@ -41,12 +47,37 @@ namespace Windows10PhotoViewerSucksAss
 			Settings.Initialize(AppDataFolderName);
 			Settings.Load();
 
-			var StartupInfo = new StartupInfo(executablePath, BootstrapData?.FriendlyApplicationName ?? AppDataFolderName);
+			string startupDisplayPath = null;
+			bool gotStartupParamsArg = false;
+			string StartupParamsHandleValue = null;
+			for (int i = 0; i < args.Length; ++i)
+			{
+				if (gotStartupParamsArg)
+				{
+					// This is the file mapping handle value  for StashHelper.
+					StartupParamsHandleValue = args[i];
+					gotStartupParamsArg = false;
+					//MessageBox.Show(StartupParamsFileMappingHandleValueString);
+				}
+				else if (args[i] == GUID_StartupParams)
+				{
+					// The next argument will be the value of the file mapping handle value to load STARTUP_PARAMS in StashHelper.
+					gotStartupParamsArg = true;
+				}
+				else if (startupDisplayPath == null)
+				{
+					// File path to the image that should be displayed.
+					startupDisplayPath = args[i];
+				}
+				// else: stray argument; ignore it.
+			}
+
+			var StartupInfo = new StartupInfo(executablePath, BootstrapData?.FriendlyApplicationName ?? AppDataFolderName, StartupParamsHandleValue);
 
 			var form = new Form1(StartupInfo);
-			if (args.Length >= 1)
+			if (startupDisplayPath != null)
 			{
-				form.SetDisplayPath_NoThrowInteractive(args[0]);
+				form.SetDisplayPath_NoThrowInteractive(startupDisplayPath);
 			}
 			Application.Run(form);
 		}

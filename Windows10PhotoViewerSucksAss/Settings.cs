@@ -121,7 +121,7 @@ namespace Windows10PhotoViewerSucksAss
 				var doc = new XmlDocument();
 				doc.LoadXml(reader.ReadToEnd());
 
-				var root = GetDocumentRootNode(doc);
+				var root = GetDocumentRootElement(doc);
 				if (root == null) return null;
 
 				// Root node is Settings.
@@ -164,10 +164,8 @@ namespace Windows10PhotoViewerSucksAss
 			using (var writer = new StreamWriter(stream))
 			{
 				var doc = new XmlDocument();
-				var root = doc.CreateElement("Settings");
-				SetupNamespaces(root);
+				var root = CreateDocumentRootElementAndSetupNamespaces(doc, "Settings");
 
-				doc.AppendChild(root);
 				SerializeSettings(root, settings);
 
 				doc.Save(writer);

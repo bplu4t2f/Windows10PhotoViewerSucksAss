@@ -25,7 +25,7 @@ namespace Windows10PhotoViewerSucksAss
 					if (stream == null) return null;
 					var doc = new XmlDocument();
 					doc.Load(stream);
-					var root = XmlDocumentHelper.GetDocumentRootNode(doc);
+					var root = XmlDocumentHelper.GetDocumentRootElement(doc);
 					var data = new BootstrapData();
 					XmlDocumentHelper.AutoDeserializeSimpleObject(data, root);
 					Debug.WriteLine("Bootstrap data loaded.");

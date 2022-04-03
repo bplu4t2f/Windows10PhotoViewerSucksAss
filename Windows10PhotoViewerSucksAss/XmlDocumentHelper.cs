@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -12,14 +13,22 @@ namespace Windows10PhotoViewerSucksAss
 {
 	static class XmlDocumentHelper
 	{
-		public static XmlElement GetDocumentRootNode(XmlDocument doc)
+		public static XmlElement GetDocumentRootElement(XmlDocument doc)
 		{
 			return (XmlElement)doc.ChildNodes.Cast<XmlNode>().Where(x => x.NodeType == XmlNodeType.Element).FirstOrDefault();
 		}
 
 		private static readonly string xsi = "http://www.w3.org/2001/XMLSchema-instance";
+		
+		public static XmlElement CreateDocumentRootElementAndSetupNamespaces(XmlDocument doc, string rootElementName)
+		{
+			var root = doc.CreateElement(rootElementName);
+			SetupNamespaces(root);
+			doc.AppendChild(root);
+			return root;
+		}
 
-		public static void SetupNamespaces(XmlElement root)
+		private static void SetupNamespaces(XmlElement root)
 		{
 			root.SetAttribute("xmlns:xsi", xsi);
 		}
@@ -68,6 +77,11 @@ namespace Windows10PhotoViewerSucksAss
 			=> TryGetElementValue(parent, elementName, out value, Parse_Int32);
 		public static XmlElement AddElementValueInt32(XmlElement parent, string elementName, int value)
 			=> AddElementValue(parent, elementName, value, ToString_Int32);
+
+		public static bool TryGetElementValueUInt32(XmlElement parent, string elementName, out uint value)
+			=> TryGetElementValue(parent, elementName, out value, Parse_UInt32);
+		public static XmlElement AddElementValueUInt32(XmlElement parent, string elementName, uint value)
+			=> AddElementValue(parent, elementName, value, ToString_UInt32);
 		
 		public static bool TryGetElementValueBool(XmlElement parent, string elementName, out bool value)
 			=> TryGetElementValue(parent, elementName, out value, Parse_Bool);
@@ -172,22 +186,87 @@ namespace Windows10PhotoViewerSucksAss
 			return success;
 		}
 
+		public static void AddElementValueObj(XmlElement parent, string elementName, Type t, object value)
+		{
+			var field = typeof(XmlDocumentHelper).GetFields().FirstOrDefault(x => x.FieldType.GetGenericTypeDefinition() == typeof(ToStringFunc<>) && x.FieldType.GenericTypeArguments[0] == t);
+			if (field == null) throw new Exception($"Unsupported serialization type: {t.FullName}");
+			object to_string_func = field.GetValue(null);
+			var method = typeof(XmlDocumentHelper).GetMethod(nameof(AddElementValue)).MakeGenericMethod(t);
+			var args = new object[] { parent, elementName, value, to_string_func };
+			method.Invoke(null, args);
+		}
+
 		public static void AutoDeserializeSimpleObject(object target, XmlElement element)
 		{
-			var props = target.GetType().GetProperties();
+			var props = target.GetType().GetMembers();
 			foreach (var prop in props)
 			{
-				if (TryGetElementValueObj(element, prop.Name, prop.PropertyType, out object value))
+				Type propertyType;
+				Action<object, object> setter;
+				if (prop is PropertyInfo property)
 				{
-					prop.SetValue(target, value);
+					propertyType = property.PropertyType;
+					setter = (t, x) => property.SetValue(t, x);
+				}
+				else if (prop is FieldInfo field)
+				{
+					propertyType = field.FieldType;
+					setter = (t, x) => field.SetValue(t, x);
+				}
+				else
+				{
+					continue;
+				}
+
+				if (TryGetElementValueObj(element, prop.Name, propertyType, out object value))
+				{
+					setter(target, value);
 				}
 			}
+		}
+
+		public static XmlElement AutoSerializeSimpleObject(XmlElement target, object obj)
+		{
+			if (obj == null) return SetNil(target);
+			var props = obj.GetType().GetMembers();
+			foreach (var prop in props)
+			{
+				Type propertyType;
+				object value;
+				if (prop is PropertyInfo property)
+				{
+					propertyType = property.PropertyType;
+					value = property.GetValue(obj);
+				}
+				else if (prop is FieldInfo field)
+				{
+					propertyType = field.FieldType;
+					value = field.GetValue(obj);
+				}
+				else
+				{
+					continue;
+				}
+
+				if (value == null)
+				{
+					// Can use string to put an xsi:nil element here.
+					AddElementValueString(target, prop.Name, null);
+				}
+				else
+				{
+					AddElementValueObj(target, prop.Name, propertyType, value);
+				}
+			}
+			return target;
 		}
 
 		public static readonly TryParseFunc<string> Parse_String = (string text, out string value) => { value = text; return true; };
 		public static readonly ToStringFunc<string> ToString_String = value => value;
 		public static readonly TryParseFunc<int> Parse_Int32 = (string text, out int value) => Int32.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
 		public static readonly ToStringFunc<int> ToString_Int32 = value => value.ToString(CultureInfo.InvariantCulture);
+		public static readonly TryParseFunc<uint> Parse_UInt32 = (string text, out uint value) => UInt32.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
+		public static readonly ToStringFunc<uint> ToString_UInt32 = value => value.ToString(CultureInfo.InvariantCulture);
 		public static readonly TryParseFunc<bool> Parse_Bool = (string text, out bool value) => Boolean.TryParse(text, out value);
 		public static readonly ToStringFunc<bool> ToString_Bool = value => value.ToString(CultureInfo.InvariantCulture);
 		public static readonly TryParseFunc<float> Parse_Float = (string text, out float value) => Single.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);

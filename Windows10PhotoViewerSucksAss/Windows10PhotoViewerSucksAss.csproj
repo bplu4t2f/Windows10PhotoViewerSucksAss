@@ -94,6 +94,7 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="StartupInfo.cs" />
+    <Compile Include="StashHelper.cs" />
     <Compile Include="TimeBeginPeriod.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="XmlDocumentHelper.cs" />

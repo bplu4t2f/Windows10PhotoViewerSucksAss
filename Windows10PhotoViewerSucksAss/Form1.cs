@@ -340,6 +340,22 @@ namespace Windows10PhotoViewerSucksAss
 		// ==================================================================================================================================================================
 
 
+		protected override void OnLoad(EventArgs e)
+		{
+			base.OnLoad(e);
+
+			// If this process was started by restoring a stash,
+			// then StartupInfo will contain the handle value to a STARTUP_PARAMS file mapping.
+			// Restore that if possible.
+			var value = this.StartupInfo.StartupParamsHandleValue;
+			if (value != null)
+			{
+				Debug.Assert(this.IsHandleCreated);
+				var handle = this.Handle;
+				StashHelper.RestoreStashInfoFromMemory(handle, value);
+			}
+		}
+
 		protected override void OnClosing(CancelEventArgs e)
 		{
 			Settings.WaitSaveCompleted();

@@ -8,10 +8,11 @@ namespace Windows10PhotoViewerSucksAss
 {
 	public class StartupInfo
 	{
-		public StartupInfo(string ApplicationPathForFileAssociationCommand, string FriendlyAppName)
+		public StartupInfo(string ApplicationPathForFileAssociationCommand, string FriendlyAppName, string StartupParamsHandleValue)
 		{
 			this.ApplicationPathForFileAssociationCommand = ApplicationPathForFileAssociationCommand;
 			this.FriendlyAppName = FriendlyAppName;
+			this.StartupParamsHandleValue = StartupParamsHandleValue;
 		}
 
 		/// <summary>
@@ -22,5 +23,9 @@ namespace Windows10PhotoViewerSucksAss
 		/// May be null. In that case no friendly app name is registered.
 		/// </summary>
 		public string FriendlyAppName { get; }
+		/// <summary>
+		/// May be null. This is used to restore the window position using <see cref="StashHelper"/>.
+		/// </summary>
+		public string StartupParamsHandleValue { get; }
 	}
 }
