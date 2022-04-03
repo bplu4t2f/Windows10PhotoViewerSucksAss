@@ -209,16 +209,7 @@ namespace Windows10PhotoViewerSucksAss
 
 				try
 				{
-					// TODO do the thing where we call CreateProcess directly with the inherited handles
-					// https://devblogs.microsoft.com/oldnewthing/20111216-00/?p=8873
-					var psi = new ProcessStartInfo(processFileName, args);
-					// Some donkey decided that UseShellExecute should be the default.
-					// Even though CreateProcess is definitely the more sane way to do literally anything.
-					// We need this for InheritHandles.
-					psi.UseShellExecute = false;
-					using (var process = Process.Start(psi))
-					{
-					}
+					CreateProcessSimple(processFileName, args, new IntPtr[] { hMapping });
 				}
 				finally
 				{
@@ -288,7 +279,7 @@ namespace Windows10PhotoViewerSucksAss
 			SECURITY_ATTRIBUTES sa;
 			sa.nLength = (uint)sizeof(SECURITY_ATTRIBUTES);
 			sa.lpSecurityDescriptor = IntPtr.Zero;
-			sa.bInheritHandle = true;
+			sa.bInheritHandle = -1;
 			IntPtr hMapping = CreateFileMapping(INVALID_HANDLE_VALUE, ref sa, PAGE_READWRITE, 0, (uint)sizeof(STARTUP_PARAMS), IntPtr.Zero);
 			STARTUP_PARAMS* psp = null;
 			if (hMapping != IntPtr.Zero)
@@ -371,7 +362,8 @@ namespace Windows10PhotoViewerSucksAss
 		{
 			public uint nLength;
 			public IntPtr lpSecurityDescriptor;
-			public bool bInheritHandle;
+			// This is originally BOOL but cannot be bool in C# because bool is not blittable.
+			public int bInheritHandle;
 		}
 
 		private struct MEMORY_BASIC_INFORMATION
@@ -428,6 +420,181 @@ namespace Windows10PhotoViewerSucksAss
 				return $"{l},{t},{r},{b}";
 			}
 		}
+
+		private static unsafe void CreateProcessSimple(string ApplicationName, string CommandLineArgs, IntPtr[] handlesToInherit)
+		{
+			var startup_info = new STARTUPINFOW();
+			startup_info.cb = sizeof(STARTUPINFOW);
+			fixed (IntPtr* handles = handlesToInherit)
+			{
+				var pi = new PROCESS_INFORMATION();
+				// Nasty: We pass the FULL command line here, including the actual executable name, which would normally go to argv[0] in a C program...
+				//        If we omit this, the first argument is missing in C#.
+				var realCommandLine = new StringBuilder();
+				CommandLineArgumentQuoting.ArgvQuote(ApplicationName, realCommandLine, false);
+				realCommandLine.Append(" ");
+				realCommandLine.Append(CommandLineArgs);
+				if (CreateProcessWithExplicitHandles(ApplicationName, realCommandLine.ToString(), null, null, true, 0, null, null, ref startup_info, &pi, (uint)handlesToInherit.Length, handles))
+				{
+					CloseHandle(pi.hProcess);
+					CloseHandle(pi.hThread);
+				}
+			}
+		}
+
+		private static unsafe bool CreateProcessWithExplicitHandles(
+			string lpApplicationName,
+			string lpCommandLine,
+			SECURITY_ATTRIBUTES* lpProcessAttributes,
+			SECURITY_ATTRIBUTES* lpThreadAttributes,
+			bool bInheritHandles,
+			uint dwCreationFlags,
+			void* lpEnvironment,
+			string lpCurrentDirectory,
+			ref STARTUPINFOW lpStartupInfo,
+			PROCESS_INFORMATION* lpProcessInformation,
+			// here is the new stuff
+			uint cHandlesToInherit,
+			IntPtr* rgHandlesToInherit
+			)
+		{
+			// https://devblogs.microsoft.com/oldnewthing/20111216-00/?p=8873
+
+			bool fSuccess;
+			bool fInitialized = false;
+			UIntPtr size = UIntPtr.Zero;
+			byte[] attributeListBuffer = null;
+			fSuccess = cHandlesToInherit < 0xFFFFFFFF / sizeof(IntPtr) && lpStartupInfo.cb == sizeof(STARTUPINFOW);
+			if (!fSuccess) {
+				return false;
+			}
+			if (fSuccess) {
+				fSuccess = !InitializeProcThreadAttributeList(null, 1, 0, ref size);
+			}
+			if (fSuccess) {
+				fSuccess = Marshal.GetLastWin32Error() == ERROR_INSUFFICIENT_BUFFER;
+			}
+			if (fSuccess)
+			{
+				attributeListBuffer = new byte[(int)size];
+				fixed (void* lpAttributeList = attributeListBuffer)
+				{
+					fSuccess = InitializeProcThreadAttributeList(lpAttributeList, 1, 0, ref size);
+					if (fSuccess)
+					{
+						fInitialized = true;
+						fSuccess = UpdateProcThreadAttribute(
+							lpAttributeList,
+							0, (UIntPtr)PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
+							rgHandlesToInherit,
+							(UIntPtr)(cHandlesToInherit * sizeof(IntPtr)), null, UIntPtr.Zero
+							);
+					}
+					if (fSuccess)
+					{
+						var info = new STARTUPINFOEXW();
+						info.StartupInfo = lpStartupInfo;
+						info.StartupInfo.cb = sizeof(STARTUPINFOEXW);
+						info.lpAttributeList = lpAttributeList;
+						fSuccess = CreateProcessW(
+							lpApplicationName,
+							lpCommandLine,
+							lpProcessAttributes,
+							lpThreadAttributes,
+							bInheritHandles,
+							dwCreationFlags,
+							lpEnvironment,
+							lpCurrentDirectory,
+							(STARTUPINFOW*)&info,
+							lpProcessInformation
+							);
+						if (!fSuccess)
+						{
+							Debug.WriteLine(new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error()).Message);
+						}
+					}
+					if (fInitialized) DeleteProcThreadAttributeList(lpAttributeList);
+				}
+			}
+			return fSuccess;
+		}
+
+		private unsafe struct STARTUPINFOW
+		{
+			public int cb;
+			public IntPtr lpReserved;
+			public IntPtr lpDesktop;
+			public IntPtr lpTitle;
+			public uint dwX;
+			public uint dwY;
+			public uint dwXSize;
+			public uint dwYSize;
+			public uint dwXCountChars;
+			public uint dwYCountChars;
+			public uint dwFillAttribute;
+			public uint dwFlags;
+			public ushort wShowWindow;
+			public ushort cbReserved2;
+			public byte* lpReserved2;
+			public IntPtr hStdInput;
+			public IntPtr hStdOutput;
+			public IntPtr hStdError;
+		}
+
+		private const int ERROR_INSUFFICIENT_BUFFER = 122;
+
+		private unsafe struct STARTUPINFOEXW
+		{
+			public STARTUPINFOW StartupInfo;
+			public void* lpAttributeList;
+		}
+
+		[DllImport("kernel32.dll", SetLastError = true)]
+		private static extern unsafe bool InitializeProcThreadAttributeList(
+			void* lpAttributeList,
+			uint dwAttributeCount,
+			uint dwFlags,
+			ref UIntPtr lpSize
+		);
+
+		[DllImport("kernel32.dll")]
+		private static extern unsafe void DeleteProcThreadAttributeList(void* lpAttributeList);
+
+		[DllImport("kernel32.dll", SetLastError = true)]
+		private static extern unsafe bool UpdateProcThreadAttribute(
+			void* lpAttributeList,
+			uint dwFlags,
+			UIntPtr Attribute,
+			void* lpValue,
+			UIntPtr cbSize,
+			void* lpPreviousValue,
+			UIntPtr lpReturnSize
+		);
+
+		[DllImport("kernel32.dll", SetLastError = true)]
+		private static extern unsafe bool CreateProcessW(
+			[MarshalAs(UnmanagedType.LPWStr)] string                lpApplicationName,
+			[MarshalAs(UnmanagedType.LPWStr)] string                lpCommandLine,
+			SECURITY_ATTRIBUTES*  lpProcessAttributes,
+			SECURITY_ATTRIBUTES*  lpThreadAttributes,
+			bool                  bInheritHandles,
+			uint                  dwCreationFlags,
+			void*                 lpEnvironment,
+			[MarshalAs(UnmanagedType.LPWStr)] string                lpCurrentDirectory,
+			STARTUPINFOW*         lpStartupInfo,
+			PROCESS_INFORMATION*  lpProcessInformation
+		);
+
+		private struct PROCESS_INFORMATION
+		{
+			public IntPtr hProcess;
+			public IntPtr hThread;
+			public uint dwProcessId;
+			public uint dwThreadId;
+		}
+
+		private const uint PROC_THREAD_ATTRIBUTE_HANDLE_LIST = 0x00020002;
+		private const uint EXTENDED_STARTUPINFO_PRESENT = 0x00080000;
 
 		[Flags()]
 		private enum SetWindowPosFlags : uint
