@@ -54,6 +54,7 @@
   <ItemGroup>
     <Compile Include="BootstrapData.cs" />
     <Compile Include="Bootstrapping.cs" />
+    <Compile Include="CommandLineArgumentQuoting.cs" />
     <Compile Include="DifferentButton.cs">
       <SubType>Component</SubType>
     </Compile>

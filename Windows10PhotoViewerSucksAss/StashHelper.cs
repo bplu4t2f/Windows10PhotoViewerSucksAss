@@ -199,9 +199,13 @@ namespace Windows10PhotoViewerSucksAss
 
 				startup_params->Placement = item.Placement;
 
-				var args = "\"" + item.Path + "\""; // This is only correct because quotes can't be in a path string on Windows. If we had to do this correctly, we'd go insane: https://docs.microsoft.com/en-gb/archive/blogs/twistylittlepassagesallalike/everyone-quotes-command-line-arguments-the-wrong-way
-				args += " " + Program.GUID_StartupParams;
-				args += " " + WrapStartupParamsHandleValue(hMapping);
+				var commandLine = new StringBuilder();
+				CommandLineArgumentQuoting.ArgvQuote(item.Path, commandLine, false);
+				commandLine.Append(" ");
+				commandLine.Append(Program.GUID_StartupParams);
+				commandLine.Append(" ");
+				commandLine.Append(WrapStartupParamsHandleValue(hMapping));
+				string args = commandLine.ToString();
 
 				try
 				{
