@@ -20,6 +20,11 @@ namespace Windows10PhotoViewerSucksAss
 		private static readonly byte[] jpeg = new byte[] { 0xFF, 0xD8, 0xFF };        // JPEG JFIF (SOI "\xFF\xD8" and half next marker xFF)
 		private static readonly byte[] jpegEnd = new byte[] { 0xFF, 0xD9 };           // JPEG EOI "\xFF\xD9"
 
+		// NOTE: ico/cur support is currently very funky... but at least there is an attempt!
+		private static readonly byte[] cur = new byte[] { 0x00, 0x00, 0x01, 0x00 };           // .CUR
+		private static readonly byte[] ico = new byte[] { 0x00, 0x00, 0x02, 0x00 };           // .ICO
+
+
 		public static Image LoadFromFile(string file, out int fileError, out bool notAnImageFile)
 		{
 			using (var fileStream = FileIO.OpenRead(out fileError, file))
@@ -68,7 +73,9 @@ namespace Windows10PhotoViewerSucksAss
 					ByteArrayStartsWith(buffer, gif89a) ||
 					ByteArrayStartsWith(buffer, png) ||
 					ByteArrayStartsWith(buffer, tiffI) ||
-					ByteArrayStartsWith(buffer, tiffM))
+					ByteArrayStartsWith(buffer, tiffM) ||
+					ByteArrayStartsWith(buffer, cur) || 
+					ByteArrayStartsWith(buffer, ico))
 				{
 					return true;
 				}
