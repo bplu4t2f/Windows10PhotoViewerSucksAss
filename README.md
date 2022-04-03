@@ -23,6 +23,8 @@ This program exists because the standard Windows 10 photo viewer sucks so much a
 | F5 | Refresh file list |
 | F2 | Rename file |
 | Del | Move to recycle bin |
+| F8 | Stash (save open windows to file) |
+| F9 | Restore (open windows from stash file) |
 
 Hold CTRL while dragging from the image window to copy the file somewhere via drag and drop.
 
