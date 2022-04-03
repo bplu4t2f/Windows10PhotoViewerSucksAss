@@ -76,7 +76,7 @@ namespace Windows10PhotoViewerSucksAss
 									placement.length = (uint)sizeof(WINDOWPLACEMENT);
 									if (GetWindowPlacement(hWnd, ref placement))
 									{
-										infoList.Add(new StashInfo() { Path = path, Placement = placement });
+										infoList.Add(new StashInfo() { OriginalWindowHandle = hWnd, Path = path, Placement = placement });
 									}
 								}
 							}
@@ -549,6 +549,10 @@ namespace Windows10PhotoViewerSucksAss
 
 	sealed class StashInfo
 	{
+		/// <summary>
+		/// This can be used to close the window after stashing.
+		/// </summary>
+		public IntPtr OriginalWindowHandle { get; set; }
 		public string Path { get; set; }
 		public StashHelper.WINDOWPLACEMENT Placement { get; set; }
 

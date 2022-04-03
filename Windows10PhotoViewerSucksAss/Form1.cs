@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -1295,17 +1296,40 @@ namespace Windows10PhotoViewerSucksAss
 				Debug.Assert(stashInfoList != null);
 			}
 
-			using (var dialog = new SaveFileDialog())
+			try
 			{
-				dialog.Title = "Save windows to stash file";
-				dialog.Filter = "Image Viewer Stash|*.stash|All files|*.*";
-				if (dialog.ShowDialog() == DialogResult.OK)
+				using (var dialog = new SaveFileDialog())
 				{
-					var fileName = dialog.FileName;
-					StashHelper.SaveStash(fileName, stashInfoList);
+					dialog.Title = "Save windows to stash file";
+					dialog.Filter = "Image Viewer Stash|*.stash|All files|*.*";
+					if (dialog.ShowDialog() == DialogResult.OK)
+					{
+						var fileName = dialog.FileName;
+						StashHelper.SaveStash(fileName, stashInfoList);
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine(ex.ToString());
+				MessageBox.Show("Saving the stash file failed." + Environment.NewLine + ex.Message);
+				return;
+			}
+
+			if (MessageBox.Show("Stash file saved successfully. Do you want to close the stashed windows?", "Stashing successful", MessageBoxButtons.YesNo) == DialogResult.Yes)
+			{
+				foreach (var item in stashInfoList)
+				{
+					PostMessage(item.OriginalWindowHandle, WM_SYSCOMMAND, (IntPtr)SC_CLOSE, IntPtr.Zero);
 				}
 			}
 		}
+
+		private const int WM_SYSCOMMAND = 0x0112;
+		private const int SC_CLOSE = 0xF060;
+
+		[DllImport("user32.dll")]
+		private static extern IntPtr PostMessage(IntPtr hWnd, int message, IntPtr wParam, IntPtr lParam);
 
 		private void HandleMenuRestoreFromStash(object sender, EventArgs e)
 		{
@@ -1315,36 +1339,44 @@ namespace Windows10PhotoViewerSucksAss
 		private void ShowRestoreFromStashDialog()
 		{
 			List<StashInfo> stash;
-			using (var dialog = new OpenFileDialog())
+			try
 			{
-				dialog.Title = "Restore windows from stash file";
-				dialog.Filter = "Image Viewer Stash|*.stash|All files|*.*";
-				if (dialog.ShowDialog() != DialogResult.OK)
+				using (var dialog = new OpenFileDialog())
 				{
+					dialog.Title = "Restore windows from stash file";
+					dialog.Filter = "Image Viewer Stash|*.stash|All files|*.*";
+					if (dialog.ShowDialog() != DialogResult.OK)
+					{
+						return;
+					}
+					string fileName = dialog.FileName;
+					stash = StashHelper.LoadStash(fileName);
+				}
+
+				if (stash == null)
+				{
+					MessageBox.Show("The stash file cannot be loaded because it doesn't seem to be a valid image stash file.");
 					return;
 				}
-				string fileName = dialog.FileName;
-				stash = StashHelper.LoadStash(fileName);
-			}
 
-			if (stash == null)
-			{
-				MessageBox.Show("The stash file cannot be loaded because it doesn't seem to be a valid image stash file.");
-				return;
-			}
+				using (var form = new StashOptionsForm(stash, "Select the windows which should be restored from the stash file."))
+				{
+					form.Font = this.Font;
+					if (form.ShowDialog() != DialogResult.OK) return;
+					stash = form.SelectedItems;
+					Debug.Assert(stash != null);
+				}
 
-			using (var form = new StashOptionsForm(stash, "Select the windows which should be restored from the stash file."))
-			{
-				form.Font = this.Font;
-				if (form.ShowDialog() != DialogResult.OK) return;
-				stash = form.SelectedItems;
-				Debug.Assert(stash != null);
+				if (!StashHelper.RestoreStash(stash, out var failedItems))
+				{
+					Debug.Assert(failedItems != null);
+					MessageBox.Show("For one reason or another, it was not possible to restore the following items from the stash:" + Environment.NewLine + String.Join(Environment.NewLine, failedItems));
+				}
 			}
-
-			if (!StashHelper.RestoreStash(stash, out var failedItems))
+			catch (Exception ex)
 			{
-				Debug.Assert(failedItems != null);
-				MessageBox.Show("For one reason or another, it was not possible to restore the following items from the stash:" + Environment.NewLine + String.Join(Environment.NewLine, failedItems));
+				Debug.WriteLine(ex.ToString());
+				MessageBox.Show("Error restoring stash from file." + Environment.NewLine + ex.Message);
 			}
 		}
 	}
