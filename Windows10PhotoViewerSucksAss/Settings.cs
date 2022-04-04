@@ -211,6 +211,11 @@ namespace Windows10PhotoViewerSucksAss
 			}
 			if (TryGetElementValueInt32(parent, elementName, out int argb))
 			{
+				if (argb == 0)
+				{
+					color = Color.Empty;
+					return true;
+				}
 				color = Color.FromArgb(argb);
 				return true;
 			}
