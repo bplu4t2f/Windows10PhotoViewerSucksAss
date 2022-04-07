@@ -71,7 +71,7 @@ namespace Windows10PhotoViewerSucksAss
 		public void ScrollList(int amount)
 		{
 			var maximum = this.availableFiles?.Count ?? 0;
-			this.scrollBar.ScrollValue = Math.Min(Math.Max(this.scrollBar.ScrollValue + amount, 0), maximum);
+			this.scrollBar.ScrollValue = Math.Max(Math.Min(this.scrollBar.ScrollValue + amount, maximum - 1), 0);
 			this.Invalidate();
 		}
 
@@ -80,14 +80,14 @@ namespace Windows10PhotoViewerSucksAss
 			this.selectedIndex = index;
 			this.Invalidate();
 
-			// Scroll control into center
+			// Scroll selected index into center
 			if (scrollSelectedItemIntoView)
 			{
 				int lineHeight = this.GetLineHeight();
 				int linesOnScreen = this.Height / lineHeight;
 				int scrollPos_ideal = index - linesOnScreen / 2;
-				int scrollPos_actual = Math.Min(Math.Max(scrollPos_ideal, 0), this.availableFiles.Count);
-				this.scrollBar.ScrollValue = scrollPos_actual;
+				var maximum = this.availableFiles?.Count ?? 0;
+				this.scrollBar.ScrollValue = Math.Max(Math.Min(scrollPos_ideal, maximum - 1), 0);
 			}
 		}
 

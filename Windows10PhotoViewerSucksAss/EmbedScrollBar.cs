@@ -134,6 +134,7 @@ namespace Windows10PhotoViewerSucksAss
 			}
 			else
 			{
+				// TODO limit thumb to 0..TotalScrollableDistance...?
 				ThumbPosRelativeToTrackStart = (int)((float)ScrollValue / TotalScrollableDistance * Metrics.TrackSpaceAvailableForThumbMovement);
 			}
 			Metrics.ThumbStart = ThumbPosRelativeToTrackStart + Metrics.TrackStart;
