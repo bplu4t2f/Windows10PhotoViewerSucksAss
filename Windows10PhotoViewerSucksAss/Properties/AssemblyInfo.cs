@@ -32,5 +32,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.9.2")]
-[assembly: AssemblyFileVersion("1.9.2")] // If you don't do this explicitly, ApplicationProductVersion would default to "1.7.2.0" (appending the ".0") even thoug it's not defined in AssemblyVersion.
+[assembly: AssemblyVersion("1.9.3")]
+[assembly: AssemblyFileVersion("1.9.3")] // If you don't do this explicitly, ApplicationProductVersion would default to "1.7.2.0" (appending the ".0") even thoug it's not defined in AssemblyVersion.
