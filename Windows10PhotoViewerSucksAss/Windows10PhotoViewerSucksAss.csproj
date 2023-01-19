@@ -43,6 +43,9 @@
   <PropertyGroup>
     <ApplicationIcon>generic_picture.ico</ApplicationIcon>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -126,6 +129,7 @@
     <EmbeddedResource Include="StashOptionsForm.resx">
       <DependentUpon>StashOptionsForm.cs</DependentUpon>
     </EmbeddedResource>
+    <None Include="app.manifest" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
